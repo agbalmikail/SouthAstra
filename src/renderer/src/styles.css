@@ -668,3 +668,14 @@ table.grid td.uncertain, td.uncertain { opacity: 0.55; }
 .btn.small { padding: 4px 10px; font-size: 12.5px; }
 .print-page .learn-item { border-bottom-color: #e3e6ec; padding: 3px 0 4px; }
 .print-page .learn-item p { font-size: 8.6px; }
+
+/* Öne çıkanlar */
+.highlights { display: flex; flex-direction: column; gap: 4px; }
+.hl-intro { line-height: 1.55; margin: 0 0 6px; }
+.hl-item { border-bottom: 1px solid var(--line); padding: 7px 0 8px; break-inside: avoid; }
+.hl-title { font-weight: 600; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.hl-meaning { margin: 3px 0 0; line-height: 1.5; }
+.hl-rule { margin: 3px 0 0; font-size: 12px; color: var(--muted); }
+.print-page .hl-item { border-bottom-color: #e3e6ec; padding: 3px 0 4px; }
+.print-page .hl-meaning, .print-page .hl-intro { font-size: 8.8px; }
+.print-page .hl-rule { font-size: 8px; color: #646d7e; }

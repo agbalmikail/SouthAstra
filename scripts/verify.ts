@@ -11,6 +11,7 @@ import { isNewer } from '../src/shared/version'
 import { essentialDignities, faceRuler, sectUnknown, termRuler, tripRuler } from '../src/shared/dignities'
 import { midpointHits } from '../src/shared/factors'
 import { firdaria, profections } from '../src/shared/timelords'
+import { chartHighlights, ANGLE_ORB, TIGHT_ORB } from '../src/shared/highlights'
 import { aspectPatterns } from '../src/shared/patterns'
 import type { ChartResult } from '../src/shared/types'
 import { toUtc } from '../src/main/time'
@@ -200,6 +201,29 @@ console.log('\n— Taşınma ve dönüş yeri')
   const srBer = view(base, { mode: 'solarreturn', date: '2030-01-01T00:00:00Z', place: berlin }).inner
   const hs = sweph.houses_ex2(srBer.jdUt, 0, berlin.lat, berlin.lon, 'P').data
   ok(Math.abs(srHome.jdUt - srBer.jdUt) < 1e-9 && separation(srBer.angles.asc, hs.points[0]) < 1e-9 && separation(srBer.angles.asc, srHome.angles.asc) > 1, 'Güneş dönüşü Berlin\'de: dönüş anı aynı, evler Berlin\'e göre')
+}
+
+console.log('\n— Öne çıkanlar (kural tabanlı özet)')
+{
+  const hs = chartHighlights(natal, 'traditional')
+  const ten = natal.points.filter((p) => ['sun', 'moon', 'mercury', 'venus', 'mars', 'jupiter', 'saturn', 'uranus', 'neptune', 'pluto'].includes(p.id))
+  const el = [0, 0, 0, 0]
+  for (const p of ten) el[Math.floor(p.lon / 30) % 4]++
+  const e = hs.find((h) => h.id === 'elements')!
+  ok(e.rule.includes(`Ateş ${el[0]} · Toprak ${el[1]} · Hava ${el[2]} · Su ${el[3]}`) && el.reduce((x, y) => x + y) === 10, `Element sayımı bağımsız sayımla aynı (Ateş ${el[0]}, Toprak ${el[1]}, Hava ${el[2]}, Su ${el[3]})`)
+  const d = (a: number, b: number) => Math.abs(((a - b + 540) % 360) - 180)
+  const angs = [natal.angles.asc, natal.angles.asc + 180, natal.angles.mc, natal.angles.mc + 180]
+  const expectAng = ten.flatMap((p) => angs.filter((x) => d(p.lon, x) <= ANGLE_ORB).map(() => p.id)).sort().join()
+  const gotAng = hs.filter((h) => h.group === 'Köşeler').map((h) => h.points[0]).sort().join()
+  ok(expectAng === gotAng, `Köşelere ${ANGLE_ORB}°'den yakın gezegenler eksiksiz ve fazlasız: ${gotAng || 'yok'}`)
+  const MAIN = ['sun', 'moon', 'mercury', 'venus', 'mars', 'jupiter', 'saturn', 'uranus', 'neptune', 'pluto', 'asc', 'mc']
+  const expectTight = natal.aspects.filter((a) => ['conjunction', 'opposition', 'square', 'trine', 'sextile'].includes(a.type) && a.orb < TIGHT_ORB && MAIN.includes(a.a) && MAIN.includes(a.b)).length
+  ok(hs.filter((h) => h.group === 'Açılar').length === expectTight, `${TIGHT_ORB}°'den dar majör açıların hepsi listede (${expectTight})`)
+  const RULER = ['mars', 'venus', 'mercury', 'moon', 'sun', 'mercury', 'venus', 'mars', 'jupiter', 'saturn', 'saturn', 'jupiter']
+  ok(hs.some((h) => h.id === 'ruler-' + RULER[Math.floor(natal.angles.asc / 30)]), `Harita yöneticisi yükselen burcun geleneksel yöneticisi (${RULER[Math.floor(natal.angles.asc / 30)]})`)
+  const ux = chartHighlights(natalChart({ ...base, date: '1975-11-02', time: '12:00', timeUnknown: true }))
+  ok(!ux.some((h) => h.group === 'Köşeler' || h.id.startsWith('ruler-')) && ux.some((h) => h.id === 'big3' && !h.title.includes('Yükselen')), 'Saat bilinmiyorsa köşe, harita yöneticisi ve yükselen maddesi üretilmiyor')
+  ok(hs.every((h) => h.title && h.rule), `Her maddede başlık ve kural var (${hs.length} madde)`)
 }
 
 console.log('\n— Ay düğümü (bağımsız formül)')

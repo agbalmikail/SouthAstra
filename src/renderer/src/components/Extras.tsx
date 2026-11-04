@@ -242,20 +242,20 @@ export function EclipsePanel({ input, chart, print, preloaded }: { input: ChartI
 
 // ——— PDF seçenekleri ———
 
-export type PdfSections = { chart: boolean; positions: boolean; aspects: boolean; analysis: boolean; timelords: boolean; eclipses: boolean; rectify: boolean; transits: boolean; technical: boolean; learning: boolean; interpretations: boolean; notes: boolean }
-export const DEFAULT_PDF: PdfSections = { chart: true, positions: true, aspects: true, analysis: true, timelords: false, eclipses: false, rectify: false, transits: true, technical: true, learning: false, interpretations: true, notes: false }
+export type PdfSections = { chart: boolean; positions: boolean; aspects: boolean; analysis: boolean; timelords: boolean; eclipses: boolean; rectify: boolean; transits: boolean; technical: boolean; learning: boolean; highlights: boolean; interpretations: boolean; notes: boolean }
+export const DEFAULT_PDF: PdfSections = { chart: true, positions: true, aspects: true, analysis: true, timelords: false, eclipses: false, rectify: false, transits: true, technical: true, learning: false, highlights: true, interpretations: true, notes: false }
 
 const PDF_PRESETS: Record<string, { name: string; hint: string; on: (keyof PdfSections)[] }> = {
-  basic: { name: 'Temel', hint: 'Harita, konumlar, ana açılar ve kısa açıklamalar', on: ['chart', 'positions', 'aspects', 'learning'] },
-  pro: { name: 'Profesyonel', hint: 'Ayrıntılı tablolar, analiz, geleneksel teknikler, transit raporu ve teknik ek', on: ['chart', 'positions', 'aspects', 'analysis', 'timelords', 'eclipses', 'transits', 'interpretations', 'technical'] },
-  learn: { name: 'Öğrenme', hint: 'Temel teknik veriler, sembol açıklamaları, kendi yorumlarınız, belirsizlik ve yöntem notları', on: ['chart', 'positions', 'learning', 'interpretations', 'technical'] }
+  basic: { name: 'Temel', hint: 'Harita, konumlar, ana açılar ve kısa açıklamalar', on: ['chart', 'highlights', 'positions', 'aspects', 'learning'] },
+  pro: { name: 'Profesyonel', hint: 'Ayrıntılı tablolar, analiz, geleneksel teknikler, transit raporu ve teknik ek', on: ['chart', 'highlights', 'positions', 'aspects', 'analysis', 'timelords', 'eclipses', 'transits', 'interpretations', 'technical'] },
+  learn: { name: 'Öğrenme', hint: 'Temel teknik veriler, sembol açıklamaları, kendi yorumlarınız, belirsizlik ve yöntem notları', on: ['chart', 'highlights', 'positions', 'learning', 'interpretations', 'technical'] }
 }
 
 export function PdfDialog({ initial, available, onCancel, onExport }: { initial: PdfSections; available: (keyof PdfSections)[]; onCancel: () => void; onExport: (s: PdfSections) => void }) {
   const [s, setS] = useState(initial)
   const LABELS: Record<keyof PdfSections, string> = {
     chart: 'Harita çarkı ve doğum bilgileri', positions: 'Konumlar (gezegenler, evler)', aspects: 'Açılar',
-    analysis: 'Analiz (dağılım, orta noktalar, sabit yıldızlar)', timelords: 'Profeksiyon ve firdaria (paneldeki ayarlarla)', eclipses: 'Tutulmalar (paneldeki tarih aralığıyla)', rectify: 'Doğum saati aralığı (paneldeki saatlerle)', transits: 'Transit raporu: öne çıkanlar, zaman çizelgesi, liste (paneldeki aralık ve filtrelerle)', technical: 'Teknik ek (efemeris, saat dilimi, orblar, sürüm)', learning: 'Öğrenme: sembollerin geleneksel anlamları (yeni başlayanlar için)',
+    analysis: 'Analiz (dağılım, orta noktalar, sabit yıldızlar)', timelords: 'Profeksiyon ve firdaria (paneldeki ayarlarla)', eclipses: 'Tutulmalar (paneldeki tarih aralığıyla)', rectify: 'Doğum saati aralığı (paneldeki saatlerle)', transits: 'Transit raporu: öne çıkanlar, zaman çizelgesi, liste (paneldeki aralık ve filtrelerle)', technical: 'Teknik ek (efemeris, saat dilimi, orblar, sürüm)', learning: 'Öğrenme: sembollerin geleneksel anlamları (yeni başlayanlar için)', highlights: 'Öne çıkanlar: kural tabanlı özet (düz dille)',
     interpretations: 'Yorumlarım (kütüphaneden)', notes: 'Notlar ve seans notları (danışana verilecekse kapalı tutun)'
   }
   return (

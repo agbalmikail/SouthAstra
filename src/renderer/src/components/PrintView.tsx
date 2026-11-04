@@ -8,6 +8,7 @@ import { AspectGrid, AspectList, CrossList, HouseTable, PLANET_LEGEND, PlanetTab
 import { Distribution, LotsTable, RectifyTable, StarsTable } from './Analysis'
 import { getPanelParams } from '../panelParams'
 import { LearnPanel } from './LearnPanel'
+import { HighlightsPanel } from './HighlightsPanel'
 import { TechnicalAppendix, TransitSummary, TransitTable, TransitTimeline } from './PrintExtras'
 import { TimeLordsPanel } from './TimeLords'
 import { EclipsePanel, MidpointsPanel, PatternsBlock, TraditionalPanel, type PdfSections } from './Extras'
@@ -150,6 +151,12 @@ export default function PrintView({ view, sections, library, transits, eclipses,
           <Summary chart={c} />
           {c.warnings.length > 0 && <div className="p-notes">{c.warnings.map((w, k) => <p key={k}>{w}</p>)}</div>}
         </section>
+      )}
+
+      {sections.highlights && (
+        <Section title="Öne çıkanlar" who={who}>
+          <HighlightsPanel chart={c} rulership={settings.rulership} print />
+        </Section>
       )}
 
       {sections.positions && (
