@@ -236,14 +236,14 @@ export function EclipsePanel({ input, chart }: { input: ChartInput; chart: Chart
 
 // ——— PDF seçenekleri ———
 
-export type PdfSections = { chart: boolean; positions: boolean; aspects: boolean; analysis: boolean; transits: boolean; interpretations: boolean; notes: boolean }
-export const DEFAULT_PDF: PdfSections = { chart: true, positions: true, aspects: true, analysis: true, transits: true, interpretations: true, notes: false }
+export type PdfSections = { chart: boolean; positions: boolean; aspects: boolean; analysis: boolean; timelords: boolean; transits: boolean; interpretations: boolean; notes: boolean }
+export const DEFAULT_PDF: PdfSections = { chart: true, positions: true, aspects: true, analysis: true, timelords: false, transits: true, interpretations: true, notes: false }
 
 export function PdfDialog({ initial, available, onCancel, onExport }: { initial: PdfSections; available: (keyof PdfSections)[]; onCancel: () => void; onExport: (s: PdfSections) => void }) {
   const [s, setS] = useState(initial)
   const LABELS: Record<keyof PdfSections, string> = {
     chart: 'Harita çarkı ve doğum bilgileri', positions: 'Konumlar (gezegenler, evler)', aspects: 'Açılar',
-    analysis: 'Analiz (dağılım, orta noktalar, sabit yıldızlar)', transits: 'Transit listesi (12 ay)',
+    analysis: 'Analiz (dağılım, orta noktalar, sabit yıldızlar)', timelords: 'Profeksiyon ve firdaria', transits: 'Transit listesi (12 ay)',
     interpretations: 'Yorumlarım (kütüphaneden)', notes: 'Notlar ve seans notları (danışana verilecekse kapalı tutun)'
   }
   return (

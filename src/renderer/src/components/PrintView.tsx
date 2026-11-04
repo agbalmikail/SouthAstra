@@ -6,6 +6,7 @@ import { chartFactors } from '@shared/factors'
 import Wheel from './Wheel'
 import { AspectGrid, AspectList, CrossList, HouseTable, PLANET_LEGEND, PlanetTable } from './Tables'
 import { Distribution, LotsTable, StarsTable } from './Analysis'
+import { TimeLordsPanel } from './TimeLords'
 import { MidpointsPanel, PatternsBlock, TraditionalPanel, type PdfSections } from './Extras'
 import { fmtDateTr, fmtOffset } from '../format'
 import logoMark from '../assets/logo-mark.svg'
@@ -178,6 +179,12 @@ export default function PrintView({ view, sections, library, transits, modeName,
             <div className="p-cols2"><MidpointsPanel chart={c} initialOrb={1} /></div>
           </Section>
         </>
+      )}
+
+      {sections.timelords && c.kind === 'natal' && (
+        <Section title="Profeksiyon ve firdaria" who={who}>
+          <TimeLordsPanel chart={c} print />
+        </Section>
       )}
 
       {sections.transits && transits && transits.length > 0 && (

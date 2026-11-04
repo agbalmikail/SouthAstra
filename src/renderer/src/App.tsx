@@ -9,6 +9,7 @@ import SettingsModal from './components/SettingsModal'
 import PrintView from './components/PrintView'
 import { DateBar, ShiftBar } from './components/TimeBar'
 import { AspectGrid, AspectList, CrossList, HouseTable, PlanetTable } from './components/Tables'
+import { TimeLordsPanel } from './components/TimeLords'
 import { Distribution, HouseCompare, LotsTable, PlanetDetail, RectifyPanel, StarsTable, TransitListPanel } from './components/Analysis'
 import { DEFAULT_PDF, EclipsePanel, EventsPanel, InterpretPanel, LibraryModal, MidpointsPanel, PatternsBlock, PdfDialog, SessionsPanel, TraditionalPanel, type PdfSections } from './components/Extras'
 import { AcgMap, AcgPanel } from './components/AcgMap'
@@ -41,7 +42,7 @@ function tabsFor(mode: ViewMode, a: string, b: string): { main: Tab[]; more: Tab
   switch (mode) {
     case 'natal': return {
       main: [T('planets', 'Gezegenler'), T('aspects', 'Açılar'), T('grid', 'Tablo'), T('houses', 'Evler'), T('interpret', 'Yorum')],
-      more: [T('analysis', 'Analiz ve kalıplar'), T('traditional', 'Geleneksel (dignite)'), T('midpoints', 'Orta noktalar'), T('eclipses', 'Tutulmalar'), T('compare', 'Ev sistemleri'), T('rectify', 'Saat aralığı'), T('events', 'Hayat olayları'), T('sessions', 'Seans notları')]
+      more: [T('analysis', 'Analiz ve kalıplar'), T('traditional', 'Geleneksel (dignite)'), T('timelords', 'Profeksiyon ve firdaria'), T('midpoints', 'Orta noktalar'), T('eclipses', 'Tutulmalar'), T('compare', 'Ev sistemleri'), T('rectify', 'Saat aralığı'), T('events', 'Hayat olayları'), T('sessions', 'Seans notları')]
     }
     case 'relocated': return { main: [T('planets', 'Gezegenler'), T('aspects', 'Açılar'), T('houses', 'Evler'), T('interpret', 'Yorum')], more: [T('analysis', 'Analiz ve kalıplar'), T('compare', 'Ev sistemleri')] }
     case 'draconic': case 'composite': return {
@@ -249,6 +250,7 @@ export default function App() {
   const pdfAvailable: (keyof PdfSections)[] = [
     'chart', 'positions', 'aspects',
     ...(single && mode !== 'harmonic' ? ['analysis' as const] : []),
+    ...(mode === 'natal' ? ['timelords' as const] : []),
     ...(mode === 'transit' ? ['transits' as const] : []),
     ...(natalLike ? ['interpretations' as const] : []),
     'notes'
@@ -349,6 +351,7 @@ export default function App() {
       case 'cross': return outer ? <CrossList outer={outer} inner={inner} cross={view.cross} showMinor={showMinor} hovered={hovered} onHover={setHovered} /> : null
       case 'analysis': return <><PatternsBlock chart={inner} /><Distribution chart={inner} /><div className="cap">Arap noktaları</div><LotsTable chart={inner} /><div className="cap">Sabit yıldız kavuşumları</div><StarsTable chart={inner} orb={settings.fixedStarOrb} /></>
       case 'traditional': return <TraditionalPanel chart={inner} />
+      case 'timelords': return <TimeLordsPanel chart={inner} at={new Date(dateMs)} />
       case 'events': return input ? <EventsPanel input={input} canSave={!!currentId} onChange={saveEvents} onOpen={openEvent} /> : null
       case 'midpoints': return <MidpointsPanel chart={inner} />
       case 'interpret': return <InterpretPanel chart={inner} library={library} onSave={saveInterp} />

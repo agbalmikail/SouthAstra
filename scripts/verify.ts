@@ -10,6 +10,7 @@ import { loadCities, searchCities } from '../src/main/cities'
 import { isNewer } from '../src/shared/version'
 import { essentialDignities, faceRuler, termRuler, tripRuler } from '../src/shared/dignities'
 import { midpointHits } from '../src/shared/factors'
+import { firdaria, profections } from '../src/shared/timelords'
 import { aspectPatterns } from '../src/shared/patterns'
 import type { ChartResult } from '../src/shared/types'
 import { toUtc } from '../src/main/time'
@@ -197,6 +198,25 @@ console.log('\n— Taşınma ve dönüş yeri')
   const srBer = view(base, { mode: 'solarreturn', date: '2030-01-01T00:00:00Z', place: berlin }).inner
   const hs = sweph.houses_ex2(srBer.jdUt, 0, berlin.lat, berlin.lon, 'P').data
   ok(Math.abs(srHome.jdUt - srBer.jdUt) < 1e-9 && separation(srBer.angles.asc, hs.points[0]) < 1e-9 && separation(srBer.angles.asc, srHome.angles.asc) > 1, 'Güneş dönüşü Berlin\'de: dönüş anı aynı, evler Berlin\'e göre')
+}
+
+console.log('\n— Zaman yöneticileri: profeksiyon ve firdaria')
+{
+  const bms = Date.parse(natal.utc)
+  const pr = profections(natal, bms, 0, 24)
+  const ascS = Math.floor(natal.angles.asc / 30)
+  ok(pr[0].sign === ascS && pr[12].sign === ascS && pr[1].sign === (ascS + 1) % 12 && pr[0].house === 1 && pr[13].house === 2, 'Profeksiyon: 0 ve 12 yaşta yükselen burcu, 1 yaşta bir sonraki burç; 13 yaşta 2. ev')
+  const fd = firdaria(natal, bms, 1)
+  const total = fd.reduce((s, x) => s + x.major.years, 0)
+  ok(total === 75, `Firdaria: bir tur ${total} yıl (beklenen 75)`)
+  ok(fd[0].major.lord === (natal.isDay ? 'sun' : 'moon') && fd[7].major.lord === 'northnode' && fd[8].major.lord === 'southnode', `Firdaria: ${natal.isDay ? 'gündüz' : 'gece'} haritası ${natal.isDay ? 'Güneş' : 'Ay'} ile başlıyor, düğümler sonda`)
+  ok(new Date(pr[20].from).getUTCDate() === new Date(bms).getUTCDate() && new Date(pr[20].from).getUTCMonth() === new Date(bms).getUTCMonth(), 'Profeksiyon: yıl doğum gününde başlıyor (takvim yıl dönümü)')
+  const night = { ...natal, points: natal.points.map((p) => (p.id === 'sun' ? { ...p, altitude: -10 } : p)) }
+  const fn = firdaria(night, bms, 1).map((x) => x.major.lord).join(',')
+  const fb = firdaria(night, bms, 1, 'afterMars').map((x) => x.major.lord).join(',')
+  ok(fn === 'moon,saturn,jupiter,mars,sun,venus,mercury,northnode,southnode' && fb === 'moon,saturn,jupiter,mars,northnode,southnode,sun,venus,mercury', 'Firdaria: gece sırası (Abu Ma\'shar: düğümler sonda; Bonatti: Mars\'tan sonra)')
+  ok(fd.slice(0, 7).every((x) => x.subs.length === 7 && x.subs[0].sub === x.major.lord && Math.abs(+x.subs[6].to - +x.major.to) < 1000), 'Firdaria: her gezegen dönemi 7 alt dönem; ilk alt dönem dönemin kendi yöneticisi')
+  ok(fd[0].subs.map((x) => x.sub).join(',') === (natal.isDay ? 'sun,venus,mercury,moon,saturn,jupiter,mars' : 'moon,saturn,jupiter,mars,sun,venus,mercury'), 'Firdaria: alt dönemler Kalde sırasıyla ilerliyor')
 }
 
 console.log('\n— Sideral zodyak')
