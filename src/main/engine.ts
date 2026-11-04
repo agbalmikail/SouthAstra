@@ -473,6 +473,7 @@ function addTimeSensitivity(ch: ChartResult, jd: number) {
     check('asc', t('Yükselen'), ch.angles.asc, ascSpeed, 10)
     check('mc', 'MC', ch.angles.mc, mcSpeed, 10)
   }
+  scanTimeChanges(ch, jd)
   if (!sens.length) return
   ch.sensitivity = sens
   for (const x of sens) {
@@ -481,6 +482,61 @@ function addTimeSensitivity(ch: ChartResult, jd: number) {
       ? t('Saat duyarlılığı: {name} burç sınırına çok yakın ({sign}). Doğum saati yaklaşık {min} dakika geç olsaydı {name} {other} burcunda olurdu. Saat kaydının kaynağını (Rodden) dikkate alın.', vars)
       : t('Saat duyarlılığı: {name} burç sınırına çok yakın ({sign}). Doğum saati yaklaşık {min} dakika erken olsaydı {name} {other} burcunda olurdu. Saat kaydının kaynağını (Rodden) dikkate alın.', vars))
   }
+}
+
+/**
+ * Saat duyarlılığı taraması (doğum saati ±60 dk, 1 dk adım): yükselen/MC burcu, gezegenlerin evleri, Şans Noktası'nın
+ * burcu ve evi, yükselen ve MC ile açıların oluşması/kaybolması. Her öğe için ilk değişimin kaç dakika erken veya geç
+ * doğumda olduğu kaydedilir. Ay'ın konumu hızıyla, diğer gezegenler sabit kabul edilir (bir saatte < 0,1°).
+ */
+function scanTimeChanges(ch: ChartResult, jd: number) {
+  if (!ch.hasHouses || !ch.place) return
+  const geo = { lat: ch.place.lat, lon: ch.place.lon }
+  const W = 60
+  const pts = ch.points.filter((p) => !['fortune', 'southnode', 'lilith'].includes(p.id))
+  const moon = ch.points.find((p) => p.id === 'moon')
+  const sun = ch.points.find((p) => p.id === 'sun')
+  const lonAt = (p: PointPos, m: number) => norm360(p.lon + p.speed * (m / 1440))
+  const state = (m: number) => {
+    const h = computeHouses(jd + m / 1440, geo, ch.houseSystem, [])
+    const out: Record<string, string> = { 'sign:asc': String(signOf(h.asc)), 'sign:mc': String(signOf(h.mc)) }
+    for (const p of pts) out['house:' + p.id] = String(houseOf(lonAt(p, m), h.cusps))
+    if (moon && sun) {
+      const day = houseOf(lonAt(sun, m), h.cusps) >= 7
+      const f = norm360(day ? h.asc + lonAt(moon, m) - lonAt(sun, m) : h.asc + lonAt(sun, m) - lonAt(moon, m))
+      out['sign:fortune'] = String(signOf(f)); out['house:fortune'] = String(houseOf(f, h.cusps))
+    }
+    for (const p of pts) for (const [ang, lon] of [['asc', h.asc], ['mc', h.mc]] as const) {
+      const a = aspectBetween({ id: p.id, lon: lonAt(p, m), speed: 0 }, { id: ang, lon, speed: 0 }, natalOrb)
+      out[`asp:${p.id}:${ang}`] = a ? a.type : ''
+    }
+    return out
+  }
+  const base = state(0)
+  const first: Record<string, { minutes: number; direction: 'erken' | 'geç'; to: string }> = {}
+  for (let m = 1; m <= W; m++) {
+    for (const dir of [1, -1] as const) {
+      const s = state(dir * m)
+      for (const k of Object.keys(base)) if (!first[k] && s[k] !== base[k]) first[k] = { minutes: m, direction: dir > 0 ? 'geç' : 'erken', to: s[k] }
+    }
+  }
+  const name = (id: string) => (id === 'asc' ? t('Yükselen') : id === 'mc' ? 'MC' : id === 'fortune' ? t('Şans Noktası') : ch.points.find((p) => p.id === id)?.name ?? id)
+  const list: NonNullable<ChartResult['timeChanges']> = []
+  for (const [k, v] of Object.entries(first)) {
+    const [kind, id, ang] = k.split(':')
+    const from = base[k], to = v.to
+    let text = ''
+    if (kind === 'sign') text = t('{name}: {from} → {to}', { name: name(id), from: SIGNS[+from].name, to: SIGNS[+to].name })
+    else if (kind === 'house') text = t('{name}: {from}. ev → {to}. ev', { name: name(id), from, to })
+    else {
+      const A = ASPECTS.find((x) => x.type === (from || to))
+      text = from && !to ? t('{name} ile {angle} arasındaki {aspect} kaybolur', { name: name(id), angle: name(ang), aspect: A?.name.toLowerCase() ?? '' })
+        : !from && to ? t('{name} ile {angle} arasında {aspect} oluşur', { name: name(id), angle: name(ang), aspect: A?.name.toLowerCase() ?? '' })
+          : t('{name} ile {angle} arasındaki açı değişir', { name: name(id), angle: name(ang) })
+    }
+    list.push({ kind: kind as 'sign' | 'house' | 'asp', id, ...(ang ? { with: ang } : {}), minutes: v.minutes, direction: v.direction, text })
+  }
+  ch.timeChanges = list.sort((a, b) => a.minutes - b.minutes)
 }
 
 function draconic(ch: ChartResult): ChartResult {

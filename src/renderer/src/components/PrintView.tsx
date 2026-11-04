@@ -175,7 +175,7 @@ export default function PrintView({ view, sections, library, transits, eclipses,
       )}
 
       {sections.positions && (
-        <Section title={t('Konumlar')} who={who} page>
+        <Section title={t('Konumlar')} who={who} page={!sections.compact}>
           {view.outer ? (
             <>
               <div className="p-two">
@@ -198,13 +198,22 @@ export default function PrintView({ view, sections, library, transits, eclipses,
 
       {sections.aspects && single && (
         <>
-          <Section title={t('Açı tablosu')} who={who} page>
+          {/* kısa düzende önce açı listesi (satır satır bölünebilir, boşluğu doldurur), sonra bütün kalması gereken açı tablosu */}
+          {sections.compact && (
+            <Section title={t('Açı listesi')} who={who}>
+              <p className="hint">{t('Bütün açılar orba göre sıralı (en sıkı açı en üstte).')}</p>
+              <div className="p-cols2"><AspectList chart={c} showMinor hovered={null} onHover={noop} /></div>
+            </Section>
+          )}
+          <Section title={t('Açı tablosu')} who={who} page={!sections.compact}>
             <AspectGrid chart={c} showMinor hovered={null} onHover={noop} legend={<OrbLegend settings={settings} />} />
           </Section>
-          <Section title={t('Açı listesi')} who={who}>
-            <p className="hint">{t('Bütün açılar orba göre sıralı (en sıkı açı en üstte).')}</p>
-            <div className="p-cols2"><AspectList chart={c} showMinor hovered={null} onHover={noop} /></div>
-          </Section>
+          {!sections.compact && (
+            <Section title={t('Açı listesi')} who={who}>
+              <p className="hint">{t('Bütün açılar orba göre sıralı (en sıkı açı en üstte).')}</p>
+              <div className="p-cols2"><AspectList chart={c} showMinor hovered={null} onHover={noop} /></div>
+            </Section>
+          )}
         </>
       )}
       {sections.aspects && !single && (

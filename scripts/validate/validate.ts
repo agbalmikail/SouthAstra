@@ -85,7 +85,7 @@ const jplFile = join(DIR, 'jpl.json')
 const jpl: { meta?: Record<string, unknown>; values?: Record<string, number[]> } = existsSync(jplFile) ? JSON.parse(readFileSync(jplFile, 'utf8')) : {}
 const V = jpl.values ?? {}
 let pass = 0, fail = 0, missing = 0
-const maxd = { planets: 0, angles: 0, houses: 0, aspects: 0, progressions: 0, transits: 0, node: 0, tzCases: 0 }
+const maxd = { planets: 0, angles: 0, houses: 0, aspects: 0, progressions: 0, transits: 0, transitSec: 0, node: 0, tzCases: 0 }
 const mx = (k: keyof typeof maxd, v: number) => { if (Number.isFinite(v) && v > maxd[k]) maxd[k] = v }
 const lines: string[] = []
 const out = (s = '') => lines.push(s)
@@ -215,11 +215,18 @@ for (const p of plans) {
   // Transitler: kesinleşme anında transit (JPL) ile natal (JPL) arası açı
   if (p.transits.length) {
     const ANG: Record<string, number> = Object.fromEntries(ASPECTS.map((a) => [a.type, a.angle]))
-    const rows = p.transits.filter((e) => has(`${ch.id}|${e.body}|tr|${e.jdUt.toFixed(6)}`) && V[`${ch.id}|${e.natal}|UT|31`]).map((e) => ({ e, d: Math.abs(separation(V[`${ch.id}|${e.body}|tr|${e.jdUt.toFixed(6)}`][0], V[`${ch.id}|${e.natal}|UT|31`][0]) - ANG[e.type]) * 3600 }))
+    // açısal fark (″) ve ona karşılık gelen zaman farkı (s): Δt = Δλ / transit gezegenin o andaki hızı
+    const rows = p.transits.filter((e) => has(`${ch.id}|${e.body}|tr|${e.jdUt.toFixed(6)}`) && V[`${ch.id}|${e.natal}|UT|31`]).map((e) => {
+      const d = Math.abs(separation(V[`${ch.id}|${e.body}|tr|${e.jdUt.toFixed(6)}`][0], V[`${ch.id}|${e.natal}|UT|31`][0]) - ANG[e.type]) * 3600
+      const speed = Math.abs(sweph.calc_ut(e.jdUt, SE[e.body], C.SEFLG_SWIEPH | C.SEFLG_SPEED).data[3]) // °/gün
+      return { e, d, sec: speed > 0 ? (d / 3600 / speed) * 86400 : NaN, speed }
+    })
     if (rows.length) {
       const worst = rows.reduce((m, r) => (r.d > m.d ? r : m))
       mx('transits', worst.d)
-      out(check(worst.d <= 1.5, `Transit kesinleşme anları: ${rows.length} olay (${ch.transits![0].slice(0, 10)} – ${ch.transits![1].slice(0, 10)}), JPL'e göre en büyük açı sapması ${f2(worst.d)}″ (${worst.e.body} ${worst.e.type} natal ${worst.e.natal}, ${worst.e.utc.slice(0, 16)} UT) · sınır 1,5″ (≈ yavaş gezegende birkaç dakika)`, `${ch.id} transit: ${rows.filter((r) => r.d > 1.5).map((r) => `${r.e.body} ${r.e.type} ${r.e.natal} ${r.e.utc} ${f2(r.d)}″`).join('; ')}`))
+      const worstT = rows.filter((r) => Number.isFinite(r.sec)).reduce((m, r) => (r.sec > m.sec ? r : m))
+      mx('transitSec', worstT.sec)
+      out(check(worst.d <= 1.5, `Transit kesinleşme anları: ${rows.length} olay (${ch.transits![0].slice(0, 10)} – ${ch.transits![1].slice(0, 10)}). Açısal fark (kesinleşme anında JPL'e göre açının tam değerden sapması): en büyük ${f2(worst.d)}″ (${worst.e.body} ${worst.e.type} natal ${worst.e.natal}, ${worst.e.utc.slice(0, 16)} UT) · sınır 1,5″. Zaman farkı (açısal farkın gezegenin o andaki hızına bölünmesi; kesinleşme anının saniye cinsinden belirsizliği): en büyük ${f2(worstT.sec)} s (${worstT.e.body} ${worstT.e.type} natal ${worstT.e.natal}, hız ${worstT.speed.toFixed(4)}°/gün)`, `${ch.id} transit: ${rows.filter((r) => r.d > 1.5).map((r) => `${r.e.body} ${r.e.type} ${r.e.natal} ${r.e.utc} ${f2(r.d)}″`).join('; ')}`))
       out()
     }
   }

@@ -30,6 +30,9 @@ const list = (a: string[], sep: string) => a.map((x) => t(x)).join(sep)
 const nm = (c: ChartResult, id: string) => (id === 'asc' ? t('Yükselen') : id === 'mc' ? 'MC' : c.points.find((p) => p.id === id)?.name ?? id)
 const dist = (a: number, b: number) => Math.abs(((a - b + 540) % 360) - 180)
 
+/** Rodden derecesine göre varsayılan doğum saati belirsizliği (dakika) */
+export const roddenWindow = (r?: string) => (r === 'AA' ? 5 : r === 'A' ? 15 : r === 'B' ? 30 : r === 'C' || r === 'DD' ? 60 : 15)
+
 export function chartHighlights(c: ChartResult, rulership: 'modern' | 'traditional' = 'modern'): Highlight[] {
   return chartHighlightsRaw(c, rulership).map((h) => ({ ...h, title: h.title.charAt(0).toLocaleUpperCase(loc()) + h.title.slice(1) }))
 }
@@ -82,6 +85,20 @@ function chartHighlightsRaw(c: ChartResult, rulership: 'modern' | 'traditional')
     rule: t('{name} için eşik {n} dakika. Doğum saatinin kaynağı (Rodden derecesi) bu kadar kesin değilse {name} burcu belirsiz sayılmalıdır.', { name: x.name, n: x.id === 'moon' ? '120' : '10' }),
     uncertain: t('Burç doğum saatinin kesinliğine bağlı.')
   })
+
+  // 2c) Doğum saati duyarlılığı (±60 dk taraması): Rodden derecesine göre belirsizlik penceresi
+  if (c.timeChanges?.length) {
+    const win = roddenWindow(c.input.rodden)
+    const inside = c.timeChanges.filter((x) => x.minutes <= win)
+    out.push({
+      id: 'time-changes', group: 'Genel tablo', points: [],
+      title: inside.length
+        ? t('Doğum saati duyarlılığı: ±{win} dakika içinde {n} değişim', { win, n: inside.length })
+        : t('Doğum saati duyarlılığı: ±{win} dakika içinde değişim yok', { win }),
+      rule: t('Doğum saati ±60 dakika dakika dakika tarandı: yükselen/MC burcu, gezegenlerin evleri, Şans Noktası, yükselen ve MC ile açılar. Belirsizlik penceresi Rodden derecesine göre: AA ±5, A ±15, B ±30, C/DD ±60 dakika (belirtilmemişse ±15).') + (inside.length ? ' ' + inside.map((x) => `${x.text} (${t(x.direction === 'geç' ? '{n} dk geç' : '{n} dk erken', { n: x.minutes })})`).join(' · ') : ''),
+      uncertain: inside.length ? t('Bu maddeler doğum saatinin kesinliğine bağlıdır.') : undefined
+    })
+  }
 
   // 3) Harita yöneticisi (yükselen burcun yöneticisi)
   if (c.hasHouses) {

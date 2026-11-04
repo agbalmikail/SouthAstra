@@ -5,7 +5,7 @@
 import sweph from 'sweph'
 import { join } from 'node:path'
 import { acg, ephemeris, eclipses, initEphemeris, natalChart, rectify, transitList, useSettings, view } from '../src/main/engine'
-import { DEFAULT_SETTINGS, ORB_PROFILES, moonPhase, SIGNS } from '../src/shared/zodiac'
+import { ASPECTS, DEFAULT_SETTINGS, ORB_PROFILES, moonPhase, SIGNS } from '../src/shared/zodiac'
 import { loadCities, searchCities } from '../src/main/cities'
 import { isNewer } from '../src/shared/version'
 import { dispositorChains, essentialDignities, faceRuler, mutualReceptions, sectUnknown, termRuler, tripRuler } from '../src/shared/dignities'
@@ -256,6 +256,33 @@ console.log('\n— Saat duyarlılığı (burç sınırı)')
     ok(Math.floor(shifted.angles.asc / 30) === s1.otherSign, `Yükselen ${t} UT'de sınıra ${s1.minutes.toFixed(1)} dk; saat ${mins} dk ${s1.direction} alınınca gerçekten ${SIGNS[s1.otherSign].name} oluyor (bağımsız yeniden hesap)`)
   }
   ok(found, 'Yükselen için sınır duyarlılığı bulundu')
+}
+
+console.log('\n— Doğum saati duyarlılığı taraması (±60 dk): bildirilen her değişim, harita kaydırılıp baştan hesaplanarak doğrulanır')
+{
+  const ch0 = natalChart(base)
+  const tc = ch0.timeChanges ?? []
+  let good = 0, bad: string[] = []
+  const stateOf = (c: ChartResult, kind: string, id: string) => {
+    if (kind === 'sign') return id === 'asc' ? Math.floor(c.angles.asc / 30) : id === 'mc' ? Math.floor(c.angles.mc / 30) : Math.floor(c.lots.find((l) => l.id === 'fortune')!.lon / 30)
+    if (kind === 'house') return id === 'fortune' ? c.lots.find((l) => l.id === 'fortune')!.house : c.points.find((p) => p.id === id)!.house
+    return ''
+  }
+  for (const x of tc) {
+    const sh = x.direction === 'geç' ? x.minutes : -x.minutes
+    const before = natalChart(base, undefined, sh - Math.sign(sh)), after = natalChart(base, undefined, sh)
+    if (x.kind === 'asp') {
+      const MAJ = new Set(ASPECTS.map((q) => q.type))
+      const has = (c: ChartResult) => c.aspects.find((q) => MAJ.has(q.type) && ((q.a === x.id && q.b === x.with) || (q.b === x.id && q.a === x.with)))?.type ?? ''
+      const c0 = has(ch0), cb = has(before), ca = has(after)
+      if (cb === c0 && ca !== c0) good++; else bad.push(`${x.text} (${x.minutes} dk ${x.direction}: önce '${cb}', sonra '${ca}', şimdi '${c0}')`)
+      continue
+    }
+    const v0 = stateOf(ch0, x.kind, x.id), vb = stateOf(before, x.kind, x.id), va = stateOf(after, x.kind, x.id)
+    if (vb === v0 && va !== v0) good++; else bad.push(`${x.text} (${x.minutes} dk ${x.direction}: önce ${vb}, sonra ${va})`)
+  }
+  ok(tc.length > 0 && bad.length === 0, `${tc.length} değişim bildirildi; burç, ev ve köşe açısı değişimlerinin hepsi kaydırılmış haritada tam o dakikada gerçekleşiyor (bir dakika öncesinde henüz yok)${bad.length ? ' — uyuşmayan: ' + bad.join('; ') : ''}`)
+  ok(natalChart({ ...base, timeUnknown: true }).timeChanges === undefined, 'Saat bilinmiyorsa tarama yapılmıyor (evler yok)')
 }
 
 console.log('\n— Öne çıkanlar (kural tabanlı özet)')

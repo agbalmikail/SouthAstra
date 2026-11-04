@@ -5,6 +5,7 @@ import { activeOrbs, ASPECT_BY_TYPE, ASPECTS, AYANAMSAS, SIGNS } from '@shared/z
 import { durationClass, DURATION_NAME, importance, rankRule, topTransits, windowDays } from '@shared/transitRank'
 import { fmtOffset, jdText, precisionText } from '../format'
 import { jplKey } from '@shared/jplkey'
+import { roddenWindow } from '@shared/highlights'
 import { loc, t, getLang } from '@shared/i18n'
 
 const fmtD = (iso: string, tz: string) => new Date(iso).toLocaleDateString(loc(), { timeZone: tz, day: '2-digit', month: '2-digit', year: 'numeric' })
@@ -122,8 +123,8 @@ export function TransitTable({ natal, transits, tz }: { natal: ChartResult; tran
 
 const jplSummaryText = (j: JplSummary) => {
   const s = (x?: number) => { const v = (x ?? 0).toFixed(2); return getLang() === 'en' ? v : v.replace('.', ',') }
-  return t('{passed}/{total} kontrol geçti · {charts} haritaları · en büyük fark: gezegenler {pl}″, köşeler {an}″, evler {ho}″, açılar {as}″, progresyon {pr}″, transit anları {tr}″, ortalama düğüm {no}″; {tz} saat dilimi vakası · Horizons: {hz}, referans alındı {fetched} · referans dosyası SHA-256 {sha} · programın genel doğrulama raporu (uydurma test haritalarıyla, kişisel veri içermez): {url}', {
-    passed: j.passed, total: j.passed + j.failed + j.missing, charts: j.charts.join(', '), pl: s(j.max.planets), an: s(j.max.angles), ho: s(j.max.houses), as: s(j.max.aspects), pr: s(j.max.progressions), tr: s(j.max.transits), no: s(j.max.node), tz: j.max.tzCases ?? 0,
+  return t('{passed}/{total} kontrol geçti · {charts} haritaları · en büyük fark: gezegenler {pl}″, köşeler {an}″, evler {ho}″, açılar {as}″, progresyon {pr}″, transit anlarında açısal fark {tr}″ (zaman olarak en çok {trs} s), ortalama düğüm {no}″; {tz} saat dilimi vakası · Horizons: {hz}, referans alındı {fetched} · referans dosyası SHA-256 {sha} · programın genel doğrulama raporu (uydurma test haritalarıyla, kişisel veri içermez): {url}', {
+    passed: j.passed, total: j.passed + j.failed + j.missing, charts: j.charts.join(', '), pl: s(j.max.planets), an: s(j.max.angles), ho: s(j.max.houses), as: s(j.max.aspects), pr: s(j.max.progressions), tr: s(j.max.transits), trs: s(j.max.transitSec), no: s(j.max.node), tz: j.max.tzCases ?? 0,
     hz: `${j.horizons} (${[...new Set(Object.values(j.sources))].join(', ')})`, fetched: j.fetched.slice(0, 10), sha: j.sha256.slice(0, 16) + '…', url: j.report
   })
 }
@@ -168,6 +169,18 @@ export function TechnicalAppendix({ view, settings, info, reportAt }: { view: Vi
   return (
     <>
       <dl className="p-meta p-tech">{rows.map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}</dl>
+      {natal.timeChanges && (
+        <>
+          <h3>{t('Doğum saati duyarlılığı (±60 dakika)')}</h3>
+          <p className="hint">{t('Doğum saati bir dakikalık adımlarla ±60 dakika kaydırılarak tarandı. Belirsizlik penceresi Rodden derecesine göre ±{win} dakika; bu pencereye düşen değişimler işaretlidir.', { win: roddenWindow(i.rodden) })}</p>
+          {natal.timeChanges.length ? (
+            <table className="data p-sens">
+              <thead><tr><th>{t('Değişim')}</th><th className="r">{t('Gereken saat farkı')}</th><th className="c">{t('Pencerede')}</th></tr></thead>
+              <tbody>{natal.timeChanges.map((x, k) => <tr key={k} className={x.minutes <= roddenWindow(i.rodden) ? 'hl' : ''}><td>{x.text}</td><td className="r num">{t(x.direction === 'geç' ? '{n} dk geç' : '{n} dk erken', { n: x.minutes })}</td><td className="c">{x.minutes <= roddenWindow(i.rodden) ? '●' : ''}</td></tr>)}</tbody>
+            </table>
+          ) : <p className="hint">{t('±60 dakika içinde burç, ev ya da köşe açısı değişimi yok.')}</p>}
+        </>
+      )}
       <h3>{t('Bu harita için NASA JPL karşılaştırması')}</h3>
       {jc ? (
         <>

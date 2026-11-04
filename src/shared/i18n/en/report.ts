@@ -2,8 +2,20 @@
 import { registerEn } from '../index'
 
 registerEn({
+  'Doğum saati duyarlılığı: ±{win} dakika içinde {n} değişim': 'Birth-time sensitivity: {n} changes within ±{win} minutes',
+  'Doğum saati duyarlılığı: ±{win} dakika içinde değişim yok': 'Birth-time sensitivity: no changes within ±{win} minutes',
+  'Doğum saati ±60 dakika dakika dakika tarandı: yükselen/MC burcu, gezegenlerin evleri, Şans Noktası, yükselen ve MC ile açılar. Belirsizlik penceresi Rodden derecesine göre: AA ±5, A ±15, B ±30, C/DD ±60 dakika (belirtilmemişse ±15).': 'The birth time was scanned minute by minute over ±60 minutes: Ascendant/MC sign, planets\' houses, Part of Fortune, aspects to the Ascendant and MC. Uncertainty window by Rodden rating: AA ±5, A ±15, B ±30, C/DD ±60 minutes (±15 if not specified).',
+  '{n} dk geç': '{n} min later',
+  '{n} dk erken': '{n} min earlier',
+  'Bu maddeler doğum saatinin kesinliğine bağlıdır.': 'These items depend on the accuracy of the birth time.',
+  'Doğum saati duyarlılığı (±60 dakika)': 'Birth-time sensitivity (±60 minutes)',
+  'Doğum saati bir dakikalık adımlarla ±60 dakika kaydırılarak tarandı. Belirsizlik penceresi Rodden derecesine göre ±{win} dakika; bu pencereye düşen değişimler işaretlidir.': 'The birth time was shifted in one-minute steps over ±60 minutes. The uncertainty window for the Rodden rating is ±{win} minutes; changes inside the window are marked.',
+  'Değişim': 'Change',
+  'Gereken saat farkı': 'Time shift needed',
+  'Pencerede': 'In window',
+  '±60 dakika içinde burç, ev ya da köşe açısı değişimi yok.': 'No change of sign, house or angle aspect within ±60 minutes.',
   'NASA JPL karşılaştırması (referans haritalar)': 'NASA JPL comparison (reference charts)',
-  '{passed}/{total} kontrol geçti · {charts} haritaları · en büyük fark: gezegenler {pl}″, köşeler {an}″, evler {ho}″, açılar {as}″, progresyon {pr}″, transit anları {tr}″, ortalama düğüm {no}″; {tz} saat dilimi vakası · Horizons: {hz}, referans alındı {fetched} · referans dosyası SHA-256 {sha} · programın genel doğrulama raporu (uydurma test haritalarıyla, kişisel veri içermez): {url}': '{passed}/{total} checks passed · charts from {charts} · largest difference: planets {pl}″, angles {an}″, houses {ho}″, aspects {as}″, progressions {pr}″, transit times {tr}″, mean node {no}″; {tz} time-zone cases · Horizons: {hz}, reference fetched {fetched} · reference file SHA-256 {sha} · general validation report of the program (made with fictitious test charts, no personal data): {url}',
+  '{passed}/{total} kontrol geçti · {charts} haritaları · en büyük fark: gezegenler {pl}″, köşeler {an}″, evler {ho}″, açılar {as}″, progresyon {pr}″, transit anlarında açısal fark {tr}″ (zaman olarak en çok {trs} s), ortalama düğüm {no}″; {tz} saat dilimi vakası · Horizons: {hz}, referans alındı {fetched} · referans dosyası SHA-256 {sha} · programın genel doğrulama raporu (uydurma test haritalarıyla, kişisel veri içermez): {url}': '{passed}/{total} checks passed · charts from {charts} · largest difference: planets {pl}″, angles {an}″, houses {ho}″, aspects {as}″, progressions {pr}″, transit moments {tr}″ angular (at most {trs} s in time), mean node {no}″; {tz} time-zone cases · Horizons: {hz}, reference fetched {fetched} · reference file SHA-256 {sha} · general validation report of the program (made with fictitious test charts, no personal data): {url}',
   'Bu harita için NASA JPL karşılaştırması': 'NASA JPL comparison for this chart',
   'Geosantrik görünür ekliptik boylam, günün ekliptiği; NASA JPL Horizons ({api}), doğum anı JD(UT) {jd}; sorgu {date}. Efemeris kaynakları: {src}.': 'Geocentric apparent ecliptic longitude, ecliptic of date; NASA JPL Horizons ({api}), birth moment JD(UT) {jd}; queried {date}. Ephemeris sources: {src}.',
   'Cisim': 'Body',

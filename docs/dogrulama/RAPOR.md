@@ -1,6 +1,6 @@
 # SouthAstra · bağımsız astronomik doğrulama
 
-Oluşturuldu: 2026-11-04T13:38:34.811Z · Swiss Ephemeris 2.10.03 (sepl_18/semo_18; JPL DE431 tabanlı Swiss Ephemeris dosyaları) · Node ICU tzdata 2026a
+Oluşturuldu: 2026-11-04T13:48:40.000Z · Swiss Ephemeris 2.10.03 (sepl_18/semo_18; JPL DE431 tabanlı Swiss Ephemeris dosyaları) · Node ICU tzdata 2026a
 
 ## Referans: NASA JPL Horizons
 
@@ -95,7 +95,7 @@ Yerel 1988-07-14 06:45 (Europe/Istanbul) → UTC 1988-07-14 03:45:00 · JD(UT1) 
 
 ✓ İkincil progresyon (2018-07-14; progresif an JD 2447386.656464): 11 cisim, en büyük fark 0.10″ (sınır 1,5″)
 
-✓ Transit kesinleşme anları: 40 olay (2024-01-01 – 2025-12-31), JPL'e göre en büyük açı sapması 0.08″ (pluto sextile natal mars, 2024-01-25T14:44 UT) · sınır 1,5″ (≈ yavaş gezegende birkaç dakika)
+✓ Transit kesinleşme anları: 40 olay (2024-01-01 – 2025-12-31). Açısal fark (kesinleşme anında JPL'e göre açının tam değerden sapması): en büyük 0.08″ (pluto sextile natal mars, 2024-01-25T14:44 UT) · sınır 1,5″. Zaman farkı (açısal farkın gezegenin o andaki hızına bölünmesi; kesinleşme anının saniye cinsinden belirsizliği): en büyük 58.58 s (pluto sextile natal mars, hız 0.0324°/gün)
 
 ## 1990 · Berlin (genel tarih, yaz saati)
 

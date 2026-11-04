@@ -2,14 +2,14 @@
 // ölçülür; Chrome sütunları PDF sayfalarıyla aynı parçalama motoruyla böler, böylece hangi öğenin hangi sayfaya
 // düştüğü tahmin edilmez, ölçülür. Kural ihlali bulundukça sayfa sonu eklenir ve yeniden ölçülür.
 // Kurallar: (1) başlık sayfanın sonunda tek kalmaz (ilk paragraf ya da tablonun ilk satırları onunla gelir);
-// (2) sayfanın son %15'inde yeni bölüm başlamaz; bölüm sayfaya sığmıyorsa son %35'te başlamaz; (3) bir sayfadan kısa kutu/öğe ve kısa tablo bölünmez;
+// (2) sayfanın son %15'inde yeni bölüm başlamaz; bölüm sayfaya sığmıyorsa son %20'de başlamaz; (3) bir sayfadan kısa kutu/öğe ve kısa tablo bölünmez;
 // (4) uzun tablolar satır arasından bölünür, başlık satırı yeni sayfada tekrar eder (CSS).
 
 const MM = 96 / 25.4
 export const PAGE_W = 186 * MM
 export const PAGE_H = (297 - 12 - 14) * MM
 const MIN_LEFT = 0.15
-const MIN_LEFT_SPLIT = 0.35 // bölüm bu sayfaya sığmıyorsa, başlaması için gereken en az boş alan
+const MIN_LEFT_SPLIT = 0.2 // bölüm bu sayfaya sığmıyorsa, başlaması için gereken en az boş alan
 const SMALL_TABLE = 0.4 // sayfanın bu oranından kısa tablo bölünmez
 
 export function paginate(root: HTMLElement, compact: boolean): { breaks: number; pages: number } {
@@ -26,11 +26,16 @@ export function paginate(root: HTMLElement, compact: boolean): { breaks: number;
   const last = (e: Element) => { const f = frags(e); return f[f.length - 1] }
   const heads = () => [...root.querySelectorAll('.p-sec > .p-h, .p-sec h3, .p-sec .cap')]
   const keeps = () => [...root.querySelectorAll('.p-summary-box, .p-timeline, .hl-item, .learn-item, .p-factor, .dist, .p-meta > div, .p-wheel, .p-two, table')]
-  const breakTarget = (e: Element): Element => {
-    // bölüm başlığı ise bölümün kendisi; başlıktan hemen sonra gelen öğe ise başlık
-    if (e.matches('.p-h')) return e.parentElement!
+  const breakTarget = (e0: Element): Element => {
+    // bölüm başlığı ise bölümün kendisi
+    if (e0.matches('.p-h')) return e0.parentElement!
+    // kapsayıcının ilk çocuğuysa kapsayıcıya çık (ör. açı tablosu .grid-wrap içinde): sayfa sonu içeride değil, önünde olmalı
+    let e = e0
+    while (!e.previousElementSibling && e.parentElement && !e.parentElement.matches('.p-sec') && e.parentElement !== root) e = e.parentElement
     const prev = e.previousElementSibling
+    // hemen önünde başlık varsa başlık birlikte taşınır; bölüm başlığıysa bölüm taşınır
     if (prev && prev.matches('h3, .cap, .p-h')) return prev.matches('.p-h') ? prev.parentElement! : prev
+    if (!prev && e.parentElement?.matches('.p-sec')) return e.parentElement
     return e
   }
   let breaks = 0
@@ -55,7 +60,9 @@ export function paginate(root: HTMLElement, compact: boolean): { breaks: number;
       const pages = new Set(fs.map((x) => x.page)).size
       if (pages < 2) continue
       const h = fs[fs.length - 1].bottom - fs[0].top + (pages - 1) * PAGE_H
-      const small = k.matches('table') ? totalHeight(fs) < PAGE_H * SMALL_TABLE : totalHeight(fs) < PAGE_H * 0.95
+      // ızgara biçimli tablolar (açı tablosu) satır satır okunmaz: sayfadan kısaysa hiç bölünmez
+      const grid = k.matches('table.asp-grid')
+      const small = k.matches('table') && !grid ? totalHeight(fs) < PAGE_H * SMALL_TABLE : totalHeight(fs) < PAGE_H * 0.95
       if (small && !isAtPageTop(fs[0]) && h > 0) { breakTarget(k).classList.add('pg-break'); breaks++; changed = true; break }
     }
     if (!changed) break

@@ -260,6 +260,8 @@ export interface ChartResult {
   moonRange?: { from: number; to: number } // saat bilinmiyorsa: Ay'ın doğum günündeki boylam aralığı
   /** Saat duyarlılığı: burç sınırına yakın Ay/Yükselen/MC ve burcu değiştirecek saat farkı (dakika) */
   sensitivity?: { id: string; name: string; minutes: number; direction: 'erken' | 'geç'; otherSign: number }[]
+  /** Doğum saati ±60 dk taraması: burcu, evi ya da köşe açısı değişen öğeler ve ilk değişimin dakikası */
+  timeChanges?: { kind: 'sign' | 'house' | 'asp'; id: string; with?: string; minutes: number; direction: 'erken' | 'geç'; text: string }[]
   /** Saat sürgüsü simülasyonu: kayıtlı saate eklenen dakika (kayıt değişmez) */
   shiftMin?: number
   place?: Place // haritanın kurulduğu yer (taşınma ve dönüşlerde doğum yerinden farklı olabilir)

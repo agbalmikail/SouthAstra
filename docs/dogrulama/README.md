@@ -25,6 +25,10 @@ python3 scripts/validate/fetch_tz.py   # saat dilimi referansını yeniden üret
 
 `npm run dogrula` önce gerekli sorguları `tests/reference/requests.json`'a yazar. Referans dosyası yoksa ilgili bölüm başarılı değil **DOĞRULANMADI** olarak raporlanır.
 
+## Tutarlılık
+
+`python3 scripts/validate/consistency.py` saklanan referansları NASA'dan canlı olarak yeniden ister ve karşılaştırır: referans dosyasından rastgele kayıtlar, `audit.ts` ve `verify.ts` içindeki elle yazılmış NASA değerleri, iki dosyada birden bulunan aynı anlar. Sonuç: [TUTARLILIK.md](TUTARLILIK.md).
+
 ## Raporda ve uygulamada
 
 - **PDF teknik eki** referans haritalardaki NASA karşılaştırmasının özetini yazar: kontrol sayısı, en büyük farklar, Horizons sürümü ve efemeris kaynakları, referansın alındığı tarih, `tests/reference/jpl.json` dosyasının SHA-256 parmak izi ve bu raporun adresi. Parmak izi, raporu okuyan kişinin aynı referans dosyasıyla sonucu yeniden üretebilmesi içindir.

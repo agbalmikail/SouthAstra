@@ -2,6 +2,12 @@
 import { registerEn } from '../index'
 
 registerEn({
+  '{name}: {from} → {to}': '{name}: {from} → {to}',
+  '{name}: {from}. ev → {to}. ev': '{name}: house {from} → house {to}',
+  '{name} ile {angle} arasındaki {aspect} kaybolur': 'the {aspect} between {name} and {angle} disappears',
+  '{name} ile {angle} arasında {aspect} oluşur': 'a {aspect} between {name} and {angle} forms',
+  '{name} ile {angle} arasındaki açı değişir': 'the aspect between {name} and {angle} changes',
+  'Şans Noktası': 'Part of Fortune',
   // ——— Burçlar ———
   'Koç': 'Aries',
   'Boğa': 'Taurus',
