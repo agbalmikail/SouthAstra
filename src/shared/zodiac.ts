@@ -98,7 +98,8 @@ export const DEFAULT_SETTINGS: Settings = {
   defaultHouseSystem: 'P',
   defaultNodeType: 'true',
   asteroids: false,
-  appearance: { glyphScale: 1, showDegrees: true, showAspectLines: true, showHouseNumbers: true, coloredSigns: true, aspectLineWidth: 0.9 }
+  appearance: { glyphScale: 1, showDegrees: true, showAspectLines: true, showHouseNumbers: true, coloredSigns: true, aspectLineWidth: 0.9 },
+  updateCheck: true
 }
 
 export function activeOrbs(s: Settings): OrbProfile {

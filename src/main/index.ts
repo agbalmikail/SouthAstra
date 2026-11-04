@@ -9,6 +9,7 @@ import { getSettings, initSettings, setSettings } from './settings'
 import { buildMenu } from './menu'
 import { toUtc } from './time'
 import { addressSearch } from './geocode'
+import { checkForUpdate } from './updates'
 
 // Testler için ayrı veri klasörü (gerçek arşive dokunmasın)
 if (process.env.SA_DATA_DIR) app.setPath('userData', process.env.SA_DATA_DIR)
@@ -130,6 +131,7 @@ app.whenReady().then(() => {
     return { license: read('LICENSE'), thirdParty: read('THIRD_PARTY_NOTICES.md') }
   })
   ipcMain.handle('app:open', (_e, url: string) => { if (/^https:\/\/[\w.-]+\//.test(url)) return shell.openExternal(url) })
+  ipcMain.handle('app:update', () => checkForUpdate())
   ipcMain.handle('app:info', () => ({ version: app.getVersion(), sweph: swephVersion(), ephePath: getEphePath(), platform: process.platform, dataDir }))
 
   createWindow()

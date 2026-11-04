@@ -32,7 +32,8 @@ const api: SouthAstraApi = {
   },
   info: () => ipcRenderer.invoke('app:info'),
   notices: () => ipcRenderer.invoke('app:notices'),
-  openExternal: (url) => ipcRenderer.invoke('app:open', url)
+  openExternal: (url) => ipcRenderer.invoke('app:open', url),
+  checkUpdate: () => ipcRenderer.invoke('app:update')
 }
 
 contextBridge.exposeInMainWorld('southastra', api)

@@ -274,6 +274,17 @@ export interface Settings {
   defaultNodeType: 'true' | 'mean'
   asteroids: boolean // Ceres, Pallas, Juno, Vesta
   appearance: Appearance
+  updateCheck: boolean // açılışta GitHub'da yeni sürüm denetimi
+}
+
+export interface UpdateInfo {
+  current: string
+  latest?: string
+  newer: boolean
+  pageUrl?: string
+  downloadUrl?: string
+  notes?: string
+  error?: string
 }
 
 /** Çark görünümü */
@@ -307,7 +318,7 @@ export interface SavedChart extends ChartInput {
   updatedAt: string
 }
 
-export type MenuCommand = 'new' | 'edit' | 'find' | 'pdf' | 'settings' | 'now' | 'export' | 'import' | 'library' | 'toggle-side' | 'toggle-panel' | 'about'
+export type MenuCommand = 'new' | 'edit' | 'find' | 'pdf' | 'settings' | 'now' | 'export' | 'import' | 'library' | 'toggle-side' | 'toggle-panel' | 'about' | 'update-check'
 
 /** Kişisel yorum kütüphanesi: etken anahtarı → astrologun kendi metni */
 export type Library = Record<string, { text: string; updatedAt: string }>
@@ -340,4 +351,5 @@ export interface SouthAstraApi {
   info: () => Promise<{ version: string; sweph: string; ephePath: string; platform: string; dataDir: string }>
   notices: () => Promise<{ license: string; thirdParty: string }>
   openExternal: (url: string) => Promise<void>
+  checkUpdate: () => Promise<UpdateInfo>
 }

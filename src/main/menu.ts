@@ -11,6 +11,7 @@ export function buildMenu(): void {
         { label: 'SouthAstra Hakkında', click: send('about') },
         { type: 'separator' as const },
         { label: 'Ayarlar…', accelerator: 'CmdOrCtrl+,', click: send('settings') },
+        { label: 'Güncellemeleri denetle…', click: send('update-check') },
         { type: 'separator' as const },
         { role: 'hide' as const, label: 'SouthAstra\'yı Gizle' },
         { role: 'hideOthers' as const, label: 'Diğerlerini Gizle' },
@@ -55,7 +56,7 @@ export function buildMenu(): void {
     {
       label: 'Yardım',
       submenu: [
-        ...(isMac ? [] : [{ label: 'SouthAstra Hakkında', click: send('about') }, { type: 'separator' as const }]),
+        ...(isMac ? [] : [{ label: 'SouthAstra Hakkında', click: send('about') }, { label: 'Güncellemeleri denetle…', click: send('update-check') }, { type: 'separator' as const }]),
         { label: 'Swiss Ephemeris belgeleri', click: () => shell.openExternal('https://www.astro.com/swisseph/swephinfo_e.htm') },
         { label: 'Proje sayfası', click: () => shell.openExternal('https://github.com/agbalmikail/SouthAstra') }
       ]

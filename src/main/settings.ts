@@ -44,7 +44,8 @@ function sanitize(s: Settings): Settings {
       showHouseNumbers: s.appearance?.showHouseNumbers !== false,
       coloredSigns: s.appearance?.coloredSigns !== false,
       aspectLineWidth: num(s.appearance?.aspectLineWidth, 0.9, 0.6, 2)
-    }
+    },
+    updateCheck: s.updateCheck !== false
   }
 }
 

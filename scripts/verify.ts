@@ -7,6 +7,7 @@ import { join } from 'node:path'
 import { acg, eclipses, initEphemeris, natalChart, rectify, transitList, useSettings, view } from '../src/main/engine'
 import { DEFAULT_SETTINGS } from '../src/shared/zodiac'
 import { loadCities, searchCities } from '../src/main/cities'
+import { isNewer } from '../src/shared/version'
 import { essentialDignities, faceRuler, termRuler, tripRuler } from '../src/shared/dignities'
 import { midpointHits } from '../src/shared/factors'
 import { aspectPatterns } from '../src/shared/patterns'
@@ -305,6 +306,9 @@ console.log('\n— Ek noktalar')
   ok(separation(f.lon, exp) < 1e-9, `Şans Noktası (${day ? 'gündüz' : 'gece'} formülü)`)
   ok(natal.points.find((p) => p.id === 'sun')!.altitude! > 0 === day, 'Güneş\'in yüksekliği ile gündüz/gece ayrımı tutarlı')
 }
+
+console.log('\n— Sürüm karşılaştırma')
+ok(isNewer('0.10.0', '0.9.9') && isNewer('v1.0.0', '0.9.0') && !isNewer('0.4.0', '0.4.0') && !isNewer('0.3.9', '0.4.0'), 'Yeni sürüm denetimi: 0.10.0 > 0.9.9, 1.0.0 > 0.9.0, aynı sürüm yeni sayılmaz')
 
 console.log(fail ? `\n${fail} test başarısız` : '\nTüm testler geçti')
 process.exit(fail ? 1 : 0)

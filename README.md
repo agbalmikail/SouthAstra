@@ -77,7 +77,7 @@ Saat dilimi kayıtlarının geçmişi bazı ülkeler ve yıllar için tartışma
 
 ## Kurulum (kullanıcılar için)
 
-Hazır kurulum dosyaları GitHub'daki **Releases** ya da **Actions** sayfasında bulunur.
+Hazır kurulum dosyaları GitHub'daki **[Releases](https://github.com/agbalmikail/SouthAstra/releases)** sayfasındadır. Yeni bir sürüm yayınlandığında uygulama açılışta bunu bildirir ve indirme bağlantısı sunar (Ayarlar'dan kapatılabilir).
 
 - **Mac:** `.dmg` dosyasını açın ve SouthAstra'yı Uygulamalar klasörüne sürükleyin. Uygulama imzalı olmadığı için ilk açılışta uygulamaya sağ tıklayın ve **Aç**'ı seçin.
 - **Windows:** `.exe` dosyasını çalıştırın. "Windows bilgisayarınızı korudu" uyarısı çıkarsa **Ek bilgi → Yine de çalıştır**'a tıklayın.

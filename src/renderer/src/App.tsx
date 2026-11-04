@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import type { AcgLine, ChartInput, ChartResult, CityHit, HouseSystem, Library, LifeEvent, MenuCommand, Place, Rodden, SavedChart, Session, Settings, TransitEvent, ViewMode, ViewResult } from '@shared/types'
+import type { AcgLine, ChartInput, ChartResult, CityHit, HouseSystem, Library, LifeEvent, MenuCommand, Place, Rodden, SavedChart, Session, Settings, TransitEvent, UpdateInfo, ViewMode, ViewResult } from '@shared/types'
 import { HOUSE_SYSTEMS, placeLabel, RODDEN, VIEW_MODES } from '@shared/types'
 import { DEFAULT_SETTINGS } from '@shared/zodiac'
 import { fold } from './search'
@@ -82,6 +82,7 @@ export default function App() {
   const [library, setLibrary] = useState<Library>({})
   const [libraryOpen, setLibraryOpen] = useState(false)
   const [aboutOpen, setAboutOpen] = useState(false)
+  const [update, setUpdate] = useState<UpdateInfo | null>(null)
   const [pdfOpen, setPdfOpen] = useState(false)
   const [pdfSections, setPdfSections] = useState<PdfSections>({ ...DEFAULT_PDF, ...pref('pdfSections', {}) })
   const [printing, setPrinting] = useState(false)
@@ -121,6 +122,14 @@ export default function App() {
   useEffect(() => savePref('harmonic', harmonic), [harmonic])
   useEffect(() => savePref('acgHidden', [...acgHidden]), [acgHidden])
   useEffect(() => { if (toast) { const t = setTimeout(() => setToast(''), 3500); return () => clearTimeout(t) } }, [toast])
+
+  // Açılışta yeni sürüm denetimi (ayarlardan kapatılabilir); "sonra hatırlat" denen sürüm tekrar gösterilmez
+  useEffect(() => {
+    window.southastra.getSettings().then((s) => {
+      if (!s.updateCheck) return
+      window.southastra.checkUpdate().then((u) => { if (u.newer && u.latest !== pref('skipVersion', '')) setUpdate(u) }).catch(() => undefined)
+    })
+  }, [])
 
   useEffect(() => {
     window.southastra.getSettings().then(setSettings)
@@ -272,6 +281,12 @@ export default function App() {
     if (cmd === 'settings') setSettingsOpen(true)
     if (cmd === 'library') setLibraryOpen(true)
     if (cmd === 'about') setAboutOpen(true)
+    if (cmd === 'update-check') {
+      const u = await window.southastra.checkUpdate()
+      if (u.error) setToast(`Güncelleme denetlenemedi: ${u.error}`)
+      else if (u.newer) setUpdate(u)
+      else setToast(`SouthAstra güncel (sürüm ${u.current})`)
+    }
     if (cmd === 'toggle-side') setSideOpen((v) => !v)
     if (cmd === 'toggle-panel') setPanelOpen((v) => !v)
     if (cmd === 'pdf' && view && mode !== 'acg') setPdfOpen(true)
@@ -451,6 +466,15 @@ export default function App() {
           </div>
         </header>
 
+        {update && (
+          <div className="update-bar">
+            <span><b>SouthAstra {update.latest}</b> yayınlandı <span className="muted">· kullandığınız sürüm {update.current}</span></span>
+            {update.pageUrl && <button className="link" onClick={() => window.southastra.openExternal(update.pageUrl!)}>Neler yeni</button>}
+            {update.downloadUrl && <button className="btn primary small-btn" onClick={() => window.southastra.openExternal(update.downloadUrl!)}>İndir</button>}
+            <button className="link muted" onClick={() => { savePref('skipVersion', update.latest); setUpdate(null) }}>Bu sürümü atla</button>
+            <button className="collapse-btn" onClick={() => setUpdate(null)} aria-label="Kapat">×</button>
+          </div>
+        )}
         {error && <div className="error-bar">{error}</div>}
         {modeDef.needsPartner && !partner && (
           <div className="empty-state">

@@ -53,6 +53,7 @@ export default function SettingsModal({ initial, onClose, onSave, onAbout }: { i
             <label className="field-row">Transit orbu <input id="s-torb" className="short" value={s.transitOrb} onChange={(e) => setS({ ...s, transitOrb: num(e.target.value) })} /><span>°</span></label>
             <label className="field-row">Progresyon / solar arc orbu <input id="s-porb" className="short" value={s.progressionOrb} onChange={(e) => setS({ ...s, progressionOrb: num(e.target.value) })} /><span>°</span></label>
             <label className="field-row">Sabit yıldız orbu <input id="s-sorb" className="short" value={s.fixedStarOrb} onChange={(e) => setS({ ...s, fixedStarOrb: num(e.target.value) })} /><span>°</span></label>
+            <label className="inline"><input id="s-upd" type="checkbox" checked={s.updateCheck} onChange={(e) => setS({ ...s, updateCheck: e.target.checked })} /> Açılışta yeni sürümü denetle <span className="muted small">(GitHub'a istek gönderilir; kişisel veri gönderilmez)</span></label>
             <label className="inline"><input id="s-par" type="checkbox" checked={s.showParallels} onChange={(e) => setS({ ...s, showParallels: e.target.checked })} /> Paralel ve kontraparalelleri hesapla (1°)</label>
 
             <div className="cap">Gösterilecek noktalar</div>
