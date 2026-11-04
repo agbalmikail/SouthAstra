@@ -9,6 +9,7 @@ import SettingsModal from './components/SettingsModal'
 import PrintView from './components/PrintView'
 import EphemerisView, { EphemerisPrint } from './components/EphemerisView'
 import CommandPalette, { type Command } from './components/CommandPalette'
+import Onboarding from './components/Onboarding'
 import logoMarkSrc from './assets/logo-mark.svg'
 import { DateBar, ShiftBar } from './components/TimeBar'
 import { AspectGrid, AspectList, CrossList, HouseTable, PlanetTable } from './components/Tables'
@@ -95,6 +96,7 @@ export default function App() {
   const [libraryOpen, setLibraryOpen] = useState(false)
   const [ephemOpen, setEphemOpen] = useState(false)
   const [paletteOpen, setPaletteOpen] = useState(false)
+  const [onboarding, setOnboarding] = useState(false)
   const [ephemPrint, setEphemPrint] = useState<{ data: Ephemeris; tz: string; title: string } | null>(null)
   const [aboutOpen, setAboutOpen] = useState(false)
   const [update, setUpdate] = useState<UpdateInfo | null>(null)
@@ -159,6 +161,7 @@ export default function App() {
     window.southastra.getLibrary().then(setLibrary)
     window.southastra.listCharts().then((list) => {
       setCharts(list)
+      if (!list.length && !pref('onboarded', false)) setOnboarding(true)
       if (list.length) { setCurrentId(list[0].id); setInput(list[0]) } else setInput(nowInput())
     })
   }, [])
@@ -382,6 +385,7 @@ export default function App() {
   const handleMenu = async (cmd: MenuCommand) => {
     if (cmd === 'copy-image' && view && mode !== 'acg') await copyChartImage()
     if (cmd === 'palette') setPaletteOpen(true)
+    if (cmd === 'onboarding') setOnboarding(true)
     if (cmd === 'new') setForm('new')
     if (cmd === 'edit' && currentId) setForm('edit')
     if (cmd === 'find') filterRef.current?.focus()
@@ -434,6 +438,7 @@ export default function App() {
     out.push({ id: 'x:theme', group: 'Komutlar', label: theme === 'dark' ? 'Açık temaya geç' : 'Koyu temaya geç', keywords: 'tema görünüm', run: () => setTheme(theme === 'dark' ? 'light' : 'dark') })
     cmd('update-check', 'Güncellemeleri denetle')
     cmd('about', 'SouthAstra hakkında', undefined, 'lisans sürüm')
+    cmd('onboarding', 'Başlangıç rehberi', undefined, 'yardım nasıl kullanılır')
     return out
   }, [charts, input, tabs, currentId, view, mode, theme])
 
@@ -721,6 +726,7 @@ export default function App() {
       {form && <ChartForm initial={form === 'edit' ? input : null} defaults={{ houseSystem: settings.defaultHouseSystem, nodeType: settings.defaultNodeType }} onCancel={() => setForm(null)} onSubmit={submitForm} />}
       {settingsOpen && <SettingsModal initial={settings} onAbout={() => { setSettingsOpen(false); setAboutOpen(true) }} onClose={() => setSettingsOpen(false)} onSave={async (s) => { setSettings(await window.southastra.setSettings(s)); setSettingsOpen(false); setToast('Ayarlar kaydedildi') }} />}
       {aboutOpen && <AboutModal onClose={() => setAboutOpen(false)} />}
+      {onboarding && <Onboarding settings={settings} onSaveSettings={async (s) => { setSettings(await window.southastra.setSettings(s)) }} onNewChart={() => setForm('new')} onNowChart={() => { void menuRef.current('now') }} onClose={() => { setOnboarding(false); savePref('onboarded', true) }} />}
       {paletteOpen && <CommandPalette commands={paletteCommands} onClose={() => setPaletteOpen(false)} />}
       {ephemOpen && <EphemerisView tzChoices={ephemTzChoices} onClose={() => setEphemOpen(false)} onPdf={exportEphemPdf} />}
       {libraryOpen && <LibraryModal library={library} onSave={saveInterp} onClose={() => setLibraryOpen(false)} />}

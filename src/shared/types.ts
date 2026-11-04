@@ -364,7 +364,7 @@ export interface SavedChart extends ChartInput {
   updatedAt: string
 }
 
-export type MenuCommand = 'new' | 'edit' | 'find' | 'pdf' | 'settings' | 'now' | 'export' | 'import' | 'library' | 'toggle-side' | 'toggle-panel' | 'about' | 'update-check' | 'ephemeris' | 'palette' | 'copy-image'
+export type MenuCommand = 'new' | 'edit' | 'find' | 'pdf' | 'settings' | 'now' | 'export' | 'import' | 'library' | 'toggle-side' | 'toggle-panel' | 'about' | 'update-check' | 'ephemeris' | 'palette' | 'copy-image' | 'onboarding'
 
 /** Kişisel yorum kütüphanesi: etken anahtarı → astrologun kendi metni */
 export type Library = Record<string, { text: string; updatedAt: string }>

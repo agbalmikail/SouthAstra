@@ -60,6 +60,8 @@ export function buildMenu(): void {
       label: 'Yardım',
       submenu: [
         ...(isMac ? [] : [{ label: 'SouthAstra Hakkında', click: send('about') }, { label: 'Güncellemeleri denetle…', click: send('update-check') }, { type: 'separator' as const }]),
+        { label: 'Başlangıç rehberi', click: send('onboarding') },
+        { type: 'separator' },
         { label: 'Swiss Ephemeris belgeleri', click: () => shell.openExternal('https://www.astro.com/swisseph/swephinfo_e.htm') },
         { label: 'Proje sayfası', click: () => shell.openExternal('https://github.com/agbalmikail/SouthAstra') }
       ]
