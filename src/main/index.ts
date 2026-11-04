@@ -8,6 +8,8 @@ import { browsePlaces, listCountries, listDistricts, listRegions, loadCities, ne
 import { deleteChart, exportTo, importFrom, initStore, listCharts, readArchive, saveChart } from './store'
 import { getSettings, initSettings, setSettings } from './settings'
 import { buildMenu } from './menu'
+import { getLang, setLang } from '@shared/i18n'
+import '@shared/i18n/en/all'
 import { toUtc } from './time'
 import { addressSearch } from './geocode'
 import { checkForUpdate } from './updates'
@@ -68,7 +70,9 @@ app.whenReady().then(() => {
   initEphemeris(join(resourceDir, 'ephe'))
   loadCities(join(resourceDir, 'cities.json.gz'))
   initStore(dataDir)
-  useSettings(initSettings(join(dataDir, 'settings.json')))
+  const s0 = initSettings(join(dataDir, 'settings.json'))
+  setLang(s0.language)
+  useSettings(s0)
   initLibrary(join(dataDir, 'library.json'))
   buildMenu()
 
@@ -110,7 +114,13 @@ app.whenReady().then(() => {
     return { ...res, notes }
   })
   ipcMain.handle('settings:get', () => getSettings())
-  ipcMain.handle('settings:set', (_e, s) => { const v = setSettings(s); useSettings(v); return v })
+  ipcMain.handle('settings:set', (_e, s) => {
+    const v = setSettings(s)
+    const changed = getLang() !== v.language
+    setLang(v.language); useSettings(v)
+    if (changed) buildMenu() // menü dili
+    return v
+  })
   ipcMain.handle('pdf:export', async (e, fileName: string, footer: string) => {
     const win = BrowserWindow.fromWebContents(e.sender)!
     const target = process.env.SA_PDF // test: kayıt penceresi olmadan yaz

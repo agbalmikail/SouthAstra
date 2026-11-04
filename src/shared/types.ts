@@ -336,6 +336,7 @@ export interface Settings {
   defaultNodeType: 'true' | 'mean'
   asteroids: boolean // Ceres, Pallas, Juno, Vesta
   learningMode: boolean
+  language: 'tr' | 'en' // arayüz ve rapor dili
   rankWeights?: Partial<RankWeights> // transit önem sıralaması ağırlıkları // öğrenme modu: sembollerin geleneksel anlamlarını açıklayan sekme ve PDF bölümü
   /** Gezegen tablosundaki dignite etiketleri: modern (dış gezegenler Kova/Balık/Akrep yöneticisi) veya geleneksel (yalnız yedi gezegen) */
   rulership: 'modern' | 'traditional'

@@ -7,6 +7,7 @@ import '@fontsource/ibm-plex-mono/400.css'
 import '@fontsource/ibm-plex-mono/500.css'
 import '@fontsource/noto-sans-symbols/400.css'
 import './styles.css'
+import '@shared/i18n/en/all'
 import App from './App'
 
 // Platform: Mac'te pencere düğmeleri için yer bırak; kısayol yazıları ⌘ / Ctrl

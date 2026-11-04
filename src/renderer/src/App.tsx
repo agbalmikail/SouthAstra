@@ -18,6 +18,7 @@ import type { FeedbackEntry } from '@shared/feedback'
 import { HighlightsPanel } from './components/HighlightsPanel'
 import { getPanelParams, rectifyDefaults, rectifyKey } from './panelParams'
 import { setRankWeights } from '@shared/transitRank'
+import { setLang } from '@shared/i18n'
 import logoMarkSrc from './assets/logo-mark.svg'
 import { DateBar, ShiftBar } from './components/TimeBar'
 import { AspectGrid, AspectList, CrossList, HouseTable, PlanetTable } from './components/Tables'
@@ -102,6 +103,8 @@ export default function App() {
   const [roddenFilter, setRoddenFilter] = useState<Rodden | ''>('')
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS)
+  setLang(settings.language) // dil: bu çizimden itibaren t() bu dili kullanır
+  useEffect(() => { document.documentElement.lang = settings.language }, [settings.language])
   useEffect(() => setRankWeights(settings.rankWeights), [settings.rankWeights])
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [library, setLibrary] = useState<Library>({})

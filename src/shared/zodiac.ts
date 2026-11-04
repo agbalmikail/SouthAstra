@@ -99,6 +99,7 @@ export const DEFAULT_SETTINGS: Settings = {
   defaultNodeType: 'true',
   asteroids: false,
   learningMode: false,
+  language: 'tr',
   rulership: 'modern',
   appearance: { glyphScale: 1, showDegrees: true, showAspectLines: true, showHouseNumbers: true, coloredSigns: true, aspectLineWidth: 0.9, focusOthers: 'dim' },
   updateCheck: true

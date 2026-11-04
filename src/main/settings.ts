@@ -39,6 +39,7 @@ function sanitize(s: Settings): Settings {
     defaultNodeType: s.defaultNodeType === 'mean' ? 'mean' : 'true',
     asteroids: s.asteroids === true,
     learningMode: s.learningMode === true,
+    language: s.language === 'en' ? 'en' : 'tr',
     rankWeights: Object.fromEntries(Object.entries(s.rankWeights ?? {}).filter(([k, v]) => typeof v === 'number' && Number.isFinite(v) && v >= 0 && v <= 10 && k in DEFAULT_RANK)),
     rulership: s.rulership === 'traditional' ? 'traditional' : 'modern',
     appearance: {

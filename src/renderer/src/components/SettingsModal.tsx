@@ -19,6 +19,12 @@ export default function SettingsModal({ initial, onClose, onSave, onAbout }: { i
     <div className="modal-back" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose() }}>
       <div className="modal wide" onKeyDown={(e) => { if (e.key === 'Escape') onClose() }}>
         <h2>Ayarlar</h2>
+        <label className="field lang-field"><span>Dil / Language</span>
+          <select id="s-lang" value={s.language} onChange={(e) => setS({ ...s, language: e.target.value as 'tr' | 'en' })}>
+            <option value="tr">Türkçe</option>
+            <option value="en">English</option>
+          </select>
+        </label>
         <p className="hint" style={{ marginTop: -6 }}>Ayarlar bilgisayarınızda saklanır ve uygulama kapansa da korunur; arşivi dışa aktardığınızda yedeğe de dahil edilir.</p>
 
         <div className="settings-grid">
