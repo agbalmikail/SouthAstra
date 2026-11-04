@@ -25,6 +25,7 @@ function createWindow(): void {
     title: 'SouthAstra',
     titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
     show: false,
+    ...(process.platform !== 'darwin' && !app.isPackaged ? { icon: join(__dirname, '../../build/icon.png') } : {}),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       contextIsolation: true,
@@ -56,6 +57,8 @@ function createWindow(): void {
 const safeName = (s: string) => s.replace(/[\\/:*?"<>|]+/g, '-').trim() || 'harita'
 
 app.whenReady().then(() => {
+  // Geliştirme modunda da Dock/görev çubuğunda SouthAstra ikonu (kurulu sürümde ikon pakete gömülüdür)
+  if (!app.isPackaged && process.platform === 'darwin') app.dock?.setIcon(join(__dirname, '../../build/icon.png'))
   const dataDir = app.getPath('userData')
   initEphemeris(join(resourceDir, 'ephe'))
   loadCities(join(resourceDir, 'cities.json.gz'))

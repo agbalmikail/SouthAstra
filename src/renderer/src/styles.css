@@ -517,3 +517,11 @@ body.resizing * { cursor: col-resize !important; }
 .print-page .asp-grid .asp-orb { font-size: 8px; }
 .print-page .asp-grid th.diag .sym { font-size: 15px; }
 .print-page .grid-wrap .p-orbs { align-self: stretch; margin-top: 12px; }
+
+/* logo */
+.logo { display: inline-flex; align-items: center; gap: 7px; }
+.logo-mark { width: 22px; height: 22px; flex: none; }
+.p-brand { display: inline-flex; align-items: center; gap: 6px; }
+.p-brand .logo-mark { width: 26px; height: 26px; }
+.about-head { display: flex; align-items: center; gap: 16px; }
+.about-logo { width: 72px; height: 72px; flex: none; }

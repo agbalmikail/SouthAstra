@@ -8,6 +8,7 @@ import { AspectGrid, AspectList, CrossList, HouseTable, PLANET_LEGEND, PlanetTab
 import { Distribution, StarsTable } from './Analysis'
 import { MidpointsPanel, PatternsBlock, TraditionalPanel, type PdfSections } from './Extras'
 import { fmtDateTr, fmtOffset } from '../format'
+import logoMark from '../assets/logo-mark.svg'
 
 const noop = () => undefined
 
@@ -122,7 +123,7 @@ export default function PrintView({ view, sections, library, transits, modeName,
               <h1>{view.title}</h1>
               <div className="p-kind">{view.subtitle || modeName}</div>
             </div>
-            <div className="p-brand">South<b>Astra</b></div>
+            <div className="p-brand"><img src={logoMark} alt="" className="logo-mark" /><span>South<b>Astra</b></span></div>
           </header>
           <Meta view={view} />
           <div className="p-wheel"><Wheel inner={c} outer={view.outer} cross={view.cross} hovered={null} onHover={noop} showMinor={false} print /></div>

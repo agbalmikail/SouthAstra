@@ -1,4 +1,6 @@
-# SouthAstra
+<p align="center"><img src="build/icon.png" width="128" alt="SouthAstra logosu"></p>
+
+<h1 align="center">SouthAstra</h1>
 
 Profesyonel astrologlar için masaüstü astroloji programı. Mac ve Windows'ta çalışır.
 

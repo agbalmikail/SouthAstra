@@ -16,6 +16,7 @@ import ZoomPane from './components/ZoomPane'
 import AboutModal from './components/AboutModal'
 import { fmtDateTr, fmtDecl, fmtOffset, lonParts } from './format'
 import { kbd } from './platform'
+import logoMark from './assets/logo-mark.svg'
 
 const ISTANBUL: Place = { geonameId: 745044, name: 'İstanbul', district: '', region: 'İstanbul', country: 'Türkiye', countryCode: 'TR', lat: 41.0138, lon: 28.9497, tz: 'Europe/Istanbul', precision: 'İl/eyalet merkezi' }
 
@@ -358,7 +359,7 @@ export default function App() {
       ) : (
       <aside className="side">
         <div className="resizer right" onPointerDown={(e) => startResize(e, sideW, 1, setSideW, 200, 440)} onDoubleClick={() => setSideW(248)} title="Sürükleyerek genişlet · çift tıkla varsayılana dön" />
-        <div className="brand drag"><span className="logo">South<b>Astra</b></span><button className="collapse-btn no-drag" onClick={() => setSideOpen(false)} title={`Kenar çubuğunu gizle (${kbd('\\')})`}>«</button></div>
+        <div className="brand drag"><span className="logo"><img src={logoMark} alt="" className="logo-mark" /><span>South<b>Astra</b></span></span><button className="collapse-btn no-drag" onClick={() => setSideOpen(false)} title={`Kenar çubuğunu gizle (${kbd('\\')})`}>«</button></div>
         <div className="side-actions">
           <button className="btn primary block" onClick={() => setForm('new')} title={kbd('N')}>Yeni harita</button>
           <button className="btn ghost block" onClick={() => { setCurrentId(null); setInput(nowInput(input?.place)); setMode('natal') }} title={kbd('T')}>Şu anın haritası</button>

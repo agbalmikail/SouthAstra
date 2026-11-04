@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import logoMark from '../assets/logo-mark.svg'
 
 const REPO = 'https://github.com/agbalmikail/SouthAstra'
 
@@ -16,6 +17,7 @@ export default function AboutModal({ onClose }: { onClose: () => void }) {
     <div className="modal-back" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose() }}>
       <div className="modal wide about" onKeyDown={(e) => { if (e.key === 'Escape') onClose() }}>
         <div className="about-head">
+          <img src={logoMark} alt="SouthAstra logosu" className="about-logo" />
           <div>
             <h2>South<b>Astra</b></h2>
             <p className="muted small">Sürüm {info?.version ?? '…'} · Swiss Ephemeris {info?.sweph ?? '…'}</p>
