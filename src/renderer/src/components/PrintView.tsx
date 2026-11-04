@@ -7,6 +7,7 @@ import Wheel from './Wheel'
 import { AspectGrid, AspectList, CrossList, HouseTable, PLANET_LEGEND, PlanetTable } from './Tables'
 import { Distribution, LotsTable, RectifyTable, StarsTable } from './Analysis'
 import { getPanelParams } from '../panelParams'
+import { LearnPanel } from './LearnPanel'
 import { TechnicalAppendix, TransitSummary, TransitTable, TransitTimeline } from './PrintExtras'
 import { TimeLordsPanel } from './TimeLords'
 import { EclipsePanel, MidpointsPanel, PatternsBlock, TraditionalPanel, type PdfSections } from './Extras'
@@ -167,7 +168,7 @@ export default function PrintView({ view, sections, library, transits, eclipses,
               <h3>{c.label}</h3>
               <PlanetTable chart={c} hovered={null} onHover={noop} />
               <p className="p-legend-text">{PLANET_LEGEND}</p>
-              {c.hasHouses && (<><h3>Ev başlangıçları · {c.houseSystemUsed}</h3><HouseTable chart={c} /></>)}
+              {c.hasHouses && (<><h3>Ev başlangıçları · {c.houseSystemUsed}</h3><div className="p-cols2"><HouseTable chart={c} /></div></>)}
             </>
           )}
         </Section>
@@ -255,6 +256,12 @@ export default function PrintView({ view, sections, library, transits, eclipses,
               </div>
             )
           })}
+        </Section>
+      )}
+
+      {sections.learning && (
+        <Section title="Öğrenme · sembollerin geleneksel anlamları" who={who}>
+          <LearnPanel chart={c} outer={view.outer} cross={view.cross} print />
         </Section>
       )}
 

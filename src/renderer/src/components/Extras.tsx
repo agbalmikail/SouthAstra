@@ -242,14 +242,20 @@ export function EclipsePanel({ input, chart, print, preloaded }: { input: ChartI
 
 // ——— PDF seçenekleri ———
 
-export type PdfSections = { chart: boolean; positions: boolean; aspects: boolean; analysis: boolean; timelords: boolean; eclipses: boolean; rectify: boolean; transits: boolean; technical: boolean; interpretations: boolean; notes: boolean }
-export const DEFAULT_PDF: PdfSections = { chart: true, positions: true, aspects: true, analysis: true, timelords: false, eclipses: false, rectify: false, transits: true, technical: true, interpretations: true, notes: false }
+export type PdfSections = { chart: boolean; positions: boolean; aspects: boolean; analysis: boolean; timelords: boolean; eclipses: boolean; rectify: boolean; transits: boolean; technical: boolean; learning: boolean; interpretations: boolean; notes: boolean }
+export const DEFAULT_PDF: PdfSections = { chart: true, positions: true, aspects: true, analysis: true, timelords: false, eclipses: false, rectify: false, transits: true, technical: true, learning: false, interpretations: true, notes: false }
+
+const PDF_PRESETS: Record<string, { name: string; hint: string; on: (keyof PdfSections)[] }> = {
+  basic: { name: 'Temel', hint: 'Harita, konumlar, ana açılar ve kısa açıklamalar', on: ['chart', 'positions', 'aspects', 'learning'] },
+  pro: { name: 'Profesyonel', hint: 'Ayrıntılı tablolar, analiz, geleneksel teknikler, transit raporu ve teknik ek', on: ['chart', 'positions', 'aspects', 'analysis', 'timelords', 'eclipses', 'transits', 'interpretations', 'technical'] },
+  learn: { name: 'Öğrenme', hint: 'Temel teknik veriler, sembol açıklamaları, kendi yorumlarınız, belirsizlik ve yöntem notları', on: ['chart', 'positions', 'learning', 'interpretations', 'technical'] }
+}
 
 export function PdfDialog({ initial, available, onCancel, onExport }: { initial: PdfSections; available: (keyof PdfSections)[]; onCancel: () => void; onExport: (s: PdfSections) => void }) {
   const [s, setS] = useState(initial)
   const LABELS: Record<keyof PdfSections, string> = {
     chart: 'Harita çarkı ve doğum bilgileri', positions: 'Konumlar (gezegenler, evler)', aspects: 'Açılar',
-    analysis: 'Analiz (dağılım, orta noktalar, sabit yıldızlar)', timelords: 'Profeksiyon ve firdaria (paneldeki ayarlarla)', eclipses: 'Tutulmalar (paneldeki tarih aralığıyla)', rectify: 'Doğum saati aralığı (paneldeki saatlerle)', transits: 'Transit raporu: öne çıkanlar, zaman çizelgesi, liste (paneldeki aralık ve filtrelerle)', technical: 'Teknik ek (efemeris, saat dilimi, orblar, sürüm)',
+    analysis: 'Analiz (dağılım, orta noktalar, sabit yıldızlar)', timelords: 'Profeksiyon ve firdaria (paneldeki ayarlarla)', eclipses: 'Tutulmalar (paneldeki tarih aralığıyla)', rectify: 'Doğum saati aralığı (paneldeki saatlerle)', transits: 'Transit raporu: öne çıkanlar, zaman çizelgesi, liste (paneldeki aralık ve filtrelerle)', technical: 'Teknik ek (efemeris, saat dilimi, orblar, sürüm)', learning: 'Öğrenme: sembollerin geleneksel anlamları (yeni başlayanlar için)',
     interpretations: 'Yorumlarım (kütüphaneden)', notes: 'Notlar ve seans notları (danışana verilecekse kapalı tutun)'
   }
   return (
@@ -257,6 +263,12 @@ export function PdfDialog({ initial, available, onCancel, onExport }: { initial:
       <div className="modal" onKeyDown={(e) => { if (e.key === 'Escape') onCancel() }}>
         <h2>PDF olarak kaydet</h2>
         <p className="hint" style={{ marginTop: -6 }}>Her bölüm yeni sayfada başlar. Sayfalar numaralanır.</p>
+        <div className="pdf-presets">
+          <span className="muted small">Rapor türü</span>
+          {(Object.keys(PDF_PRESETS) as (keyof typeof PDF_PRESETS)[]).map((k) => (
+            <button key={k} className="btn ghost small" title={PDF_PRESETS[k].hint} onClick={() => setS(Object.fromEntries(Object.keys(s).map((x) => [x, PDF_PRESETS[k].on.includes(x as keyof PdfSections)])) as PdfSections)}>{PDF_PRESETS[k].name}</button>
+          ))}
+        </div>
         <div className="pdf-opts">
           {available.map((k) => (
             <label key={k} className="inline"><input type="checkbox" checked={s[k]} onChange={(e) => setS({ ...s, [k]: e.target.checked })} /> {LABELS[k]}</label>

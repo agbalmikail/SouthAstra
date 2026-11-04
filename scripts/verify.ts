@@ -202,6 +202,26 @@ console.log('\n— Taşınma ve dönüş yeri')
   ok(Math.abs(srHome.jdUt - srBer.jdUt) < 1e-9 && separation(srBer.angles.asc, hs.points[0]) < 1e-9 && separation(srBer.angles.asc, srHome.angles.asc) > 1, 'Güneş dönüşü Berlin\'de: dönüş anı aynı, evler Berlin\'e göre')
 }
 
+console.log('\n— Ay düğümü (bağımsız formül)')
+{
+  // Meeus, Astronomical Algorithms (2. baskı) 47.7: ortalama düğüm Ω = 125.0445479 − 1934.1362891 T + 0.0020754 T² + T³/467441 − T⁴/60616000
+  let worst = 0
+  for (const [y, m, d] of [[1959, 6, 1], [1975, 11, 2], [1990, 4, 1], [2000, 1, 1], [2024, 1, 1], [2050, 7, 1]]) {
+    const jdUt = sweph.julday(y, m, d, 12, C.SE_GREG_CAL)
+    const jdTt = jdUt + sweph.deltat(jdUt)
+    const T = (jdTt - 2451545) / 36525
+    const om = (((125.0445479 - 1934.1362891 * T + 0.0020754 * T * T + (T * T * T) / 467441 - (T ** 4) / 60616000) % 360) + 360) % 360
+    const se = sweph.calc_ut(jdUt, C.SE_MEAN_NODE, C.SEFLG_SWIEPH).data[0]
+    // Swiss Ephemeris görünür konum verir (nütasyon dahil); Meeus ortalama ekinoksa göre: nütasyonu ekle
+    const nut = sweph.calc_ut(jdUt, C.SE_ECL_NUT, 0).data[2]
+    worst = Math.max(worst, arcsec(se, om + nut))
+  }
+  ok(worst < 5, `Ortalama Ay düğümü Meeus formülüyle 6 tarihte karşılaştırıldı: en büyük fark ${worst.toFixed(2)}" (sınır 5")`)
+  const tn = sweph.calc_ut(sweph.julday(2000, 1, 1, 12, C.SE_GREG_CAL), C.SE_TRUE_NODE, C.SEFLG_SWIEPH).data[0]
+  const mn = sweph.calc_ut(sweph.julday(2000, 1, 1, 12, C.SE_GREG_CAL), C.SE_MEAN_NODE, C.SEFLG_SWIEPH).data[0]
+  ok(Math.abs(((tn - mn + 540) % 360) - 180) < 2, `Gerçek düğüm ortalamadan ${Math.abs(((tn - mn + 540) % 360) - 180).toFixed(2)}° uzakta (fiziksel sınır ~1,7°). Not: gerçek düğüm bağımsız bir referansla doğrulanmadı.`)
+}
+
 console.log('\n— Saat bilinmeyen harita (Rodden X): Ay belirsizliği ve gündüz/gece')
 {
   const ux = natalChart({ ...base, date: '1975-11-02', time: '12:00', timeUnknown: true })

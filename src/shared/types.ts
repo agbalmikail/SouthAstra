@@ -327,6 +327,7 @@ export interface Settings {
   defaultHouseSystem: HouseSystem // yeni haritalar için
   defaultNodeType: 'true' | 'mean'
   asteroids: boolean // Ceres, Pallas, Juno, Vesta
+  learningMode: boolean // öğrenme modu: sembollerin geleneksel anlamlarını açıklayan sekme ve PDF bölümü
   /** Gezegen tablosundaki dignite etiketleri: modern (dış gezegenler Kova/Balık/Akrep yöneticisi) veya geleneksel (yalnız yedi gezegen) */
   rulership: 'modern' | 'traditional'
   appearance: Appearance

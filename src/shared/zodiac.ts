@@ -98,6 +98,7 @@ export const DEFAULT_SETTINGS: Settings = {
   defaultHouseSystem: 'P',
   defaultNodeType: 'true',
   asteroids: false,
+  learningMode: false,
   rulership: 'modern',
   appearance: { glyphScale: 1, showDegrees: true, showAspectLines: true, showHouseNumbers: true, coloredSigns: true, aspectLineWidth: 0.9, focusOthers: 'dim' },
   updateCheck: true

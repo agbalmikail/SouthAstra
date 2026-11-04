@@ -66,6 +66,7 @@ export default function SettingsModal({ initial, onClose, onSave, onAbout }: { i
             <div className="cap">Gösterilecek noktalar</div>
             <p className="hint">İşareti kaldırılan noktalar çarkta, tablolarda ve açı listelerinde gösterilmez.</p>
             <div className="point-opts">
+              <label className="inline"><input id="s-learn" type="checkbox" checked={s.learningMode} onChange={(e) => setS({ ...s, learningMode: e.target.checked })} /> Öğrenme modu: gezegen, burç, ev ve açıların geleneksel anlamlarını açıklayan “Öğren” sekmesi <span className="muted small">(tahmin değil, sembol sözlüğü)</span></label>
               <label className="inline"><input id="s-ast" type="checkbox" checked={s.asteroids} onChange={(e) => setS({ ...s, asteroids: e.target.checked })} /> Ana asteroitler: Ceres ⚳, Pallas ⚴, Juno ⚵, Vesta ⚶ <span className="muted small">(açılarında orb en fazla 3°)</span></label>
               {OPTIONAL_POINTS.map(([id, name]) => (
                 <label key={id} className="inline"><input type="checkbox" checked={!s.hiddenPoints.includes(id)} onChange={(e) => setS({ ...s, hiddenPoints: e.target.checked ? s.hiddenPoints.filter((x) => x !== id) : [...s.hiddenPoints, id] })} /> {name}</label>

@@ -657,3 +657,14 @@ table.grid td.uncertain, td.uncertain { opacity: 0.55; }
 .side-a { color: var(--accent); font-weight: 600; }
 .side-b { color: var(--fg); font-weight: 600; }
 .print-page .p-two table.data td { padding-top: 2.2px; padding-bottom: 2.2px; }
+
+/* Öğrenme modu */
+.learn { display: flex; flex-direction: column; gap: 6px; }
+.learn-item { border-bottom: 1px solid var(--line); padding: 6px 0 8px; break-inside: avoid; }
+.learn-item p { margin: 3px 0 0; line-height: 1.5; }
+.learn-h { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.learn-note { border-left: 3px solid var(--accent); padding-left: 8px; }
+.pdf-presets { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 4px; }
+.btn.small { padding: 4px 10px; font-size: 12.5px; }
+.print-page .learn-item { border-bottom-color: #e3e6ec; padding: 3px 0 4px; }
+.print-page .learn-item p { font-size: 8.6px; }

@@ -10,6 +10,7 @@ import PrintView from './components/PrintView'
 import EphemerisView, { EphemerisPrint } from './components/EphemerisView'
 import CommandPalette, { type Command } from './components/CommandPalette'
 import Onboarding from './components/Onboarding'
+import { LearnPanel } from './components/LearnPanel'
 import { getPanelParams, rectifyDefaults, rectifyKey } from './panelParams'
 import logoMarkSrc from './assets/logo-mark.svg'
 import { DateBar, ShiftBar } from './components/TimeBar'
@@ -203,7 +204,11 @@ export default function App() {
     if (mode === 'acg' && input) window.southastra.acg(input).then(setAcgLines).catch((e) => setError(errText(e)))
   }, [mode, input, settings])
 
-  const tabs = useMemo(() => tabsFor(mode, input?.name ?? 'A', partner?.name ?? 'B'), [mode, input, partner])
+  const tabs = useMemo(() => {
+    const t = tabsFor(mode, input?.name ?? 'A', partner?.name ?? 'B')
+    if (settings.learningMode && ['natal', 'draconic', 'relocated', 'composite', 'solarreturn', 'lunarreturn', 'transit'].includes(mode)) t.main = [...t.main, T('learn', 'Öğren')]
+    return t
+  }, [mode, input, partner, settings.learningMode])
   const allTabs = [...tabs.main, ...tabs.more]
   useEffect(() => { if (!allTabs.some((t) => t.k === tab)) setTab(tabs.main[0].k) }, [tabs, tab, allTabs])
   useEffect(() => { setSelected(null) }, [mode, input])
@@ -299,6 +304,7 @@ export default function App() {
     ...(mode === 'natal' || mode === 'transit' ? ['eclipses' as const] : []),
     ...(mode === 'transit' ? ['transits' as const] : []),
     ...(natalLike ? ['interpretations' as const] : []),
+    ...(natalLike || mode === 'transit' || mode === 'relocated' ? ['learning' as const] : []),
     'technical', 'notes'
   ]
 
@@ -511,6 +517,7 @@ export default function App() {
       case 'cross': return outer ? <CrossList outer={outer} inner={inner} cross={view.cross} showMinor={showMinor} hovered={hovered} onHover={setHovered} /> : null
       case 'analysis': return <><PatternsBlock chart={inner} /><Distribution chart={inner} /><div className="cap">Arap noktaları</div><LotsTable chart={inner} /><div className="cap">Sabit yıldız kavuşumları</div><StarsTable chart={inner} orb={settings.fixedStarOrb} /></>
       case 'traditional': return <TraditionalPanel chart={inner} />
+      case 'learn': return <LearnPanel chart={inner} outer={outer} cross={shownView.cross} />
       case 'timelords': return <TimeLordsPanel chart={inner} at={new Date(dateMs)} />
       case 'events': return input ? <EventsPanel input={input} canSave={!!currentId} onChange={saveEvents} onOpen={openEvent} /> : null
       case 'midpoints': return <MidpointsPanel chart={inner} />
