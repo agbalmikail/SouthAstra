@@ -24,17 +24,18 @@ export function chartFactors(c: ChartResult): Factor[] {
   }
   for (const p of pts) {
     const s = signOf(p.lon)
-    out.push({ key: `ps:${p.id}:${s}`, group: 'Burçlar', title: `${p.name} ${SIGNS[s].name} burcunda`, glyphs: `${p.glyph} ${SIGNS[s].glyph}` })
+    const moonUnsure = p.id === 'moon' && c.moonRange && signOf(c.moonRange.from) !== signOf(c.moonRange.to)
+    out.push({ key: `ps:${p.id}:${s}`, group: 'Burçlar', title: `${p.name} ${SIGNS[s].name} burcunda${moonUnsure ? ' (saate bağlı: Ay doğum gününde burç değiştiriyor)' : ''}`, glyphs: `${p.glyph} ${SIGNS[s].glyph}` })
   }
   if (c.hasHouses) {
     for (const p of pts) out.push({ key: `ph:${p.id}:${p.house}`, group: 'Evler', title: `${p.name} ${p.house}. evde`, glyphs: `${p.glyph} ${p.house}` })
   }
-  for (const a of c.aspects) {
+  for (const a of c.aspects.filter((x) => x.certainty !== 'olasi')) {
     if (!MAJOR.has(a.type)) continue
     const [x, y] = [a.a, a.b].sort((m, n) => ORDER.indexOf(m) - ORDER.indexOf(n))
     if (!ORDER.includes(x) || !ORDER.includes(y)) continue
     const def = ASPECT_BY_TYPE[a.type]
-    out.push({ key: `as:${x}:${y}:${a.type}`, group: 'Açılar', title: `${name(x)} ${def.name.toLowerCase()} ${name(y)}`, glyphs: `${glyph(x)} ${def.glyph} ${glyph(y)}` })
+    out.push({ key: `as:${x}:${y}:${a.type}`, group: 'Açılar', title: `${name(x)} ${def.name.toLowerCase()} ${name(y)}${a.certainty === 'saate-bagli' ? ' (saate bağlı: doğum saati bilinmiyor)' : ''}`, glyphs: `${glyph(x)} ${def.glyph} ${glyph(y)}` })
   }
   return out
 }

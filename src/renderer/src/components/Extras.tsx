@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { ChartInput, ChartResult, EclipseEvent, Library, LifeEvent, Session } from '@shared/types'
 import { ASPECT_BY_TYPE, pad2, SIGNS } from '@shared/zodiac'
-import { dispositorChains, essentialDignities, isDayChart, mutualReceptions } from '@shared/dignities'
+import { dispositorChains, essentialDignities, isDayChart, mutualReceptions, sectUnknown } from '@shared/dignities'
 import { aspectPatterns } from '@shared/patterns'
 import { chartFactors, keyTitle, midpointHits, type Factor } from '@shared/factors'
 import { fold } from '../search'
@@ -277,15 +277,29 @@ export function PdfDialog({ initial, available, onCancel, onExport }: { initial:
 const GL: Record<string, string> = { sun: '☉', moon: '☽', mercury: '☿', venus: '♀', mars: '♂', jupiter: '♃', saturn: '♄', uranus: '♅', neptune: '♆', pluto: '♇', asc: 'AC', mc: 'MC' }
 const glyphOf = (id: string) => (GL[id] && GL[id].length === 1 ? GL[id] + '︎' : GL[id] ?? id)
 
+/** Zincir döngüyle bitiyorsa: iki gezegenli döngü burç yöneticiliğiyle karşılıklı ağırlamadır; üç ve fazlası dispozitör döngüsüdür */
+function loopText(chain: string[]): string {
+  const last = chain[chain.length - 1]
+  const size = chain.length - 1 - chain.indexOf(last)
+  return size === 2 ? '· döngü: iki gezegen birbirinin burcunda (ev ile karşılıklı ağırlama)' : `· dispozitör döngüsü (${size} gezegen; karşılıklı ağırlama değildir)`
+}
+
 export function TraditionalPanel({ chart }: { chart: ChartResult }) {
-  const rows = essentialDignities(chart)
+  const unknown = sectUnknown(chart)
+  const [assume, setAssume] = usePanelParam('sectAssume')
+  const rows = essentialDignities(chart, unknown ? assume === 'day' : undefined)
   const mr = mutualReceptions(chart)
   const chains = dispositorChains(chart)
   const name = (id: string) => chart.points.find((p) => p.id === id)?.name ?? id
   const cell = (ruler: string | undefined, self: string) => ruler ? <span className={ruler === self ? 'sym self' : 'sym'} title={name(ruler)}>{glyphOf(ruler)}</span> : <span className="muted">—</span>
   return (
     <div>
-      <p className="hint">{isDayChart(chart) ? 'Gündüz haritası (Güneş ufkun üstünde)' : 'Gece haritası (Güneş ufkun altında)'}. Vurgulu işaret: gezegen o satırda kendi dignitesinde.</p>
+      {unknown ? (
+        <div className="sect-unknown">
+          <p className="hint warn-inline">Doğum saati bilinmiyor: gündüz/gece haritası belirlenemez. Üçlük yöneticileri ve puanlar seçilen <b>varsayıma</b> göre hesaplanır; kesin değildir.</p>
+          <div className="seg-btn small"><button className={assume === 'day' ? 'on' : ''} onClick={() => setAssume('day')}>Varsayım: gündüz</button><button className={assume === 'night' ? 'on' : ''} onClick={() => setAssume('night')}>Varsayım: gece</button></div>
+        </div>
+      ) : <p className="hint">{isDayChart(chart) ? 'Gündüz haritası (Güneş ufkun üstünde)' : 'Gece haritası (Güneş ufkun altında)'}. Vurgulu işaret: gezegen o satırda kendi dignitesinde.</p>}
       <table className="data dign">
         <thead><tr><th>Gezegen</th><th className="c">Ev</th><th className="c">Yüc.</th><th className="c">Üçlük</th><th className="c">Sınır</th><th className="c">Dekan</th><th className="r">Puan</th></tr></thead>
         <tbody>
@@ -315,7 +329,7 @@ export function TraditionalPanel({ chart }: { chart: ChartResult }) {
         {chains.map((c) => (
           <li key={c.start}>
             {c.chain.map((id, i) => <span key={i}>{i > 0 && <span className="muted"> → </span>}<span className="sym" title={name(id)}>{glyphOf(id)}</span></span>)}
-            <span className="muted small"> {c.end === 'final' ? `· son dispozitör ${name(c.chain[c.chain.length - 1])}` : '· döngü (karşılıklı ağırlama)'}</span>
+            <span className="muted small"> {c.end === 'final' ? `· son dispozitör ${name(c.chain[c.chain.length - 1])}` : loopText(c.chain)}</span>
           </li>
         ))}
       </ul>

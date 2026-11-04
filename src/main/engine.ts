@@ -6,7 +6,7 @@ import type {
   TransitEvent, ViewRequest, ViewResult, VoidPeriod
 } from '@shared/types'
 import { HOUSE_SYSTEMS, placeLabel } from '@shared/types'
-import { activeOrbs, ASPECTS, DEFAULT_SETTINGS, dignityOf, norm360, separation, signOf, AYANAMSAS } from '@shared/zodiac'
+import { activeOrbs, ASPECTS, DEFAULT_SETTINGS, dignityOf, norm360, separation, signOf, AYANAMSAS, SIGNS } from '@shared/zodiac'
 import { toUtc } from './time'
 
 const C = sweph.constants
@@ -387,7 +387,54 @@ export function natalChart(input: ChartInput, hsys?: HouseSystem, shiftMin = 0):
     offsetMinutes: b.t.offsetMinutes, offsetSource: b.t.source, warnings
   })
   if (shiftMin) ch.shiftMin = shiftMin
+  if (input.timeUnknown && !shiftMin) applyMoonUncertainty(ch, b.jd)
   return ch
+}
+
+/**
+ * Saat bilinmiyor: Ay gün içinde ~12–15° ilerler. Ay'ın açılarını yerel gün boyunca (12:00 ± 12 saat) 30 dakikalık
+ * adımlarla tarar: tüm gün orb içindeyse "kesin", yalnızca günün bir kısmında "saate bağlı", 12:00'de yok ama gün içinde
+ * oluşabiliyorsa "olası". Ayrıca Ay'ın gün içinde burç değiştirip değiştirmediğini bildirir.
+ */
+function applyMoonUncertainty(ch: ChartResult, noonJd: number) {
+  const flags = C.SEFLG_SWIEPH | C.SEFLG_SPEED | zf()
+  const N = 48
+  const times = Array.from({ length: N + 1 }, (_, k) => noonJd - 0.5 + k / N)
+  const moonLon = times.map((t) => sweph.calc_ut(t, C.SE_MOON, flags).data[0])
+  const minL = moonLon[0], maxL = moonLon[N]
+  ch.moonRange = { from: minL, to: maxL }
+  if (signOf(minL) !== signOf(maxL)) ch.warnings.unshift(`Ay doğum gününde burç değiştiriyor: günün başında ${SIGNS[signOf(minL)].name}, sonunda ${SIGNS[signOf(maxL)].name}. Ay'ın burcu doğum saatine bağlıdır.`)
+  const others = ch.points.filter((p) => p.id !== 'moon' && !NO_ASPECT.has(p.id))
+  // Ay'ın paralelleri (deklinasyon da gün içinde değişir): saate bağlı say
+  const keep = ch.aspects.filter((a) => (a.a !== 'moon' && a.b !== 'moon') || a.type === 'parallel' || a.type === 'contraparallel')
+    .map((a) => (a.a === 'moon' || a.b === 'moon' ? { ...a, certainty: 'saate-bagli' as const } : a))
+  const moonAsp: Aspect[] = []
+  for (const p of others) {
+    const se = BODY_BY_ID[p.id]?.se ?? (p.id === 'northnode' ? (ch.input.nodeType === 'mean' ? C.SE_MEAN_NODE : C.SE_TRUE_NODE) : undefined)
+    const pl = se === undefined ? times.map(() => p.lon) : times.map((t) => sweph.calc_ut(t, se, flags).data[0])
+    const sep = times.map((_, k) => separation(moonLon[k], pl[k]))
+    for (const asp of ASPECTS) {
+      const max = natalOrb(asp.type, 'moon', p.id)
+      if (max === null) continue
+      const dev = sep.map((s) => Math.abs(s - asp.angle))
+      const inside = dev.map((d) => d <= max)
+      const count = inside.filter(Boolean).length
+      if (!count) continue
+      const atNoon = inside[N / 2]
+      // Ay'ın görece hareketi tek yönlü: sapmanın gün içinde bir iç minimumu varsa tam açı o gün oluşuyor
+      const exactInDay = dev.some((d, k) => k > 0 && k < N && d <= dev[k - 1] && d <= dev[k + 1])
+      const certainty = count === N + 1 ? 'kesin' : atNoon ? 'saate-bagli' : 'olasi'
+      const minOrb = Math.min(...dev)
+      const a = moonAsp.find((x) => x.b === p.id || x.a === p.id)
+      if (a && a.certainty === 'kesin') continue // bir noktaya tek açı: kesin olan öncelikli
+      const later = Math.abs(separation(moonLon[N / 2] + 0.1, pl[N / 2]) - asp.angle)
+      moonAsp.push({
+        a: 'moon', b: p.id, type: asp.type, angle: asp.angle, orb: dev[N / 2], applying: later < dev[N / 2],
+        certainty, minOrb, applyingUnknown: exactInDay
+      })
+    }
+  }
+  ch.aspects = [...keep, ...moonAsp].sort((x, y) => x.orb - y.orb)
 }
 
 function draconic(ch: ChartResult): ChartResult {
@@ -409,7 +456,20 @@ function draconic(ch: ChartResult): ChartResult {
 const TROPICAL_YEAR = 365.242199
 const LUNAR_MONTH = 27.321582 // tropikal kameri ay (gün)
 
+/**
+ * İkinci çarkın (transit, progresyon, partner, natal…) noktalarını iç çarkın evlerine yerleştirir.
+ * Ev, ekliptik boylama göre iç çarkın ev başlangıçları arasında belirlenir (transit/sinastri için yaygın uygulama).
+ */
 export function view(input: ChartInput, req: ViewRequest): ViewResult {
+  const r = viewRaw(input, req)
+  if (r.outer && r.inner.hasHouses && r.inner.cusps.length === 12) {
+    const cusps = r.inner.cusps
+    r.outer = { ...r.outer, points: r.outer.points.map((p) => ({ ...p, innerHouse: houseOf(p.lon, cusps) })) }
+  }
+  return r
+}
+
+function viewRaw(input: ChartInput, req: ViewRequest): ViewResult {
   const hsys = req.houseSystem ?? input.houseSystem
   const natal = natalChart(input, hsys, req.timeShiftMin ?? 0)
   const target = req.date ? jdFromMs(Date.parse(req.date)) : jdFromMs(Date.now())
@@ -562,7 +622,11 @@ export function transitList(input: ChartInput, fromIso: string, toIso: string, p
       }
       return (a + b) / 2
     }
-    const push = (jd: number, e: Omit<TransitEvent, 'jd' | 'utc' | 'transit'>) => { if (jd >= from && jd <= to) events.push({ jd, utc: isoFromJd(jd), transit: pid, ...e }) }
+    const push = (jd: number, e: Omit<TransitEvent, 'jd' | 'utc' | 'transit'>) => {
+      if (jd < from || jd > to) return
+      const house = natal.hasHouses ? houseOf(lonAt(jd)[0], natal.cusps) : undefined
+      events.push({ jd, utc: isoFromJd(jd), transit: pid, ...e, ...(house ? { house } : {}) })
+    }
 
     for (let k = 0; k < samples.length - 1; k++) {
       const s0 = samples[k]
@@ -592,7 +656,74 @@ export function transitList(input: ChartInput, fromIso: string, toIso: string, p
       }
     }
   }
-  return events.sort((a, b) => a.jd - b.jd)
+  events.sort((a, b) => a.jd - b.jd)
+  addTransitWindows(events, targets, flags)
+  return events
+}
+
+const ASPECT_ANGLE: Record<string, number> = Object.fromEntries(ASPECTS.map((a) => [a.type, a.angle]))
+
+/** Aynı açının tekrarları bu süre içinde ise tek seri sayılır (bir retrograd döngüsü, gün) */
+const SERIES_GAP: Record<string, number> = { sun: 0, mercury: 70, venus: 90, mars: 220, jupiter: 330, saturn: 350, uranus: 380, neptune: 380, pluto: 380, chiron: 380 }
+
+/**
+ * Etkinlik dönemi ve retrograd serisi.
+ * Seri: aynı transit gezegenin aynı natal noktaya aynı yönlü açısının, bir retrograd döngüsü içinde kalan kesinleşmeleri
+ * (seçili tarih aralığının dışındakiler de sayılır). Etkinlik dönemi: serinin ilk kesinleşmesinden önce orba giriş,
+ * sonuncusundan sonra orbdan çıkış (transit orbu, Ayarlar).
+ */
+function addTransitWindows(events: TransitEvent[], targets: { id: string; lon: number }[], flags: number) {
+  const orb = settings.transitOrb
+  const tlon = Object.fromEntries(targets.map((t) => [t.id, t.lon]))
+  const done = new Map<string, { hits: number[]; start: string; end: string }>()
+  for (const e of events) {
+    if (!e.natal || tlon[e.natal] === undefined) continue
+    const body = BODY_BY_ID[e.transit]
+    const lonAt = (jd: number) => sweph.calc_ut(jd, body.se, flags).data[0]
+    const angle = ASPECT_ANGLE[e.type]
+    const off = angle === 0 || angle === 180 ? angle : Math.sign(norm180(lonAt(e.jd) - tlon[e.natal])) * angle
+    const goal = tlon[e.natal] + off
+    const signed = (jd: number) => norm180(lonAt(jd) - goal)
+    const dev = (jd: number) => Math.abs(Math.abs(norm180(lonAt(jd) - tlon[e.natal!])) - angle) - orb
+    const gap = SERIES_GAP[e.transit] ?? 0
+    const step = ['sun', 'mercury', 'venus'].includes(e.transit) ? 0.25 : e.transit === 'mars' ? 0.5 : 1
+    const key = `${e.transit}|${e.natal}|${off}`
+    // bu olay daha önce bulunmuş bir serinin içinde mi?
+    let series = [...done.entries()].find(([k, v]) => k.startsWith(key + '|') && v.hits.some((h) => Math.abs(h - e.jd) < 1e-3))?.[1]
+    if (!series) {
+      // kesinleşmeleri iki yöne zincirle: son bulunandan itibaren 'gap' gün içinde yenisi varsa devam
+      const hits = [e.jd]
+      const scan = (from: number, dir: 1 | -1) => {
+        let t0 = from + dir * 1e-3
+        let v0 = signed(t0)
+        let lastHit = from
+        for (let t1 = t0 + dir * step; Math.abs(t1 - lastHit) <= gap; t1 += dir * step) {
+          const v1 = signed(t1)
+          if (v0 !== 0 && Math.sign(v0) !== Math.sign(v1) && Math.abs(v0 - v1) < 90) {
+            const h = bisect(Math.min(t0, t1), Math.max(t0, t1), signed)
+            hits.push(h); lastHit = h
+          }
+          t0 = t1; v0 = v1
+        }
+      }
+      if (gap > 0) { scan(e.jd, 1); scan(e.jd, -1) }
+      hits.sort((x, y) => x - y)
+      const edge = (from: number, dir: 1 | -1) => {
+        let t0 = from
+        for (let k = 1; k * step <= 1461; k++) {
+          const t1 = from + dir * k * step
+          if (dev(t1) > 0) return bisect(Math.min(t0, t1), Math.max(t0, t1), dev)
+          t0 = t1
+        }
+        return t0
+      }
+      series = { hits, start: isoFromJd(edge(hits[0], -1)), end: isoFromJd(edge(hits[hits.length - 1], 1)) }
+      done.set(`${key}|${hits[0].toFixed(3)}`, series)
+    }
+    const n = series.hits.findIndex((h) => Math.abs(h - e.jd) < 1e-3) + 1
+    e.window = { start: series.start, end: series.end, orb }
+    e.pass = { n: n || 1, of: series.hits.length }
+  }
 }
 
 // ——— Efemeris, Ay geçişleri ve boşluktaki Ay ———

@@ -4,7 +4,7 @@
 // Kullanım: npm run denetim
 import sweph from 'sweph'
 import { join } from 'node:path'
-import { initEphemeris, natalChart, useSettings } from '../src/main/engine'
+import { initEphemeris, natalChart, transitList, useSettings } from '../src/main/engine'
 import { DEFAULT_SETTINGS, ASPECTS, separation, norm360, signOf } from '../src/shared/zodiac'
 import type { ChartInput, HouseSystem } from '../src/shared/types'
 
@@ -148,6 +148,25 @@ row(orbErr < 0.001, `Orb değerleri: en büyük fark ${orbErr.toFixed(4)}"`)
 // ——— 6. Yükselen/MC: kendi yıldız zamanı hesabıyla (Meeus) ———
 console.log('\n6) Yükselen ve MC')
 row(s1(ASC, c.angles.asc) < 0.01 && s1(MC, c.angles.mc) < 0.01, `Formülden AC ${ASC.toFixed(5)}° / MC ${MC.toFixed(5)}° · SouthAstra AC ${c.angles.asc.toFixed(5)}° / MC ${c.angles.mc.toFixed(5)}°`)
+
+// ——— 7. Transit kesinleşme anları: hem transit hem natal konum NASA JPL Horizons'tan ———
+console.log('\n7) Transit kesinleşme anları — NASA JPL ile (açı farkı, yay saniyesi)')
+{
+  // [transit, açı, natal, SouthAstra'nın bulduğu an (UT), JPL'de o andaki transit boylamı]; natal değerler yukarıdaki JPL tablosundan
+  const REF: [string, string, string, string, number][] = [
+    ['saturn', 'square', 'venus', '2024-04-19T16:40', 345.5843431], ['saturn', 'square', 'venus', '2024-09-13T23:46', 345.5843324],
+    ['saturn', 'square', 'venus', '2025-01-13T16:13', 345.5843511], ['jupiter', 'conjunction', 'venus', '2024-08-07T20:20', 75.5843368],
+    ['jupiter', 'sextile', 'sun', '2024-04-21T12:10', 51.9230843], ['mars', 'square', 'sun', '2024-05-29T09:30', 21.9230897]
+  ]
+  const ev = transitList(input, '2024-01-01T00:00:00Z', '2025-12-31T00:00:00Z', ['mars', 'jupiter', 'saturn'])
+  const ANG: Record<string, number> = { conjunction: 0, sextile: 60, square: 90, trine: 120, opposition: 180 }
+  for (const [t, type, n, when, jplLon] of REF) {
+    const e = ev.find((x) => x.transit === t && x.type === type && x.natal === n && x.utc.startsWith(when))
+    const nat = JPL[n][2]
+    const err = Math.abs(Math.abs(separation(jplLon, nat)) - ANG[type]) * 3600
+    row(!!e && err < 1, `${t} ${type} natal ${n} ${when} UT${e?.pass ? ` (${e.pass.n}/${e.pass.of}. geçiş)` : ''}: JPL'e göre açı farkı ${err.toFixed(3)}"`)
+  }
+}
 
 console.log(fail ? `\n${fail} kontrol başarısız` : '\nBütün değerler bağımsız kaynaklarla aynı')
 process.exit(fail ? 1 : 0)

@@ -13,7 +13,7 @@ const BODIES = ['sun', 'moon', 'mercury', 'venus', 'mars', 'jupiter', 'saturn', 
 export function aspectPatterns(c: ChartResult, includeAngles = false): Pattern[] {
   const ids = [...BODIES.filter((id) => c.points.some((p) => p.id === id)), ...(includeAngles && c.hasHouses ? ['asc', 'mc'] : [])]
   const rel = new Map<string, AspectType>()
-  for (const a of c.aspects) {
+  for (const a of c.aspects.filter((x) => x.certainty !== 'olasi')) {
     if (!ids.includes(a.a) || !ids.includes(a.b)) continue
     rel.set(`${a.a}|${a.b}`, a.type)
     rel.set(`${a.b}|${a.a}`, a.type)

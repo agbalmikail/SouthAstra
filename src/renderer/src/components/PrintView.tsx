@@ -154,7 +154,7 @@ export default function PrintView({ view, sections, library, transits, eclipses,
           <h3>{c.label}</h3>
           <PlanetTable chart={c} hovered={null} onHover={noop} />
           <p className="p-legend-text">{PLANET_LEGEND}</p>
-          {view.outer && (<><h3>{view.outer.label}</h3><PlanetTable chart={view.outer} hovered={null} onHover={noop} /></>)}
+          {view.outer && (<><h3>{view.outer.label}</h3><PlanetTable chart={view.outer} hovered={null} onHover={noop} innerLabel={c.kind === 'solarreturn' || c.kind === 'lunarreturn' ? 'Dönüş' : view.title.includes(' × ') ? i.name : 'Natal'} /></>)}
           {c.hasHouses && (<><h3>Ev başlangıçları · {c.houseSystemUsed}</h3><HouseTable chart={c} /></>)}
         </Section>
       )}

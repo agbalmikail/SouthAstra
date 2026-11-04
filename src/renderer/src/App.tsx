@@ -41,6 +41,9 @@ type Tab = { k: string; label: string }
 const T = (k: string, label: string): Tab => ({ k, label })
 const HARMONICS = [4, 5, 7, 8, 9, 11, 12, 16]
 
+/** İkinci çarkın noktaları hangi evlere yerleştirildi: tablo sütun başlığı */
+export const innerHouseLabel = (mode: ViewMode, name?: string): string => mode === 'solarreturn' || mode === 'lunarreturn' ? 'Dönüş' : mode === 'synastry' ? (name ?? 'Natal') : 'Natal'
+
 /** Görünüme göre panel sekmeleri: ana sekmeler görünür, diğerleri "Araçlar" menüsünde */
 function tabsFor(mode: ViewMode, a: string, b: string): { main: Tab[]; more: Tab[] } {
   switch (mode) {
@@ -268,7 +271,7 @@ export default function App() {
     const d = new Date(input.date + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() + Math.floor(total / 1440))
     const hhmm = `${String(Math.floor(t / 60)).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}`
     const dayNote = d.toISOString().slice(0, 10) !== input.date ? ` Tarih de ${fmtDateTr(d.toISOString().slice(0, 10))} olur.` : ''
-    if (!window.confirm(`${input.name} için kayıtlı doğum saati ${input.timeUnknown ? 'bilinmiyor (12:00)' : input.time} → ${hhmm} olarak değiştirilsin mi?${dayNote}\n\nEski saat notlara yazılır; arşivin günlük yedeği de durur.`)) return
+    if (!window.confirm(`${input.name} için kayıtlı doğum saati ${input.timeUnknown ? 'bilinmiyor (12:00)' : input.time} → ${hhmm} olarak değiştirilsin mi?${dayNote}\n\nEski saat notlara yazılır; arşivin günlük yedeği de durur.${input.timeUnknown ? '\n\nDİKKAT: Bu kayıtta doğum saati bilinmiyor. Kaydederseniz harita bilinen saatli bir harita gibi hesaplanır (evler, yükselen, gündüz/gece). Saat bir kaynaktan doğrulanmadıysa kaydetmeyin.' : ''}`)) return
     const next = { ...input, date: d.toISOString().slice(0, 10), time: hhmm, timeUnknown: false, notes: [input.notes, `Doğum saati ${input.timeUnknown ? 'bilinmiyordu' : input.time}; ${hhmm} olarak düzeltildi (${new Date().toLocaleDateString('tr-TR')}).`].filter(Boolean).join('\n') }
     const saved = await window.southastra.saveChart({ ...next, id: currentId })
     await refresh(); select(saved); setToast('Yeni doğum saati kaydedildi')
@@ -496,7 +499,7 @@ export default function App() {
     if (sc && sid && sc.points.some((p) => p.id === sid)) return <PlanetDetail chart={sc} id={sid} onClose={() => setSelected(null)} />
     switch (tab) {
       case 'planets': return <PlanetTable chart={inner} hovered={hovered} onHover={setHovered} onSelect={setSelected} />
-      case 'outer': return outer ? <PlanetTable chart={outer} prefix="o:" hovered={hovered} onHover={setHovered} onSelect={setSelected} /> : null
+      case 'outer': return outer ? <PlanetTable chart={outer} prefix="o:" hovered={hovered} onHover={setHovered} onSelect={setSelected} innerLabel={innerHouseLabel(mode, input?.name)} /> : null
       case 'aspects': return <AspectList chart={inner} showMinor={showMinor} hovered={hovered} onHover={setHovered} />
       case 'grid': return <AspectGrid chart={inner} showMinor={showMinor} hovered={hovered} onHover={setHovered} />
       case 'houses': return <HouseTable chart={inner} />
@@ -680,7 +683,7 @@ export default function App() {
                   : <Wheel inner={inner} outer={outer} cross={shownView.cross} hovered={hovered} selected={selected} onHover={setHovered} onSelect={(id) => setSelected(selected === id ? null : id)} showMinor={showMinor} appearance={settings.appearance} />}
               </ZoomPane>
               {modeDef.needsDate && input && <DateBar ms={dateMs} tz={input.place.tz} onChange={setDateMs} label={mode === 'solarreturn' ? 'Bu tarihten sonraki ilk Güneş dönüşü' : mode === 'lunarreturn' ? 'Bu tarihten sonraki ilk Ay dönüşü' : 'Tarih'} />}
-              {mode === 'natal' && currentId && input && <ShiftBar shift={shift} onChange={setShift} baseTime={input.timeUnknown ? '12:00' : input.time} onApply={applyShift} />}
+              {mode === 'natal' && currentId && input && <ShiftBar shift={shift} onChange={setShift} baseTime={input.timeUnknown ? '12:00' : input.time} onApply={applyShift} unknown={input.timeUnknown} />}
               {mode !== 'acg' && (
                 <div className="hover-strip">
                   {hp ? (() => {

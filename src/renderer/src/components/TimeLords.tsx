@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import type { ChartResult } from '@shared/types'
 import { SIGNS } from '@shared/zodiac'
-import { isDayChart } from '@shared/dignities'
+import { isDayChart, sectUnknown } from '@shared/dignities'
 import { addYears, firdaria, profections, type NightNodes } from '@shared/timelords'
 import { usePanelParam } from '../panelParams'
 
@@ -20,9 +20,11 @@ export function TimeLordsPanel({ chart, at, print }: { chart: ChartResult; at?: 
   const { span, nightNodes } = tl
   const setSpan = (v: number) => setTl({ ...tl, span: v })
   const setNightNodes = (v: NightNodes) => setTl({ ...tl, nightNodes: v })
-  const day = isDayChart(chart)
+  const unknown = sectUnknown(chart)
+  const [assume, setAssume] = usePanelParam('sectAssume')
+  const day = unknown ? assume === 'day' : isDayChart(chart)
   const prof = useMemo(() => profections(chart, birth, Math.max(0, ageNow - Math.floor(span / 2)), Math.max(0, ageNow - Math.floor(span / 2)) + span), [chart, birth, ageNow, span])
-  const fird = useMemo(() => { const all = firdaria(chart, birth, 2, nightNodes); return print ? all.filter((f) => +f.major.from < addYears(birth, 90)) : all }, [chart, birth, nightNodes, print])
+  const fird = useMemo(() => { const all = firdaria(chart, birth, 2, nightNodes, unknown ? day : undefined); return print ? all.filter((f) => +f.major.from < addYears(birth, 90)) : all }, [chart, birth, nightNodes, print, unknown, day])
   const curMajor = fird.find((f) => +f.major.from <= now && now < +f.major.to)
   const [open, setOpen] = useState<number | null>(null)
   const openIdx = open ?? (curMajor ? fird.indexOf(curMajor) : null)
@@ -73,7 +75,13 @@ export function TimeLordsPanel({ chart, at, print }: { chart: ChartResult; at?: 
           </div>
         </div>
       )}
-      {!chart.hasHouses && <p className="hint">Doğum saati bilinmiyor: gündüz/gece ayrımı 12:00 varsayımına göre yapıldı, kesin değildir.</p>}
+      {unknown && (
+        <div className="sect-unknown">
+          <p className="hint warn-inline">Doğum saati bilinmiyor: gündüz/gece haritası belirlenemez, bu yüzden firdaria sırası kesin değildir. Aşağıdaki tablo seçilen <b>varsayıma</b> göredir; iki sıra birbirinden tamamen farklıdır.</p>
+          {!print && <div className="seg-btn small"><button className={assume === 'day' ? 'on' : ''} onClick={() => setAssume('day')}>Varsayım: gündüz (☉ ile başlar)</button><button className={assume === 'night' ? 'on' : ''} onClick={() => setAssume('night')}>Varsayım: gece (☽ ile başlar)</button></div>}
+          {print && <p className="hint">Bu raporda kullanılan varsayım: <b>{day ? 'gündüz haritası' : 'gece haritası'}</b>.</p>}
+        </div>
+      )}
       <table className="data">
         <thead><tr><th>Dönem</th><th>Başlangıç</th><th>Bitiş</th><th className="r">Yıl</th></tr></thead>
         <tbody>

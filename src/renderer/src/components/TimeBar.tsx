@@ -41,13 +41,13 @@ export function DateBar({ ms, tz, onChange, label }: { ms: number; tz: string; o
 }
 
 /** Natal görünümde doğum saatini dakika dakika kaydırma (rektifikasyon) */
-export function ShiftBar({ shift, onChange, baseTime, onApply }: { shift: number; onChange: (m: number) => void; baseTime: string; onApply: () => void }) {
+export function ShiftBar({ shift, onChange, baseTime, onApply, unknown }: { shift: number; onChange: (m: number) => void; baseTime: string; onApply: () => void; unknown?: boolean }) {
   const [h, m] = baseTime.split(':').map(Number)
   const t = (((h * 60 + m + shift) % 1440) + 1440) % 1440
   const shown = `${pad2(Math.floor(t / 60))}:${pad2(t % 60)}`
   return (
     <div className="timebar">
-      <span className="muted small">Doğum saatini kaydır</span>
+      <span className="muted small" title={unknown ? 'Doğum saati bilinmiyor: burada seçilen saat yalnızca bir varsayımdır.' : undefined}>{unknown ? 'Varsayımsal saati incele' : 'Doğum saatini kaydır'}</span>
       <input id="shift" type="range" min={-180} max={180} step={1} value={shift} onChange={(e) => onChange(Number(e.target.value))} />
       <span className="num">{shown}</span>
       <span className="muted small num">({shift > 0 ? '+' : ''}{shift} dk)</span>
@@ -57,7 +57,7 @@ export function ShiftBar({ shift, onChange, baseTime, onApply }: { shift: number
       </div>
       {shift !== 0 && <>
         <button className="tb" onClick={() => onChange(0)}>Sıfırla</button>
-        <button className="tb accent" onClick={onApply}>Bu saati kaydet</button>
+        <button className="tb accent" onClick={onApply} title={unknown ? 'Kayıt "saat bilinmiyor" olmaktan çıkar; yalnızca saat bir kaynaktan doğrulandıysa kullanın.' : undefined}>{unknown ? 'Doğum saati olarak kaydet' : 'Bu saati kaydet'}</button>
       </>}
     </div>
   )

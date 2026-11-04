@@ -50,14 +50,17 @@ export interface DignityRow {
 }
 
 /** Gündüz haritası: Güneş ufkun üstünde */
+/** Doğum saati bilinmiyorsa gündüz/gece (sect) belirlenemez: 12:00 yalnızca hesap referansıdır */
+export const sectUnknown = (c: ChartResult): boolean => !!c.input.timeUnknown && ['natal', 'draconic', 'relocated', 'harmonic'].includes(c.kind)
+
 export const isDayChart = (c: ChartResult): boolean => {
   const sun = c.points.find((p) => p.id === 'sun')
   if (sun?.altitude !== undefined) return sun.altitude > 0
   return (sun?.house ?? 0) >= 7
 }
 
-export function essentialDignities(c: ChartResult): DignityRow[] {
-  const day = isDayChart(c)
+export function essentialDignities(c: ChartResult, dayOverride?: boolean): DignityRow[] {
+  const day = dayOverride ?? isDayChart(c)
   const rows: DignityRow[] = []
   for (const id of TRAD) {
     const p = c.points.find((x) => x.id === id)

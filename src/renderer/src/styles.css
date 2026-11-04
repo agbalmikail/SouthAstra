@@ -625,3 +625,11 @@ table.data tr.phase td { font-weight: 500; }
 .ob-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 16px; }
 .ob-start { justify-content: center; align-items: flex-start; }
 .ob-actions { display: flex; gap: 10px; margin-top: 8px; }
+
+/* Saat bilinmiyor: Ay açılarının belirsizliği */
+.tag.cert-kesin { color: var(--good, #4caf7d); border-color: currentColor; }
+.tag.cert-saate-bagli { color: var(--accent); border-color: currentColor; }
+.tag.cert-olasi { color: var(--muted); border-color: currentColor; border-style: dashed; }
+table.grid td.uncertain, td.uncertain { opacity: 0.55; }
+.sect-unknown { display: flex; flex-direction: column; gap: 6px; margin: 4px 0 10px; }
+.seg-btn.small button { padding: 4px 10px; font-size: 12px; }

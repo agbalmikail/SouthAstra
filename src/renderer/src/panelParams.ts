@@ -7,6 +7,7 @@ export interface PanelParams {
   rectify: Record<string, { from: string; to: string; step: number }> // harita başına (doğum saati farklı)
   midpoints: { orb: number }
   timelords: { span: number; nightNodes: 'end' | 'afterMars' }
+  sectAssume: 'day' | 'night' // saat bilinmeyen haritada gündüz/gece varsayımı
 }
 
 const KEY = 'sa.panelParams'
@@ -16,14 +17,15 @@ const DEFAULTS: PanelParams = {
   eclipses: { from: `${y}-01-01`, to: `${y + 2}-12-31`, onlyContacts: false },
   rectify: {},
   midpoints: { orb: 1.5 },
-  timelords: { span: 12, nightNodes: 'end' }
+  timelords: { span: 12, nightNodes: 'end' },
+  sectAssume: 'day'
 }
 
 function load(): PanelParams {
   const out: PanelParams = structuredClone(DEFAULTS)
   try {
     const raw = JSON.parse(localStorage.getItem(KEY) ?? 'null')
-    if (raw && typeof raw === 'object') for (const k of Object.keys(DEFAULTS) as (keyof PanelParams)[]) if (raw[k] && typeof raw[k] === 'object') Object.assign(out[k], raw[k])
+    if (raw && typeof raw === 'object') for (const k of Object.keys(DEFAULTS) as (keyof PanelParams)[]) { if (raw[k] && typeof raw[k] === 'object') Object.assign(out[k] as object, raw[k]); else if (k === 'sectAssume' && (raw[k] === 'day' || raw[k] === 'night')) out.sectAssume = raw[k] }
     // eski sürümün kayıtları
     const tp = JSON.parse(localStorage.getItem('transit-planets') ?? 'null')
     if (!raw?.transitList && Array.isArray(tp)) out.transitList.planets = tp

@@ -53,8 +53,8 @@ export type NightNodes = 'end' | 'afterMars'
 const CHALDEAN = ['saturn', 'jupiter', 'mars', 'sun', 'venus', 'mercury', 'moon']
 
 /** Firdaria: 75 yıllık ana dönemler; gezegen dönemleri 7 eşit alt döneme bölünür (Kalde sırası, dönem yöneticisinden başlar) */
-export function firdaria(c: ChartResult, birthMs: number, cycles = 2, nightNodes: NightNodes = 'end'): { major: FirdarPeriod; subs: FirdarPeriod[] }[] {
-  const order = isDayChart(c) ? DAY_ORDER : nightNodes === 'afterMars' ? NIGHT_ORDER_BONATTI : NIGHT_ORDER
+export function firdaria(c: ChartResult, birthMs: number, cycles = 2, nightNodes: NightNodes = 'end', dayOverride?: boolean): { major: FirdarPeriod; subs: FirdarPeriod[] }[] {
+  const order = (dayOverride ?? isDayChart(c)) ? DAY_ORDER : nightNodes === 'afterMars' ? NIGHT_ORDER_BONATTI : NIGHT_ORDER
   const out: { major: FirdarPeriod; subs: FirdarPeriod[] }[] = []
   let acc = 0 // doğumdan beri geçen yıl
   for (let cy = 0; cy < cycles; cy++) {

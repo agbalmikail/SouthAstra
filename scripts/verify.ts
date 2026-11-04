@@ -5,10 +5,10 @@
 import sweph from 'sweph'
 import { join } from 'node:path'
 import { acg, ephemeris, eclipses, initEphemeris, natalChart, rectify, transitList, useSettings, view } from '../src/main/engine'
-import { DEFAULT_SETTINGS } from '../src/shared/zodiac'
+import { DEFAULT_SETTINGS, ORB_PROFILES } from '../src/shared/zodiac'
 import { loadCities, searchCities } from '../src/main/cities'
 import { isNewer } from '../src/shared/version'
-import { essentialDignities, faceRuler, termRuler, tripRuler } from '../src/shared/dignities'
+import { essentialDignities, faceRuler, sectUnknown, termRuler, tripRuler } from '../src/shared/dignities'
 import { midpointHits } from '../src/shared/factors'
 import { firdaria, profections } from '../src/shared/timelords'
 import { aspectPatterns } from '../src/shared/patterns'
@@ -86,6 +86,8 @@ ok(tz('1990-06-01', '12:00', 'Europe/London').offsetMinutes === 60, 'Londra, Haz
 ok(tz('2021-03-14', '02:30', 'America/New_York').warnings.some((w) => w.includes('atlanan')), 'New York, 14.03.2021 02:30 → "atlanan saat" uyarısı')
 ok(tz('2021-11-07', '01:30', 'America/New_York').warnings.some((w) => w.includes('iki kez')), 'New York, 07.11.2021 01:30 → "iki kez yaşandı" uyarısı')
 ok(tz('1987-06-10', '14:00', 'Europe/Berlin').offsetMinutes === 120 && tz('1987-01-10', '14:00', 'Europe/Berlin').offsetMinutes === 60, 'Almanya 1987: Haziran UTC+2 (yaz), Ocak UTC+1 (kış)')
+ok(tz('1990-03-24', '12:00', 'Europe/Berlin').offsetMinutes === 60 && tz('1990-03-26', '12:00', 'Europe/Berlin').offsetMinutes === 120 && tz('1990-09-29', '12:00', 'Europe/Berlin').offsetMinutes === 120 && tz('1990-10-01', '12:00', 'Europe/Berlin').offsetMinutes === 60, 'Almanya 1990: yaz saati 25 Mart – 30 Eylül (UTC+2), öncesi ve sonrası UTC+1')
+ok(tz('1990-03-25', '02:30', 'Europe/Berlin').warnings.some((w) => w.includes('atlanan')) && tz('1990-09-30', '02:30', 'Europe/Berlin').warnings.some((w) => w.includes('iki kez')), 'Almanya 1990: 25.03 02:30 "atlanan saat", 30.09 02:30 "iki kez yaşandı" uyarısı')
 ok(tz('1975-07-01', '12:00', 'Europe/Berlin').offsetMinutes === 60 && tz('1980-07-01', '12:00', 'Europe/Berlin').offsetMinutes === 120, 'Almanya: 1975 yazında yaz saati yok (UTC+1), 1980\'de yeniden başladı (UTC+2)')
 ok(tz('1946-07-01', '12:00', 'Europe/Berlin').warnings.some((w) => w.includes('işgal bölgelerinde')), 'Almanya 1945–1949: işgal bölgeleri uyarısı')
 ok(tz('1987-06-10', '14:00', 'Europe/Berlin').dst === true && tz('1987-01-10', '14:00', 'Europe/Berlin').dst === false, 'Yaz saati / standart saat ayrımı doğru')
@@ -198,6 +200,69 @@ console.log('\n— Taşınma ve dönüş yeri')
   const srBer = view(base, { mode: 'solarreturn', date: '2030-01-01T00:00:00Z', place: berlin }).inner
   const hs = sweph.houses_ex2(srBer.jdUt, 0, berlin.lat, berlin.lon, 'P').data
   ok(Math.abs(srHome.jdUt - srBer.jdUt) < 1e-9 && separation(srBer.angles.asc, hs.points[0]) < 1e-9 && separation(srBer.angles.asc, srHome.angles.asc) > 1, 'Güneş dönüşü Berlin\'de: dönüş anı aynı, evler Berlin\'e göre')
+}
+
+console.log('\n— Saat bilinmeyen harita (Rodden X): Ay belirsizliği ve gündüz/gece')
+{
+  const ux = natalChart({ ...base, date: '1975-11-02', time: '12:00', timeUnknown: true })
+  const moonAsp = ux.aspects.filter((a) => a.a === 'moon' || a.b === 'moon')
+  ok(!ux.hasHouses && ux.lots.length === 0 && !ux.points.some((p) => p.id === 'fortune'), 'Saat bilinmiyor: ev, yükselen, Arap noktaları üretilmiyor')
+  ok(!!ux.moonRange && moonAsp.length > 0 && moonAsp.every((a) => !!a.certainty), `Ay'ın ${moonAsp.length} açısının hepsinde belirsizlik sınıfı var; gün içi aralık ${(ux.moonRange!.to - ux.moonRange!.from).toFixed(1)}°`)
+  // bağımsız kontrol: günün başında, ortasında ve sonunda Ay ile diğer cismin açısı
+  const jd0 = Date.parse(ux.utc) / 86400000 + 2440587.5
+  const flg = sweph.constants.SEFLG_SWIEPH
+  const SE: Record<string, number> = { sun: 0, mercury: 2, venus: 3, mars: 4, jupiter: 5, saturn: 6, uranus: 7, neptune: 8, pluto: 9, chiron: 15 }
+  let good = true
+  for (const a of moonAsp) {
+    const other = a.a === 'moon' ? a.b : a.a
+    if (SE[other] === undefined || a.type === 'parallel' || a.type === 'contraparallel') continue
+    const prof = ORB_PROFILES[0]
+    const major = ['conjunction', 'opposition', 'trine', 'square', 'sextile'].includes(a.type)
+    const max = (prof.orbs[a.type as keyof typeof prof.orbs] ?? 0) + (major ? prof.luminaryBonus : Math.min(0.5, prof.luminaryBonus))
+    const dev = (jd: number) => Math.abs(separation(sweph.calc_ut(jd, 1, flg).data[0], sweph.calc_ut(jd, SE[other], flg).data[0]) - a.angle)
+    const ends = [dev(jd0 - 0.5), dev(jd0), dev(jd0 + 0.5)]
+    if (a.certainty === 'kesin' && !(ends[0] <= max + 1e-6 && ends[2] <= max + 1e-6)) good = false
+    if (a.certainty === 'saate-bagli' && ends[0] <= max && ends[2] <= max && ends[1] <= max) { /* gün içinde ara bir anda çıkıyor olabilir */ }
+    if (a.certainty === 'olasi' && Math.abs(ends[1] - a.orb) > 0.01) good = false
+    if (a.certainty !== 'olasi' && Math.abs(ends[1] - a.orb) > 0.01) good = false
+  }
+  ok(good, "Ay açıları: 12:00 orbları bağımsız hesapla aynı; 'kesin' açılar günün başında ve sonunda orb içinde")
+  const mm = moonAsp.find((a) => a.b === 'mercury' && a.type === 'conjunction')
+  ok(!!mm && mm.orb < 0.5 && mm.applyingUnknown === true, `Ay–Merkür kavuşumu 12:00'de ${mm ? (mm.orb * 60).toFixed(0) : '?'}′: gün içinde tam oluyor, yaklaşan/ayrılan saate bağlı`)
+  const kesin = moonAsp.filter((a) => a.certainty === 'kesin')
+  ok(kesin.every((a) => (a.minOrb ?? 0) <= a.orb), `Kesin: ${kesin.length}, saate bağlı: ${moonAsp.filter((a) => a.certainty === 'saate-bagli').length}, olası: ${moonAsp.filter((a) => a.certainty === 'olasi').length}`)
+  const signChange = Math.floor(ux.moonRange!.from / 30) !== Math.floor(ux.moonRange!.to / 30)
+  ok(signChange === ux.warnings.some((w) => w.includes('burç değiştiriyor')), `Ay'ın gün içinde burç değiştirme uyarısı tutarlı (${signChange ? 'değiştiriyor' : 'değiştirmiyor'})`)
+  // burç değiştiren bir gün: 2024-01-03 (Ay o gün Terazi'ye geçiyor, UT 00:47)
+  const sc = natalChart({ ...base, date: '2024-01-03', time: '12:00', timeUnknown: true, place: { ...base.place, tz: 'UTC' } })
+  ok(sc.warnings.some((w) => w.includes('burç değiştiriyor')), "Ay'ın doğum gününde burç değiştirdiği gün uyarı veriliyor (03.01.2024)")
+  ok(sectUnknown(ux) && !sectUnknown(natal), 'Gündüz/gece: saat bilinmiyorsa belirsiz, bilinen saatte belirli')
+  const d = essentialDignities(ux, true).map((r) => r.trip).join()
+  const n = essentialDignities(ux, false).map((r) => r.trip).join()
+  ok(d !== n, 'Gündüz ve gece varsayımları ayrı üçlük yöneticileri veriyor')
+  const fd = firdaria(ux, Date.parse(ux.utc), 1, 'end', false)
+  ok(fd[0].major.lord === 'moon' && firdaria(ux, Date.parse(ux.utc), 1, 'end', true)[0].major.lord === 'sun', 'Firdaria varsayıma göre: gece Ay, gündüz Güneş ile başlıyor')
+}
+
+console.log('\n— Transit: natal evler, retrograd serileri, etkinlik dönemi')
+{
+  const tv = view(base, { mode: 'transit', date: '2026-11-04T12:00:00Z' })
+  const cusps = tv.inner.cusps
+  const inHouse = (lon: number, h: number) => { const a = cusps[h - 1], b = cusps[h % 12]; return ((lon - a + 360) % 360) < ((b - a + 360) % 360) }
+  ok(tv.outer!.points.every((p) => p.innerHouse && inHouse(p.lon, p.innerHouse)), 'Transit gezegenlerin natal evleri, natal ev başlangıçlarıyla tutarlı')
+  const ev = transitList(base, '2024-01-01T00:00:00Z', '2026-12-31T00:00:00Z', ['saturn', 'jupiter', 'mars'])
+  const asp = ev.filter((e) => e.natal && e.window && e.pass)
+  const ANG: Record<string, number> = { conjunction: 0, sextile: 60, square: 90, trine: 120, opposition: 180 }
+  const nat = Object.fromEntries([...natal.points.map((p) => [p.id, p.lon]), ['asc', natal.angles.asc], ['mc', natal.angles.mc]])
+  const SEB: Record<string, number> = { mars: 4, jupiter: 5, saturn: 6 }
+  const devAt = (e: (typeof asp)[0], iso: string) => { const jd = Date.parse(iso) / 86400000 + 2440587.5; return Math.abs(separation(sweph.calc_ut(jd, SEB[e.transit], sweph.constants.SEFLG_SWIEPH).data[0], nat[e.natal!]) - ANG[e.type]) }
+  const edgesOk = asp.slice(0, 40).every((e) => Math.abs(devAt(e, e.window!.start) - e.window!.orb) < 0.001 && Math.abs(devAt(e, e.window!.end) - e.window!.orb) < 0.001 && e.window!.start <= e.utc && e.utc <= e.window!.end)
+  ok(asp.length > 0 && edgesOk, `Etkinlik dönemi: orba giriş ve çıkış anında sapma tam transit orbu (${asp[0]?.window?.orb}°); kesinleşme dönemin içinde`)
+  const series = asp.filter((e) => e.pass!.of === 3)
+  ok(series.length > 0 && series.every((e) => asp.filter((x) => x.transit === e.transit && x.natal === e.natal && x.type === e.type && x.window!.start === e.window!.start).length <= 3), `Retrograd serileri: ${series.length} olay 3 geçişlik serilerde (1/3, 2/3, 3/3)`)
+  const cut = transitList(base, '2025-01-01T00:00:00Z', '2025-03-31T00:00:00Z', ['saturn', 'jupiter', 'mars']).filter((e) => e.natal && e.pass)
+  const same = cut.every((e) => { const f = asp.find((x) => x.utc === e.utc && x.transit === e.transit && x.natal === e.natal); return !f || (f.pass!.n === e.pass!.n && f.pass!.of === e.pass!.of) })
+  ok(same, 'Seri numarası seçili tarih aralığından bağımsız (kısa aralıkta da 2/3 gibi doğru sayılıyor)')
 }
 
 console.log('\n— Efemeris ve boşluktaki Ay (Ocak 2024)')

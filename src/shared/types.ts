@@ -183,6 +183,8 @@ export interface PointPos {
   stationary?: boolean
   /** Pencere içindeki en yakın duraklama: kesin an, yön (geri harekete / düz harekete), doğum anından gün farkı */
   station?: { utc: string; kind: 'retro' | 'direct'; days: number }
+  /** İkinci çarkta: noktanın iç çarkın (natal / dönüş) evlerindeki yeri */
+  innerHouse?: number
 }
 
 export type AspectType =
@@ -197,6 +199,10 @@ export interface Aspect {
   angle: number
   orb: number // gerçek sapma (derece)
   applying: boolean
+  /** Doğum saati bilinmiyorsa Ay açıları: kesin (tüm gün), saate bağlı (günün bir kısmı, 12:00 dahil), olası (12:00'de yok, gün içinde var) */
+  certainty?: 'kesin' | 'saate-bagli' | 'olasi'
+  minOrb?: number // gün içindeki en dar orb
+  applyingUnknown?: boolean // gün içinde tam açı oluşuyor: yaklaşan/ayrılan saate bağlı
 }
 
 export interface StarContact {
@@ -232,6 +238,7 @@ export interface ChartResult {
   stars: StarContact[]
   lots: Lot[]
   isDay?: boolean // Güneş ufkun üstünde
+  moonRange?: { from: number; to: number } // saat bilinmiyorsa: Ay'ın doğum günündeki boylam aralığı
   /** Saat sürgüsü simülasyonu: kayıtlı saate eklenen dakika (kayıt değişmez) */
   shiftMin?: number
   place?: Place // haritanın kurulduğu yer (taşınma ve dönüşlerde doğum yerinden farklı olabilir)
@@ -253,6 +260,11 @@ export interface TransitEvent {
   natal?: string
   retro: boolean
   sign?: number
+  house?: number // transit gezegenin o anda bulunduğu natal ev
+  /** Etkinlik dönemi: transit orbu içinde kalınan süre (tekrarlarda tüm serinin başı ve sonu) */
+  window?: { start: string; end: string; orb: number }
+  /** Retrograd tekrarı: serideki sırası */
+  pass?: { n: number; of: number }
 }
 
 /** Efemeris: günlük konumlar (0h UT), ay içindeki olaylar ve Ay'ın boşlukta olduğu dönemler */
