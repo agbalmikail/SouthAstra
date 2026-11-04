@@ -39,6 +39,9 @@ function createWindow(): void {
   const shot = process.env.SA_SHOT
   if (shot) {
     win.webContents.on('console-message', (e) => { if (String(e.message).startsWith('SHOTLOG')) console.log(e.message) })
+    win.webContents.on('render-process-gone', (_e, d) => console.log('SHOTLOG ÇÖKTÜ', d.reason, d.exitCode))
+    win.webContents.on('did-start-navigation', (d) => { if (!d.isSameDocument) console.log('SHOTLOG GEZİNME', d.url) })
+    win.webContents.on('unresponsive', () => console.log('SHOTLOG YANIT VERMİYOR'))
     win.webContents.once('did-finish-load', async () => {
       if (process.env.SA_SHOT_JS) await win.webContents.executeJavaScript(readFileSync(process.env.SA_SHOT_JS, 'utf8'))
       await new Promise((r) => setTimeout(r, 1200))
