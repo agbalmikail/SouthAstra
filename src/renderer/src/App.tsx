@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import type { EclipseEvent, RectifyRow, Ephemeris, AcgLine, ChartInput, ChartResult, CityHit, HouseSystem, Library, LifeEvent, MenuCommand, Place, Rodden, SavedChart, Session, Settings, TransitEvent, UpdateInfo, ViewMode, ViewResult } from '@shared/types'
+import type { AppInfo, EclipseEvent, RectifyRow, Ephemeris, AcgLine, ChartInput, ChartResult, CityHit, HouseSystem, Library, LifeEvent, MenuCommand, Place, Rodden, SavedChart, Session, Settings, TransitEvent, UpdateInfo, ViewMode, ViewResult } from '@shared/types'
 import { HOUSE_SYSTEMS, placeLabel, RODDEN, VIEW_MODES } from '@shared/types'
 import { DEFAULT_SETTINGS } from '@shared/zodiac'
 import { fold } from './search'
@@ -15,6 +15,7 @@ import logoMarkSrc from './assets/logo-mark.svg'
 import { DateBar, ShiftBar } from './components/TimeBar'
 import { AspectGrid, AspectList, CrossList, HouseTable, PlanetTable } from './components/Tables'
 import { TimeLordsPanel } from './components/TimeLords'
+import { filterTransits } from './components/Analysis'
 import { Distribution, HouseCompare, LotsTable, PlanetDetail, RectifyPanel, StarsTable, TransitListPanel } from './components/Analysis'
 import { DEFAULT_PDF, EclipsePanel, EventsPanel, InterpretPanel, LibraryModal, MidpointsPanel, PatternsBlock, PdfDialog, SessionsPanel, TraditionalPanel, type PdfSections } from './components/Extras'
 import { AcgMap, AcgPanel, AcgPrint } from './components/AcgMap'
@@ -108,6 +109,8 @@ export default function App() {
   const [pdfSections, setPdfSections] = useState<PdfSections>({ ...DEFAULT_PDF, ...pref('pdfSections', {}) })
   const [printing, setPrinting] = useState(false)
   const [printTransits, setPrintTransits] = useState<TransitEvent[] | undefined>()
+  const [printInfo, setPrintInfo] = useState<AppInfo | undefined>()
+  const [reportAt, setReportAt] = useState(() => new Date().toISOString())
   const [printEclipses, setPrintEclipses] = useState<EclipseEvent[] | undefined>()
   const [printRectify, setPrintRectify] = useState<{ rows: RectifyRow[]; from: string; to: string; step: number } | undefined>()
   const [acgLines, setAcgLines] = useState<AcgLine[]>([])
@@ -296,7 +299,7 @@ export default function App() {
     ...(mode === 'natal' || mode === 'transit' ? ['eclipses' as const] : []),
     ...(mode === 'transit' ? ['transits' as const] : []),
     ...(natalLike ? ['interpretations' as const] : []),
-    'notes'
+    'technical', 'notes'
   ]
 
   const exportPdf = useCallback(async (s: PdfSections) => {
@@ -312,7 +315,7 @@ export default function App() {
       if (sec.transits) {
         const t = pp.transitList
         const list = await window.southastra.transitList(input, `${t.from}T00:00:00Z`, `${t.to}T23:59:59Z`, t.planets)
-        setPrintTransits(list.filter((e) => (e.natal ? t.kinds.aspects : e.type === 'ingress' ? t.kinds.ingress : t.kinds.stations)))
+        setPrintTransits(filterTransits(list, t))
       }
       if (sec.eclipses) {
         const e = pp.eclipses
@@ -325,6 +328,8 @@ export default function App() {
         setPrintRectify({ ...r, rows: await window.southastra.rectify(input, r.from, r.to, r.step) })
       }
     } catch (e) { setError(errText(e)); return }
+    try { setPrintInfo(await window.southastra.info()) } catch { /* yok */ }
+    setReportAt(new Date().toISOString())
     setPrinting(true)
     await new Promise((r) => setTimeout(r, 400))
     try {
@@ -488,7 +493,7 @@ export default function App() {
 
   if (acgPrint && input) return <AcgPrint input={input} lines={acgLines} hidden={acgHidden} marker={acgMarker} utc={view?.inner.utc} logo={logoMarkSrc} />
   if (ephemPrint) return <EphemerisPrint data={ephemPrint.data} tz={ephemPrint.tz} title={ephemPrint.title} logo={logoMarkSrc} />
-  if (printing && shownView) return <PrintView view={shownView} sections={pdfSections} library={library} transits={printTransits} eclipses={printEclipses} rectify={printRectify} modeName={modeDef.name} settings={settings} />
+  if (printing && shownView) return <PrintView view={shownView} sections={pdfSections} library={library} transits={printTransits} eclipses={printEclipses} rectify={printRectify} info={printInfo} reportAt={reportAt} modeName={modeDef.name} settings={settings} />
 
   const inner = shownView?.inner
   const outer = shownView?.outer

@@ -2,7 +2,7 @@
 import { useCallback, useSyncExternalStore } from 'react'
 
 export interface PanelParams {
-  transitList: { from: string; to: string; planets: string[]; kinds: { aspects: boolean; stations: boolean; ingress: boolean } }
+  transitList: { from: string; to: string; planets: string[]; kinds: { aspects: boolean; stations: boolean; ingress: boolean }; classes: { short: boolean; medium: boolean; long: boolean }; sort: 'time' | 'rank' }
   eclipses: { from: string; to: string; onlyContacts: boolean }
   rectify: Record<string, { from: string; to: string; step: number }> // harita başına (doğum saati farklı)
   midpoints: { orb: number }
@@ -13,7 +13,7 @@ export interface PanelParams {
 const KEY = 'sa.panelParams'
 const y = new Date().getFullYear()
 const DEFAULTS: PanelParams = {
-  transitList: { from: `${y}-01-01`, to: `${y}-12-31`, planets: ['mars', 'jupiter', 'saturn', 'uranus', 'neptune', 'pluto'], kinds: { aspects: true, stations: true, ingress: false } },
+  transitList: { from: `${y}-01-01`, to: `${y}-12-31`, planets: ['mars', 'jupiter', 'saturn', 'uranus', 'neptune', 'pluto'], kinds: { aspects: true, stations: true, ingress: false }, classes: { short: true, medium: true, long: true }, sort: 'time' },
   eclipses: { from: `${y}-01-01`, to: `${y + 2}-12-31`, onlyContacts: false },
   rectify: {},
   midpoints: { orb: 1.5 },

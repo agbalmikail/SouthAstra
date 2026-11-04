@@ -381,6 +381,8 @@ export type MenuCommand = 'new' | 'edit' | 'find' | 'pdf' | 'settings' | 'now' |
 /** Kişisel yorum kütüphanesi: etken anahtarı → astrologun kendi metni */
 export type Library = Record<string, { text: string; updatedAt: string }>
 
+export interface AppInfo { version: string; sweph: string; ephePath: string; epheFiles: string[]; platform: string; dataDir: string }
+
 export interface SouthAstraApi {
   view: (input: ChartInput, req: ViewRequest) => Promise<ViewResult>
   transitList: (input: ChartInput, fromIso: string, toIso: string, planets: string[]) => Promise<TransitEvent[]>
@@ -408,7 +410,7 @@ export interface SouthAstraApi {
   exportPdf: (fileName: string, footer: string) => Promise<string | null>
   copyRect: (r: { x: number; y: number; width: number; height: number }) => Promise<{ width: number; height: number }>
   onMenu: (cb: (cmd: MenuCommand) => void) => () => void
-  info: () => Promise<{ version: string; sweph: string; ephePath: string; platform: string; dataDir: string }>
+  info: () => Promise<AppInfo>
   notices: () => Promise<{ license: string; thirdParty: string }>
   openExternal: (url: string) => Promise<void>
   checkUpdate: () => Promise<UpdateInfo>

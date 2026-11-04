@@ -242,14 +242,14 @@ export function EclipsePanel({ input, chart, print, preloaded }: { input: ChartI
 
 // ——— PDF seçenekleri ———
 
-export type PdfSections = { chart: boolean; positions: boolean; aspects: boolean; analysis: boolean; timelords: boolean; eclipses: boolean; rectify: boolean; transits: boolean; interpretations: boolean; notes: boolean }
-export const DEFAULT_PDF: PdfSections = { chart: true, positions: true, aspects: true, analysis: true, timelords: false, eclipses: false, rectify: false, transits: true, interpretations: true, notes: false }
+export type PdfSections = { chart: boolean; positions: boolean; aspects: boolean; analysis: boolean; timelords: boolean; eclipses: boolean; rectify: boolean; transits: boolean; technical: boolean; interpretations: boolean; notes: boolean }
+export const DEFAULT_PDF: PdfSections = { chart: true, positions: true, aspects: true, analysis: true, timelords: false, eclipses: false, rectify: false, transits: true, technical: true, interpretations: true, notes: false }
 
 export function PdfDialog({ initial, available, onCancel, onExport }: { initial: PdfSections; available: (keyof PdfSections)[]; onCancel: () => void; onExport: (s: PdfSections) => void }) {
   const [s, setS] = useState(initial)
   const LABELS: Record<keyof PdfSections, string> = {
     chart: 'Harita çarkı ve doğum bilgileri', positions: 'Konumlar (gezegenler, evler)', aspects: 'Açılar',
-    analysis: 'Analiz (dağılım, orta noktalar, sabit yıldızlar)', timelords: 'Profeksiyon ve firdaria (paneldeki ayarlarla)', eclipses: 'Tutulmalar (paneldeki tarih aralığıyla)', rectify: 'Doğum saati aralığı (paneldeki saatlerle)', transits: 'Transit listesi (paneldeki aralık, gezegenler ve olay türleriyle)',
+    analysis: 'Analiz (dağılım, orta noktalar, sabit yıldızlar)', timelords: 'Profeksiyon ve firdaria (paneldeki ayarlarla)', eclipses: 'Tutulmalar (paneldeki tarih aralığıyla)', rectify: 'Doğum saati aralığı (paneldeki saatlerle)', transits: 'Transit raporu: öne çıkanlar, zaman çizelgesi, liste (paneldeki aralık ve filtrelerle)', technical: 'Teknik ek (efemeris, saat dilimi, orblar, sürüm)',
     interpretations: 'Yorumlarım (kütüphaneden)', notes: 'Notlar ve seans notları (danışana verilecekse kapalı tutun)'
   }
   return (

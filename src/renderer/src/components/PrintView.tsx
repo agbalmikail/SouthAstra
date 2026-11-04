@@ -1,4 +1,4 @@
-import type { ChartResult, EclipseEvent, Library, RectifyRow, Settings, TransitEvent, ViewResult } from '@shared/types'
+import type { AppInfo, ChartResult, EclipseEvent, Library, RectifyRow, Settings, TransitEvent, ViewResult } from '@shared/types'
 import { HOUSE_SYSTEMS, placeLabel, RODDEN } from '@shared/types'
 import { activeOrbs, ASPECT_BY_TYPE, ASPECTS, moonPhase, SIGNS } from '@shared/zodiac'
 import { aspectPatterns } from '@shared/patterns'
@@ -7,6 +7,7 @@ import Wheel from './Wheel'
 import { AspectGrid, AspectList, CrossList, HouseTable, PLANET_LEGEND, PlanetTable } from './Tables'
 import { Distribution, LotsTable, RectifyTable, StarsTable } from './Analysis'
 import { getPanelParams } from '../panelParams'
+import { TechnicalAppendix, TransitSummary, TransitTable, TransitTimeline } from './PrintExtras'
 import { TimeLordsPanel } from './TimeLords'
 import { EclipsePanel, MidpointsPanel, PatternsBlock, TraditionalPanel, type PdfSections } from './Extras'
 import { fmtDateTr, fmtOffset } from '../format'
@@ -29,7 +30,7 @@ const shiftedTime = (base: string, shift: number) => {
   return `${String(Math.floor(t / 60)).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}`
 }
 
-function Meta({ view }: { view: ViewResult }) {
+function Meta({ view, reportAt }: { view: ViewResult; reportAt: string }) {
   const c = view.inner
   const i = c.input
   const natal: ChartResult | undefined = c.kind === 'natal' || c.kind === 'draconic' || c.kind === 'harmonic' || c.kind === 'relocated' ? c : view.outer?.kind === 'natal' ? view.outer : undefined
@@ -43,6 +44,7 @@ function Meta({ view }: { view: ViewResult }) {
     ['Koordinat', `${Math.abs(i.place.lat).toFixed(4)}° ${i.place.lat >= 0 ? 'K' : 'G'} · ${Math.abs(i.place.lon).toFixed(4)}° ${i.place.lon >= 0 ? 'D' : 'B'}${i.place.precision ? ` · ${i.place.precision}` : ''}`],
     ...(natal ? [['UTC', `${natal.utc.replace('T', ' ').replace(/(\.\d+)?Z$/, '')} · ${fmtOffset(natal.offsetMinutes)} (${i.timeMode === 'zone' ? i.place.tz : i.timeMode === 'lmt' ? 'LMT' : 'elle ofset'})`] as [string, string]] : []),
     ...(moment ? [[c.kind === 'solarreturn' || c.kind === 'lunarreturn' ? 'Dönüş anı' : 'Harita tarihi', `${local(moment)} (${(c.place ?? i.place).tz})`] as [string, string]] : []),
+    ['Rapor tarihi', new Date(reportAt).toLocaleString('tr-TR', { dateStyle: 'long', timeStyle: 'short' })],
     ['Ev sistemi', c.hasHouses ? c.houseSystemUsed : (HOUSE_SYSTEMS.find((h) => h.id === c.houseSystem)?.name ?? '') + ' · evler gösterilmiyor'],
     ['Zodyak', `${c.zodiac} · geosantrik · görünür konum`],
     ['Ay düğümü', i.nodeType === 'mean' ? 'Ortalama düğüm' : 'Gerçek (oskülatör) düğüm'],
@@ -111,9 +113,9 @@ function Summary({ chart }: { chart: ChartResult }) {
   )
 }
 
-export default function PrintView({ view, sections, library, transits, eclipses, rectify, modeName, settings }: {
+export default function PrintView({ view, sections, library, transits, eclipses, rectify, modeName, settings, info, reportAt }: {
   view: ViewResult; sections: PdfSections; library: Library; transits?: TransitEvent[]; eclipses?: EclipseEvent[]
-  rectify?: { rows: RectifyRow[]; from: string; to: string; step: number }; modeName: string; settings: Settings
+  rectify?: { rows: RectifyRow[]; from: string; to: string; step: number }; modeName: string; settings: Settings; info?: AppInfo; reportAt: string
 }) {
   const c = view.inner
   const i = c.input
@@ -141,7 +143,7 @@ export default function PrintView({ view, sections, library, transits, eclipses,
             </div>
             <div className="p-brand"><img src={logoMark} alt="" className="logo-mark" /><span>South<b>Astra</b></span></div>
           </header>
-          <Meta view={view} />
+          <Meta view={view} reportAt={reportAt} />
           <div className="p-wheel"><Wheel inner={c} outer={view.outer} cross={view.cross} hovered={null} onHover={noop} showMinor={false} print appearance={settings.appearance} /></div>
           <Legend />
           <Summary chart={c} />
@@ -151,11 +153,23 @@ export default function PrintView({ view, sections, library, transits, eclipses,
 
       {sections.positions && (
         <Section title="Konumlar" who={who}>
-          <h3>{c.label}</h3>
-          <PlanetTable chart={c} hovered={null} onHover={noop} />
-          <p className="p-legend-text">{PLANET_LEGEND}</p>
-          {view.outer && (<><h3>{view.outer.label}</h3><PlanetTable chart={view.outer} hovered={null} onHover={noop} innerLabel={c.kind === 'solarreturn' || c.kind === 'lunarreturn' ? 'Dönüş' : view.title.includes(' × ') ? i.name : 'Natal'} /></>)}
-          {c.hasHouses && (<><h3>Ev başlangıçları · {c.houseSystemUsed}</h3><HouseTable chart={c} /></>)}
+          {view.outer ? (
+            <>
+              <div className="p-two">
+                <div><h3>{c.label}</h3><PlanetTable chart={c} hovered={null} onHover={noop} compact /></div>
+                <div><h3>{view.outer.label}</h3><PlanetTable chart={view.outer} hovered={null} onHover={noop} compact innerLabel={c.kind === 'solarreturn' || c.kind === 'lunarreturn' ? 'Dönüş' : view.title.includes(' × ') ? i.name : 'Natal'} /></div>
+              </div>
+              <p className="p-legend-text">{PLANET_LEGEND} Hız ve deklinasyon her iki çark için ayrı PDF'lerde (tek çark) ayrıntılı verilir.</p>
+              {c.hasHouses && (<><h3>Ev başlangıçları · {c.houseSystemUsed}</h3><div className="p-cols2"><HouseTable chart={c} /></div></>)}
+            </>
+          ) : (
+            <>
+              <h3>{c.label}</h3>
+              <PlanetTable chart={c} hovered={null} onHover={noop} />
+              <p className="p-legend-text">{PLANET_LEGEND}</p>
+              {c.hasHouses && (<><h3>Ev başlangıçları · {c.houseSystemUsed}</h3><HouseTable chart={c} /></>)}
+            </>
+          )}
         </Section>
       )}
 
@@ -217,21 +231,10 @@ export default function PrintView({ view, sections, library, transits, eclipses,
       {sections.transits && transits && (
         <Section title="Transit listesi" who={who}>
           <p className="hint">{transitRangeText()} · tam açı anları, {i.place.tz} saatiyle · {transits.length} olay</p>
-          <table className="data p-transits">
-            <thead><tr><th>Tarih</th><th>Transit</th><th>Olay</th></tr></thead>
-            <tbody>
-              {transits.map((e, k) => {
-                const def = e.natal ? ASPECT_BY_TYPE[e.type as keyof typeof ASPECT_BY_TYPE] : undefined
-                return (
-                  <tr key={k}>
-                    <td className="num nowrap">{new Date(e.utc).toLocaleString('tr-TR', { timeZone: i.place.tz, day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</td>
-                    <td className="nowrap"><span className="sym">{gl(e.transit)}</span> {nm(e.transit)}{e.retro ? ' (R)' : ''}</td>
-                    <td>{def ? `${def.name} natal ${nm(e.natal!)}` : e.type === 'station-retro' ? `Geri dönüyor · ${SIGNS[e.sign ?? 0].name}` : e.type === 'station-direct' ? `İleri dönüyor · ${SIGNS[e.sign ?? 0].name}` : `${SIGNS[e.sign ?? 0].name} burcuna geçiş`}</td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
+          <TransitSummary natal={natal} transits={transits} tz={i.place.tz} />
+          <TransitTimeline natal={natal} transits={transits} from={getPanelParams().transitList.from} to={getPanelParams().transitList.to} />
+          <h3>Bütün olaylar</h3>
+          <TransitTable natal={natal} transits={transits} tz={i.place.tz} />
         </Section>
       )}
 
@@ -252,6 +255,13 @@ export default function PrintView({ view, sections, library, transits, eclipses,
               </div>
             )
           })}
+        </Section>
+      )}
+
+      {sections.technical && (
+        <Section title="Teknik ek · hesaplama bilgileri" who={who}>
+          <p className="hint">Bu rapordaki değerleri başka bir programla yeniden üretmek için gereken ayarlar.</p>
+          <TechnicalAppendix view={view} settings={settings} info={info} reportAt={reportAt} />
         </Section>
       )}
 

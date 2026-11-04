@@ -633,3 +633,27 @@ table.data tr.phase td { font-weight: 500; }
 table.grid td.uncertain, td.uncertain { opacity: 0.55; }
 .sect-unknown { display: flex; flex-direction: column; gap: 6px; margin: 4px 0 10px; }
 .seg-btn.small button { padding: 4px 10px; font-size: 12px; }
+
+/* Transit süre sınıfı */
+.tag.dur-long { color: var(--accent); border-color: currentColor; }
+.tag.dur-medium { color: var(--fg); border-color: var(--line-strong); }
+.tag.dur-short { color: var(--muted); border-color: var(--line); }
+
+/* PDF transit raporu */
+.p-two-wide { grid-template-columns: 1.15fr 1fr; }
+.p-summary-box { border: 1px solid #d9dde5; border-radius: 6px; padding: 6px 10px 2px; margin-bottom: 10px; break-inside: avoid; }
+.p-summary-box h3 { margin-top: 4px; }
+.p-timeline { break-inside: avoid; margin-bottom: 8px; }
+.p-timeline .tl-grid { stroke: #e3e6ec; stroke-width: 0.4; }
+.p-timeline .tl-month { font-size: 6px; fill: #646d7e; font-family: var(--sans); }
+.p-timeline .tl-label { font-size: 7.5px; fill: #1d2330; font-family: var(--sym); }
+.p-timeline .tl-bar { fill: #c9ced8; }
+.p-timeline .tl-bar.conjunction { fill: #d8b35a; }
+.p-timeline .tl-bar.square, .p-timeline .tl-bar.opposition { fill: #e19a90; }
+.p-timeline .tl-bar.trine, .p-timeline .tl-bar.sextile { fill: #93b7dc; }
+.p-timeline .tl-hit { fill: #1d2330; }
+.print-page .p-transits td, .print-page .p-transits th { font-size: 8px; padding: 2px 3px; }
+.p-tech dd { white-space: normal; }
+.side-a { color: var(--accent); font-weight: 600; }
+.side-b { color: var(--fg); font-weight: 600; }
+.print-page .p-two table.data td { padding-top: 2.2px; padding-bottom: 2.2px; }

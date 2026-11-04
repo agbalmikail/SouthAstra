@@ -1,6 +1,6 @@
 import { app, BrowserWindow, clipboard, ClipboardItem, dialog, ipcMain, shell } from 'electron'
 import { join } from 'node:path'
-import { readFileSync, writeFileSync } from 'node:fs'
+import { readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { acg, ephemeris, eclipses, getEphePath, initEphemeris, rectify, swephVersion, transitList, useSettings, view } from './engine'
 import { getLibrary, initLibrary, mergeLibrary, setLibraryEntry } from './library'
 import { browsePlaces, listCountries, listDistricts, listRegions, loadCities, nearest, searchCities } from './cities'
@@ -147,7 +147,11 @@ app.whenReady().then(() => {
   })
   ipcMain.handle('app:open', (_e, url: string) => { if (/^https:\/\/[\w.-]+\//.test(url)) return shell.openExternal(url) })
   ipcMain.handle('app:update', () => checkForUpdate())
-  ipcMain.handle('app:info', () => ({ version: app.getVersion(), sweph: swephVersion(), ephePath: getEphePath(), platform: process.platform, dataDir }))
+  ipcMain.handle('app:info', () => {
+    let epheFiles: string[] = []
+    try { epheFiles = readdirSync(getEphePath()).filter((f) => /\.(se1|txt)$/i.test(f)).sort() } catch { /* yok */ }
+    return { version: app.getVersion(), sweph: swephVersion(), ephePath: getEphePath(), epheFiles, platform: process.platform, dataDir }
+  })
 
   createWindow()
   app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow() })

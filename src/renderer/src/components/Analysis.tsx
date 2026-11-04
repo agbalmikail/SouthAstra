@@ -4,7 +4,8 @@ import { HOUSE_SYSTEMS } from '@shared/types'
 import { ASPECT_BY_TYPE, ELEMENT_TR, MODALITY, moonPhase, norm360, pad2, SIGNS, signOf, TRAD_RULER } from '@shared/zodiac'
 import { fmtDecl, fmtOrb, lonParts } from '../format'
 import { Lon, stationText } from './Tables'
-import { rectifyDefaults, rectifyKey, usePanelParam } from '../panelParams'
+import { rectifyDefaults, rectifyKey, usePanelParam, type PanelParams } from '../panelParams'
+import { durationClass, DURATION_NAME, importance, RANK_RULE, windowDays } from '@shared/transitRank'
 
 const err = (e: unknown) => (e as Error).message.replace(/^Error invoking remote method '[^']+': (Error: )?/, '')
 
@@ -269,6 +270,12 @@ export function RectifyTable({ rows, current, onPick }: { rows: RectifyRow[]; cu
 
 // ——— Transit listesi ———
 
+/** Panel ve PDF ortak: olay türü ve süre sınıfı süzgeci, tarih veya önem sırası */
+export function filterTransits(events: TransitEvent[], tp: PanelParams['transitList']): TransitEvent[] {
+  const list = events.filter((e) => (e.natal ? tp.kinds.aspects && (!e.window || tp.classes[durationClass(e)!]) : e.type === 'ingress' ? tp.kinds.ingress : tp.kinds.stations))
+  return tp.sort === 'rank' ? [...list].sort((a, b) => importance(b) - importance(a) || Date.parse(a.utc) - Date.parse(b.utc)) : list
+}
+
 const T_PLANETS = [
   { id: 'sun', g: '☉' }, { id: 'mercury', g: '☿' }, { id: 'venus', g: '♀' }, { id: 'mars', g: '♂' }, { id: 'jupiter', g: '♃' },
   { id: 'saturn', g: '♄' }, { id: 'uranus', g: '♅' }, { id: 'neptune', g: '♆' }, { id: 'pluto', g: '♇' }, { id: 'chiron', g: '⚷' }
@@ -276,7 +283,7 @@ const T_PLANETS = [
 
 export function TransitListPanel({ input, natal, onPick }: { input: ChartInput; natal: ChartResult; onPick: (iso: string) => void }) {
   const [tp, setTp] = usePanelParam('transitList')
-  const { from, to, planets, kinds } = tp
+  const { from, to, planets, kinds, classes, sort } = tp
   const setFrom = (v: string) => setTp({ ...tp, from: v })
   const setTo = (v: string) => setTp({ ...tp, to: v })
   const setPlanets = (f: (l: string[]) => string[]) => setTp({ ...tp, planets: f(planets) })
@@ -292,11 +299,12 @@ export function TransitListPanel({ input, natal, onPick }: { input: ChartInput; 
   }, [input, from, to, planets])
   const g = (id: string) => (id === 'asc' ? 'AC' : id === 'mc' ? 'MC' : natal.points.find((p) => p.id === id)?.glyph ?? T_PLANETS.find((p) => p.id === id)?.g ?? id)
   const n = (id: string) => (id === 'asc' ? 'Yükselen' : id === 'mc' ? 'MC' : natal.points.find((p) => p.id === id)?.name ?? id)
-  const shown = events.filter((e) => (e.natal ? kinds.aspects : e.type === 'ingress' ? kinds.ingress : kinds.stations))
+  const shown = filterTransits(events, tp)
   const fmtDate = (iso: string) => {
     const d = new Date(iso)
     return d.toLocaleString('tr-TR', { timeZone: input.place.tz, day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
   }
+  const fmtDay = (iso: string) => new Date(iso).toLocaleDateString('tr-TR', { timeZone: input.place.tz, day: '2-digit', month: '2-digit', year: 'numeric' })
   let lastMonth = ''
   return (
     <div>
@@ -314,13 +322,19 @@ export function TransitListPanel({ input, natal, onPick }: { input: ChartInput; 
         <label className="inline small"><input type="checkbox" checked={kinds.stations} onChange={(e) => setKinds({ ...kinds, stations: e.target.checked })} /> Duraklamalar</label>
         <label className="inline small"><input type="checkbox" checked={kinds.ingress} onChange={(e) => setKinds({ ...kinds, ingress: e.target.checked })} /> Burç geçişleri</label>
       </div>
+      <div className="chips">
+        <span className="muted small">Süre</span>
+        {(['short', 'medium', 'long'] as const).map((c) => <label key={c} className="inline small" title={c === 'short' ? '< 14 gün' : c === 'medium' ? '14–90 gün' : '> 90 gün'}><input type="checkbox" checked={classes[c]} onChange={(e) => setTp({ ...tp, classes: { ...classes, [c]: e.target.checked } })} /> {DURATION_NAME[c]}</label>)}
+        <span className="muted small" style={{ marginLeft: 8 }}>Sıra</span>
+        <div className="seg-btn small"><button className={sort === 'time' ? 'on' : ''} onClick={() => setTp({ ...tp, sort: 'time' })}>Tarih</button><button className={sort === 'rank' ? 'on' : ''} onClick={() => setTp({ ...tp, sort: 'rank' })} title={RANK_RULE}>Önem</button></div>
+      </div>
       {error && <p className="error">{error}</p>}
-      <p className="hint">{busy ? 'Hesaplanıyor…' : `${shown.length} olay · saatler doğum yerinin saat dilimine göre · tam açı anı`}</p>
+      <p className="hint">{busy ? 'Hesaplanıyor…' : `${shown.length} olay · saatler doğum yerinin saat dilimine göre · tam açı anı · parantezde transit gezegenin natal evi · dönem: orba giriş–çıkış (transit orbu ${events.find((e) => e.window)?.window?.orb ?? '—'}°)`}{sort === 'rank' && <> · <span title={RANK_RULE} className="link small">önem kuralı</span></>}</p>
       <table className="data">
         <tbody>
           {shown.map((e, i) => {
-            const month = new Date(e.utc).toLocaleString('tr-TR', { timeZone: input.place.tz, month: 'long', year: 'numeric' })
-            const head = month !== lastMonth
+            const month = sort === 'rank' ? '' : new Date(e.utc).toLocaleString('tr-TR', { timeZone: input.place.tz, month: 'long', year: 'numeric' })
+            const head = sort !== 'rank' && month !== lastMonth
             lastMonth = month
             const def = e.natal ? ASPECT_BY_TYPE[e.type as keyof typeof ASPECT_BY_TYPE] : undefined
             return [
@@ -328,10 +342,12 @@ export function TransitListPanel({ input, natal, onPick }: { input: ChartInput; 
               <tr key={i} className="click" onClick={() => onPick(e.utc)}>
                 <td className="num small nowrap">{fmtDate(e.utc)}</td>
                 <td className="nowrap">
-                  <span className="sym">{g(e.transit)}</span>{e.retro && <span className="tag retro">R</span>}{' '}
+                  <span className="sym">{g(e.transit)}</span>{e.house ? <span className="muted small">({e.house})</span> : null}{e.retro && <span className="tag retro">R</span>}{' '}
                   {def ? <><span className={`asp-g ${e.type}`}>{def.glyph}</span> <span className={g(e.natal!).length > 2 ? 'axis-txt' : 'sym'}>{g(e.natal!)}</span></> : null}
                 </td>
                 <td className="small">
+                  {e.pass && e.pass.of > 1 && <span className="tag stat" title="Retrograd hareket nedeniyle aynı açının tekrarı">{e.pass.n}/{e.pass.of}</span>}{' '}
+                  {e.window && <span className={`tag dur-${durationClass(e)}`} title={`Etkinlik dönemi (orb ${e.window.orb}°): ${fmtDay(e.window.start)} – ${fmtDay(e.window.end)} · ${Math.round(windowDays(e))} gün`}>{DURATION_NAME[durationClass(e)!]}</span>}{' '}
                   {def ? `${def.name} natal ${n(e.natal!)}` : e.type === 'station-retro' ? `Geri dönüyor · ${SIGNS[e.sign ?? 0].name}` : e.type === 'station-direct' ? `İleri dönüyor · ${SIGNS[e.sign ?? 0].name}` : `${SIGNS[e.sign ?? 0].name} burcuna geçiş`}
                 </td>
               </tr>
