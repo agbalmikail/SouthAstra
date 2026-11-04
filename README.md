@@ -2,7 +2,7 @@
 
 <h1 align="center">SouthAstra</h1>
 
-Profesyonel astrologlar için masaüstü astroloji programı. Mac ve Windows'ta çalışır.
+Profesyonel astrologlar için masaüstü astroloji programı. Mac ve Windows'ta çalışır. Arayüz Türkçe ve İngilizce.
 
 Hesaplamalar, Astrodienst'in **Swiss Ephemeris** motoruyla yapılır (NASA JPL efemerislerine dayanır; astro.com ile aynı motor).
 
@@ -13,15 +13,29 @@ Görsellerdeki haritalar uydurma örneklerdir.
 | | |
 |---|---|
 | ![Doğum haritası](docs/ekran/natal.png) | ![Transitler ve transit listesi](docs/ekran/transit.png) |
-| **Doğum haritası** — çark, gezegen tablosu, hesaplama bilgileri | **Transitler** — çift çark ve tam açı anlarıyla transit listesi |
+| **Doğum haritası** — çark, düz dille öne çıkanlar, hesaplama bilgileri | **Transitler** — natal ev, retrograd serisi, etkinlik dönemi ve satır açıklamasıyla transit listesi |
 | ![Sinastri](docs/ekran/sinastri.png) | ![Geleneksel analiz](docs/ekran/geleneksel.png) |
 | **Sinastri** — iki harita ve karşılıklı açılar | **Geleneksel analiz** — esas dignite tablosu, karşılıklı ağırlama, dispozitörler |
 | ![Doğum yeri seçimi](docs/ekran/dogum-yeri.png) | ![Astrokartografi](docs/ekran/astrokartografi.png) |
 | **Doğum yeri** — ülke / il / ilçe süzgeci, koordinat ve GeoNames kimliği | **Astrokartografi** — gezegen çizgileri ve şehir uzaklıkları |
 
-<p align="center"><img src="docs/ekran/pdf-rapor.png" width="420" alt="PDF raporu"><br><b>PDF raporu</b> — bölümlü, sayfa numaralı A4 çıktı</p>
+<p align="center"><img src="docs/ekran/pdf-rapor.png" width="640" alt="PDF raporu"><br><b>PDF raporu</b> — kapak ve öne çıkanlar; bölümlü, sayfa numaralı A4 çıktı, teknik ek</p>
 
 ## Özellikler
+
+**Yeni başlayanlar ve sunum**
+- Öne çıkanlar: haritanın düz dille, kural tabanlı özeti (yapay zekâ yok; her maddede "neden öne çıktı" kuralı)
+- Öğrenme modu: gezegen, burç, ev ve açıların geleneksel anlamları (tahmin içermez); transit satırlarında "Bu ne anlama geliyor?"
+- Rapor türleri: Temel, Profesyonel, Öğrenme; teknik ekte efemeris, saat dilimi, orb ve doğrulama bilgileri
+
+**Zamanlama**
+- Transit listesi: natal ev, retrograd serileri (1/3, 2/3, 3/3), orba giriş–çıkış dönemleri, kısa/orta/uzun süre, kuralı yazılı önem sırası, PDF zaman çizelgesi
+- Yıllık profeksiyon, firdaria (Abu Ma'shar veya Bonatti); efemeris tablosu, Ay'ın boşlukta olduğu dönemler ve burç geçişleri
+- Taşınma haritası, dönüşlerin istenen yerde kurulması, yan yana iki çark
+
+**Yorum kalitesi**
+- Seans geri bildirimi (Uyuyor / Kısmen / Uymuyor) kontrol metinleriyle; "fazla genel olabilir" uyarısı
+- Kör karşılaştırma: kimlik bilgisi olmayan sayfalarla, şans düzeyine karşı tam p-değeri
 
 **Haritalar**
 - Natal, drakonik, harmonik (4–16), astrokartografi (ACG dünya haritası, şehir–çizgi uzaklıkları)
@@ -57,23 +71,20 @@ Görsellerdeki haritalar uydurma örneklerdir.
 - Arşiv: etiketler, Rodden ve metin araması; günlük otomatik yedek (son 30 gün); JSON dışa/içe aktarma
 - Bölümlü A4 PDF raporu: harita ve özet, konumlar, açılar, analiz, transit listesi, yorumlar, notlar; sayfa numaralı
 - Görünüm ayarı: istenmeyen noktaları (Chiron, Lilith, düğümler…) gizleme
-- Klavye kısayolları: ⌘N yeni, ⌘T şu an, ⌘E düzenle, ⌘K ara, ⌘L yorum kütüphanesi, ⌘P PDF, ⌘, ayarlar
+- Klavye kısayolları: ⌘K hızlı arama (harita, görünüm, araç, komut), ⌘F arşivde filtrele, ⌘N yeni, ⌘T şu an, ⌘E düzenle, ⌘L yorum kütüphanesi, ⌘P PDF, ⇧⌘C çarkı resim olarak kopyala, ⇧⌘E efemeris, ⌘, ayarlar
+- Türkçe ve İngilizce arayüz ve rapor
 - Gece Profesyonel (koyu) ve Sade Profesyonel (açık) tema
 
 ## Doğruluk
 
-`npm run verify` testleri:
+Hesaplamalar Swiss Ephemeris'ten bağımsız kaynaklarla düzenli olarak karşılaştırılır. Sonuçlar GitHub'daki otomatik derlemede her sürümde yeniden çalışır.
 
-- Gezegen konumlarını Meeus, *Astronomical Algorithms* örnekleriyle karşılaştırır. Güneş'te JPL DE200 değerinden fark 0,03 yay saniyesi.
-- 1850–2050 arasında 10 cismi bağımsız bir teoriyle (Moshier) karşılaştırır. En büyük fark 2 yay saniyesinin altında.
-- Saat dilimi, yaz saati geçişi, LMT, ev sistemi ve drakonik harita kurallarını sınar.
-- Güneş/Ay dönüşü anında konum farkı 0,001 yay saniyesinin altında; transit listesindeki her tam açı anı yeniden hesaplanarak doğrulanır.
-- Sideral (Lahiri) ayanamsa, progresyon (ikincil/tersiyer/minör), solar arc, harmonik, kompozit ve Şans Noktası formüllerini sınar.
-- 2026 tutulmalarını NASA kataloğuyla (tarih, saat, tür) karşılaştırır; astrokartografi çizgilerinde gezegenin gerçekten ufukta/meridyende olduğunu doğrular.
-- Esas dignite tablolarını geleneksel kaynaklarla sınar: Mısır sınırlarında gezegen toplamları (Satürn 57, Jüpiter 79, Mars 66, Venüs 82, Merkür 76), 36 Kalde dekanı, Lilly üçlük yöneticileri.
-- Gerçek Ay düğümü hızını sayısal türevle, Vega'yı Hipparcos koordinatından bağımsız hesapla, orta noktaları ikinci bir yöntemle (birim vektör) doğrular.
+- **`npm run dogrula`** — [bağımsız doğrulama raporu](docs/dogrulama/RAPOR.md): NASA JPL Horizons (DE441) referansıyla gezegenler, Ay ve Chiron (görünür ve astrometrik, TT ve UT), toposentrik Ay, progresyonlar ve transit kesinleşme anları; Meeus formülleriyle (Swiss Ephemeris kullanılmadan) yıldız zamanı, ASC, MC ve 7 ev sistemi; ortalama düğüm; açılar; saat dilimleri ayrı bir tzdata uygulamasıyla. 1959, 1988, 1990'dan üç referans haritada 94 kontrolün tamamı geçer; gezegenlerde en büyük fark 0,2″. [Yöntem](docs/dogrulama/README.md)
+- **`npm run verify`** — 170'i aşkın test: saat dilimleri ve yaz saati, ev sistemleri, dönüşler, transitler, progresyonlar, sideral, tutulmalar, saat bilinmeyen haritaların Ay belirsizliği, saat duyarlılığı, geleneksel yöntemler ([kurallar ve elle türetilmiş örnekler](docs/dogrulama/GELENEKSEL.md): Lilly dignite puanları, karşılıklı ağırlama, Arap noktaları, SIMBAD ile sabit yıldızlar, firdaria).
+- **`npm run denetim`** — örnek bir haritadaki her değer: 12 cismin konumu NASA JPL ile, hızlar sayısal türevle, 11 ev sisteminin bütün başlangıçları ders kitabı formülleriyle, bütün açılar.
+- **Uygulamada:** "NASA JPL ile karşılaştır" düğmesi bir haritanın kendi gezegenlerini Horizons'a sorar ve sonucu PDF'in teknik ekine tablo olarak ekler (yalnızca tarih ve saat gönderilir).
 
-`npm run denetim` ise örnek bir haritadaki **her değeri tek tek** bağımsız kaynakla karşılaştırır: 12 cismin boylam, enlem, sağ açıklık ve deklinasyonu NASA JPL ile; hızlar ve retro işaretleri sayısal türevle; **11 ev sisteminin bütün başlangıçları** ders kitabı formülleriyle yazılmış ayrı hesaplarla; her gezegenin evi ve bütün açılar yeniden hesaplanarak.
+Gerçek (oskülatör) Ay düğümü için bağımsız bir referans bulunamadı; doğrulanmış sayılmaz.
 
 Saat dilimi kayıtlarının geçmişi bazı ülkeler ve yıllar için tartışmalıdır. 1985 öncesi Türkiye bunlardan biridir. Program kullandığı ofseti her haritada gösterir, gerekirse elle düzeltilebilir.
 

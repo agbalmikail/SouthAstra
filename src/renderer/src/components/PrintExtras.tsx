@@ -122,7 +122,7 @@ export function TransitTable({ natal, transits, tz }: { natal: ChartResult; tran
 
 const jplSummaryText = (j: JplSummary) => {
   const s = (x?: number) => { const v = (x ?? 0).toFixed(2); return getLang() === 'en' ? v : v.replace('.', ',') }
-  return t('{passed}/{total} kontrol geçti · {charts} haritaları · en büyük fark: gezegenler {pl}″, köşeler {an}″, evler {ho}″, açılar {as}″, progresyon {pr}″, transit anları {tr}″, ortalama düğüm {no}″; {tz} saat dilimi vakası · Horizons: {hz}, referans alındı {fetched} · referans dosyası SHA-256 {sha} · ayrıntılı rapor: {url}', {
+  return t('{passed}/{total} kontrol geçti · {charts} haritaları · en büyük fark: gezegenler {pl}″, köşeler {an}″, evler {ho}″, açılar {as}″, progresyon {pr}″, transit anları {tr}″, ortalama düğüm {no}″; {tz} saat dilimi vakası · Horizons: {hz}, referans alındı {fetched} · referans dosyası SHA-256 {sha} · programın genel doğrulama raporu (uydurma test haritalarıyla, kişisel veri içermez): {url}', {
     passed: j.passed, total: j.passed + j.failed + j.missing, charts: j.charts.join(', '), pl: s(j.max.planets), an: s(j.max.angles), ho: s(j.max.houses), as: s(j.max.aspects), pr: s(j.max.progressions), tr: s(j.max.transits), no: s(j.max.node), tz: j.max.tzCases ?? 0,
     hz: `${j.horizons} (${[...new Set(Object.values(j.sources))].join(', ')})`, fetched: j.fetched.slice(0, 10), sha: j.sha256.slice(0, 16) + '…', url: j.report
   })

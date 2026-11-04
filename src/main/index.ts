@@ -35,7 +35,9 @@ function createWindow(): void {
       preload: join(__dirname, '../preload/index.js'),
       contextIsolation: true,
       nodeIntegration: false,
-      sandbox: true
+      sandbox: true,
+      // test ekran görüntüleri: pencere arka plandayken çizim kısılmasın (eski kare yakalanmasın)
+      backgroundThrottling: !process.env.SA_SHOT
     }
   })
   win.once('ready-to-show', () => win.show())
@@ -49,6 +51,8 @@ function createWindow(): void {
     win.webContents.once('did-finish-load', async () => {
       if (process.env.SA_SHOT_JS) await win.webContents.executeJavaScript(readFileSync(process.env.SA_SHOT_JS, 'utf8'))
       await new Promise((r) => setTimeout(r, 1200))
+      win.webContents.invalidate()
+      await new Promise((r) => setTimeout(r, 400))
       const img = await win.webContents.capturePage()
       writeFileSync(shot, img.toPNG())
       app.quit()
