@@ -12,19 +12,29 @@ export function durationClass(e: TransitEvent): DurationClass | undefined {
 }
 export const windowDays = (e: TransitEvent) => (e.window ? (Date.parse(e.window.end) - Date.parse(e.window.start)) / 86400000 : 0)
 
-const ASPECT_W: Record<string, number> = { conjunction: 3, opposition: 2.5, square: 2.5, trine: 1.5, sextile: 1 }
-const TARGET_W: Record<string, number> = { sun: 3, moon: 3, asc: 3, mc: 3, mercury: 1.5, venus: 1.5, mars: 1.5, jupiter: 1, saturn: 1, uranus: 0.5, neptune: 0.5, pluto: 0.5, chiron: 0.5, northnode: 0.5 }
-const CLASS_W: Record<DurationClass, number> = { long: 3, medium: 2, short: 1 }
+/** Önem ağırlıkları (Ayarlar'dan değiştirilebilir) */
+export interface RankWeights { long: number; medium: number; short: number; conjunction: number; hard: number; soft: number; lights: number; personal: number; social: number; other: number; series: number }
+export const DEFAULT_RANK: RankWeights = { long: 3, medium: 2, short: 1, conjunction: 3, hard: 2.5, soft: 1.5, lights: 3, personal: 1.5, social: 1, other: 0.5, series: 0.5 }
+let W: RankWeights = { ...DEFAULT_RANK }
+export function setRankWeights(w?: Partial<RankWeights>) { W = { ...DEFAULT_RANK, ...(w ?? {}) } }
+export const getRankWeights = () => W
 
-/** Puan = süre (uzun 3 · orta 2 · kısa 1) + açı (kavuşum 3 · karşıt/kare 2,5 · üçgen 1,5 · altmışlık 1) + natal hedef (☉ ☽ AC MC 3 · ☿ ♀ ♂ 1,5 · ♃ ♄ 1 · diğerleri 0,5) + retrograd serisi ise 0,5 */
+const target = (id: string) => (['sun', 'moon', 'asc', 'mc'].includes(id) ? W.lights : ['mercury', 'venus', 'mars'].includes(id) ? W.personal : ['jupiter', 'saturn'].includes(id) ? W.social : W.other)
+const aspectW = (t: string) => (t === 'conjunction' ? W.conjunction : t === 'opposition' || t === 'square' ? W.hard : t === 'trine' ? W.soft : t === 'sextile' ? W.soft * 2 / 3 : W.other)
+
+/** Puan = süre + açı türü + natal hedef + (retrograd serisi ise ek) — ağırlıklar Ayarlar'dan */
 export function importance(e: TransitEvent): number {
   if (!e.natal) return 0
   const c = durationClass(e) ?? 'short'
-  return CLASS_W[c] + (ASPECT_W[e.type] ?? 0.5) + (TARGET_W[e.natal] ?? 0.5) + ((e.pass?.of ?? 1) > 1 ? 0.5 : 0)
+  return W[c] + aspectW(e.type) + target(e.natal) + ((e.pass?.of ?? 1) > 1 ? W.series : 0)
 }
 
-export const RANK_RULE =
-  'Astrolojik önem sıralaması kural tabanlıdır ve yalnızca sunum içindir; bilimsel bir olasılık değildir. Puan = süre (uzun 3 · orta 2 · kısa 1) + açı türü (kavuşum 3 · karşıt ve kare 2,5 · üçgen 1,5 · altmışlık 1) + natal hedef (Güneş, Ay, Yükselen, MC 3 · Merkür, Venüs, Mars 1,5 · Jüpiter, Satürn 1 · diğerleri 0,5) + retrograd serisi ise 0,5. Süre sınıfı, orba giriş ile çıkış arası (tekrarlar dahil): kısa < 14 gün · orta 14–90 gün · uzun > 90 gün. Etkinlik dönemi Ayarlar\'daki transit orbuna göre hesaplanır; fiziksel olarak kanıtlanmış bir etki süresi değildir.'
+const n = (x: number) => String(Math.round(x * 100) / 100).replace('.', ',')
+export function rankRule(): string {
+  return `Astrolojik önem sıralaması kural tabanlıdır ve yalnızca sunum içindir; bilimsel bir olasılık değildir. Puan = süre (uzun ${n(W.long)} · orta ${n(W.medium)} · kısa ${n(W.short)}) + açı türü (kavuşum ${n(W.conjunction)} · karşıt ve kare ${n(W.hard)} · üçgen ${n(W.soft)} · altmışlık ${n(W.soft * 2 / 3)}) + natal hedef (Güneş, Ay, Yükselen, MC ${n(W.lights)} · Merkür, Venüs, Mars ${n(W.personal)} · Jüpiter, Satürn ${n(W.social)} · diğerleri ${n(W.other)}) + retrograd serisi ise ${n(W.series)}. Ağırlıklar Ayarlar'dan değiştirilebilir. Süre sınıfı, orba giriş ile çıkış arası (tekrarlar dahil): kısa < 14 gün · orta 14–90 gün · uzun > 90 gün. Etkinlik dönemi Ayarlar'daki transit orbuna göre hesaplanır; fiziksel olarak kanıtlanmış bir etki süresi değildir.`
+}
+/** Eski adla uyumluluk */
+export const RANK_RULE_DEFAULT = rankRule()
 
 /** Seriler tekilleştirilmiş en önemli transitler (her seriden bir satır) */
 export function topTransits(events: TransitEvent[], n = 5): TransitEvent[] {

@@ -14,7 +14,20 @@ const C = sweph.constants
 const R = Math.PI / 180
 const D = 180 / Math.PI
 let fail = 0
-const row = (ok: boolean, txt: string) => { if (!ok) fail++; console.log(`${ok ? '✓' : '✗'} ${txt}`) }
+let pass = 0
+const row = (ok: boolean, txt: string) => { if (!ok) fail++; else pass++; console.log(`${ok ? '✓' : '✗'} ${txt}`) }
+/** Doğrulama özeti: resources/verification.json (uygulamanın teknik ekinde gösterilir; git'e girmez) */
+function writeVerification(part: 'verify' | 'audit', passed: number, failed: number) {
+  const fs = require('node:fs') as typeof import('node:fs')
+  const path = require('node:path') as typeof import('node:path')
+  const file = path.join(process.cwd(), 'resources/verification.json')
+  let cur: Record<string, unknown> = {}
+  try { cur = JSON.parse(fs.readFileSync(file, 'utf8')) } catch { /* yok */ }
+  const pkg = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'package.json'), 'utf8'))
+  cur[part] = { date: new Date().toISOString(), version: pkg.version, passed, failed, sweph: sweph.version() }
+  fs.writeFileSync(file, JSON.stringify(cur, null, 2))
+}
+
 const s1 = (a: number, b: number) => (separation(a, b) * 3600)
 
 const input: ChartInput = {
@@ -169,4 +182,5 @@ console.log('\n7) Transit kesinleşme anları — NASA JPL ile (açı farkı, ya
 }
 
 console.log(fail ? `\n${fail} kontrol başarısız` : '\nBütün değerler bağımsız kaynaklarla aynı')
+writeVerification('audit', pass, fail)
 process.exit(fail ? 1 : 0)

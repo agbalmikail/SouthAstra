@@ -1,6 +1,7 @@
 import { app, BrowserWindow, clipboard, ClipboardItem, dialog, ipcMain, shell } from 'electron'
 import { join } from 'node:path'
 import { readdirSync, readFileSync, writeFileSync } from 'node:fs'
+import type { AppInfo } from '@shared/types'
 import { acg, ephemeris, eclipses, getEphePath, initEphemeris, rectify, swephVersion, transitList, useSettings, view } from './engine'
 import { getLibrary, initLibrary, mergeLibrary, setLibraryEntry } from './library'
 import { browsePlaces, listCountries, listDistricts, listRegions, loadCities, nearest, searchCities } from './cities'
@@ -18,7 +19,7 @@ const resourceDir = app.isPackaged ? process.resourcesPath : join(__dirname, '..
 
 function createWindow(): void {
   const win = new BrowserWindow({
-    width: 1440,
+    width: Number(process.env.SA_WIN_W) || 1440, // SA_WIN_W: test için pencere genişliği
     height: 900,
     minWidth: 1100,
     minHeight: 700,
@@ -150,7 +151,9 @@ app.whenReady().then(() => {
   ipcMain.handle('app:info', () => {
     let epheFiles: string[] = []
     try { epheFiles = readdirSync(getEphePath()).filter((f) => /\.(se1|txt)$/i.test(f)).sort() } catch { /* yok */ }
-    return { version: app.getVersion(), sweph: swephVersion(), ephePath: getEphePath(), epheFiles, platform: process.platform, dataDir }
+    let verification: AppInfo['verification']
+    try { verification = JSON.parse(readFileSync(app.isPackaged ? join(process.resourcesPath, 'verification.json') : join(__dirname, '../../resources/verification.json'), 'utf8')) } catch { /* test çalıştırılmamış */ }
+    return { version: app.getVersion(), sweph: swephVersion(), ephePath: getEphePath(), epheFiles, platform: process.platform, dataDir, verification }
   })
 
   createWindow()

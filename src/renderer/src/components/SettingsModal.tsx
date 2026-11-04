@@ -1,3 +1,4 @@
+import { DEFAULT_RANK, type RankWeights } from '@shared/transitRank'
 import { useState } from 'react'
 import type { AspectType, Settings } from '@shared/types'
 import { ASPECTS, AYANAMSAS, DEFAULT_SETTINGS, ORB_PROFILES } from '@shared/zodiac'
@@ -5,6 +6,8 @@ import { HOUSE_SYSTEMS } from '@shared/types'
 import type { HouseSystem } from '@shared/types'
 
 const OPTIONAL_POINTS: [string, string][] = [['chiron', 'Chiron'], ['lilith', 'Lilith (ortalama)'], ['northnode', 'Kuzey Ay Düğümü'], ['southnode', 'Güney Ay Düğümü'], ['fortune', 'Şans Noktası'], ['uranus', 'Uranüs'], ['neptune', 'Neptün'], ['pluto', 'Plüton']]
+
+const RANK_FIELDS: [keyof RankWeights, string][] = [['long', 'Süre: uzun'], ['medium', 'Süre: orta'], ['short', 'Süre: kısa'], ['conjunction', 'Kavuşum'], ['hard', 'Karşıt / kare'], ['soft', 'Üçgen'], ['lights', 'Hedef: ☉ ☽ AC MC'], ['personal', 'Hedef: ☿ ♀ ♂'], ['social', 'Hedef: ♃ ♄'], ['other', 'Hedef: diğer'], ['series', 'Retrograd serisi']]
 
 export default function SettingsModal({ initial, onClose, onSave, onAbout }: { initial: Settings; onClose: () => void; onSave: (s: Settings) => void; onAbout?: () => void }) {
   const [s, setS] = useState<Settings>(initial)
@@ -62,6 +65,15 @@ export default function SettingsModal({ initial, onClose, onSave, onAbout }: { i
             <label className="field-row">Sabit yıldız orbu <input id="s-sorb" className="short" value={s.fixedStarOrb} onChange={(e) => setS({ ...s, fixedStarOrb: num(e.target.value) })} /><span>°</span></label>
             <label className="inline"><input id="s-upd" type="checkbox" checked={s.updateCheck} onChange={(e) => setS({ ...s, updateCheck: e.target.checked })} /> Açılışta yeni sürümü denetle <span className="muted small">(GitHub'a istek gönderilir; kişisel veri gönderilmez)</span></label>
             <label className="inline"><input id="s-par" type="checkbox" checked={s.showParallels} onChange={(e) => setS({ ...s, showParallels: e.target.checked })} /> Paralel ve kontraparalelleri hesapla (1°)</label>
+
+            <div className="cap">Transit önem ağırlıkları</div>
+            <p className="hint">Transit listesinde “Önem” sırası ve PDF'teki öne çıkan transitler bu puanlarla belirlenir (0–10). Varsayılanlar parantezde.</p>
+            <div className="rank-grid">
+              {RANK_FIELDS.map(([k, label]) => (
+                <label key={k} className="field-row">{label} <input className="short" value={s.rankWeights?.[k] ?? DEFAULT_RANK[k]} onChange={(e) => { const v = Number(e.target.value.replace(',', '.')); setS({ ...s, rankWeights: { ...s.rankWeights, [k]: Number.isFinite(v) ? v : DEFAULT_RANK[k] } }) }} /><span className="muted small">({String(DEFAULT_RANK[k]).replace('.', ',')})</span></label>
+              ))}
+              <button className="link small" onClick={() => setS({ ...s, rankWeights: {} })}>Varsayılanlara dön</button>
+            </div>
 
             <div className="cap">Gösterilecek noktalar</div>
             <p className="hint">İşareti kaldırılan noktalar çarkta, tablolarda ve açı listelerinde gösterilmez.</p>

@@ -73,7 +73,7 @@ export const TRANSIT_LEARN =
 export const learnPoint = (id: string) => PLANET_LEARN[id === 'southnode' ? 'northnode' : id]
 
 /** Tek bir transit olayının düz dille açıklaması (hesaplanmış veriden; tahmin içermez) */
-export function transitExplain(e: { transit: string; natal?: string; type: string; house?: number; pass?: { n: number; of: number }; window?: { start: string; end: string; orb: number } }, fmt: (iso: string) => string): string[] {
+export function transitExplain(e: { transit: string; natal?: string; type: string; house?: number; pass?: { n: number; of: number }; window?: { start: string; end: string; orb: number; segments?: { start: string; end: string }[] } }, fmt: (iso: string) => string): string[] {
   const T = learnPoint(e.transit)
   const lines: string[] = []
   if (!e.natal) {
@@ -91,6 +91,7 @@ export function transitExplain(e: { transit: string; natal?: string; type: strin
   if (a) lines.push(`Açı: ${a}`)
   if (e.house) lines.push(`${T?.title ?? 'Gezegen'} bu sırada doğum haritanızın ${e.house}. evinden geçiyor; bu ev geleneksel olarak ${HOUSE_LEARN[e.house - 1].split(' · ')[1].replace(/\.$/, '')} ile ilişkilendirilir.`)
   if (e.window) lines.push(`Etkinlik dönemi: ${fmt(e.window.start)} – ${fmt(e.window.end)} (gezegen ±${e.window.orb}° orb içinde).${e.pass && e.pass.of > 1 ? ` Gezegen geri ve ileri hareket ettiği için bu açı ${e.pass.of} kez tam oluyor; bu, ${e.pass.n}. kez.` : ''}`)
+  if (e.window?.segments) lines.push(`Gezegen bu süre içinde orb dışına çıkıp yeniden giriyor; orb içinde kaldığı parçalar: ${e.window.segments.map((s) => `${fmt(s.start)} – ${fmt(s.end)}`).join(' · ')}.`)
   lines.push('Bu bir olay tahmini değil; astrolojik sembollerin geleneksel anlamlarının birleşimidir.')
   return lines
 }

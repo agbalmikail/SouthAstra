@@ -62,11 +62,11 @@ export function aspectPatterns(c: ChartResult, includeAngles = false): Pattern[]
   // stelyum: aynı burçta veya aynı evde 4+ gezegen
   for (let s = 0; s < 12; s++) {
     const inSign = BODIES.filter((id) => { const p = c.points.find((x) => x.id === id); return p && signOf(p.lon) === s })
-    if (inSign.length >= 4) add('Stelyum (burç)', inSign, `${inSign.length} gezegen aynı burçta`)
+    if (inSign.length >= 4) add('Stelyum (burç)', inSign, `${inSign.length} gezegen aynı burçta (kural: 10 ana gezegenden en az 4)`)
   }
   if (c.hasHouses) for (let h = 1; h <= 12; h++) {
     const inHouse = BODIES.filter((id) => c.points.find((x) => x.id === id)?.house === h)
-    if (inHouse.length >= 4) add('Stelyum (ev)', inHouse, `${inHouse.length} gezegen ${h}. evde`)
+    if (inHouse.length >= 4) add('Stelyum (ev)', inHouse, `${inHouse.length} gezegen ${h}. evde (kural: 10 ana gezegenden en az 4)`)
   }
   return out
 }

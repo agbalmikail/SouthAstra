@@ -2,8 +2,8 @@
 import type { AppInfo, ChartResult, Settings, TransitEvent, ViewResult } from '@shared/types'
 import { HOUSE_SYSTEMS, placeLabel, RODDEN } from '@shared/types'
 import { activeOrbs, ASPECT_BY_TYPE, ASPECTS, AYANAMSAS, SIGNS } from '@shared/zodiac'
-import { durationClass, DURATION_NAME, importance, RANK_RULE, topTransits, windowDays } from '@shared/transitRank'
-import { fmtOffset } from '../format'
+import { durationClass, DURATION_NAME, importance, rankRule, topTransits, windowDays } from '@shared/transitRank'
+import { fmtOffset, jdText, precisionText } from '../format'
 
 const fmtD = (iso: string, tz: string) => new Date(iso).toLocaleDateString('tr-TR', { timeZone: tz, day: '2-digit', month: '2-digit', year: 'numeric' })
 const fmtDT = (iso: string, tz: string) => new Date(iso).toLocaleString('tr-TR', { timeZone: tz, day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
@@ -42,7 +42,7 @@ export function TransitSummary({ natal, transits, tz }: { natal: ChartResult; tr
           })}
         </tbody>
       </table>
-      <p className="hint">{RANK_RULE}</p>
+      <p className="hint">{rankRule()}</p>
     </div>
   )
 }
@@ -82,7 +82,8 @@ export function TransitTimeline({ natal, transits, from, to }: { natal: ChartRes
           return (
             <g key={k}>
               <text x={2} y={y + 8} className="tl-label">{gl(e.transit)} {def.glyph} {gl(e.natal!)}{(e.pass?.of ?? 1) > 1 ? `  ×${e.pass!.of}` : ''}</text>
-              <rect x={x(Date.parse(e.window!.start))} y={y + 2} width={Math.max(1.5, x(Date.parse(e.window!.end)) - x(Date.parse(e.window!.start)))} height={H - 5} rx={2} className={`tl-bar ${e.type}`} />
+              {(e.window!.segments ?? [{ start: e.window!.start, end: e.window!.end }]).map((sg, j) => <rect key={j} x={x(Date.parse(sg.start))} y={y + 2} width={Math.max(1.5, x(Date.parse(sg.end)) - x(Date.parse(sg.start)))} height={H - 5} rx={2} className={`tl-bar ${e.type}`} />)}
+              {e.window!.segments && <line x1={x(Date.parse(e.window!.start))} x2={x(Date.parse(e.window!.end))} y1={y + 2 + (H - 5) / 2} y2={y + 2 + (H - 5) / 2} className="tl-gap" />}
               {r.map((h, j) => <circle key={j} cx={x(Date.parse(h.utc))} cy={y + 2 + (H - 5) / 2} r={2.2} className="tl-hit" />)}
             </g>
           )
@@ -107,13 +108,20 @@ export function TransitTable({ natal, transits, tz }: { natal: ChartResult; tran
             <td>{eventText(e, nm)}</td>
             <td className="c num">{e.house ?? '—'}</td>
             <td className="c num">{e.pass && e.pass.of > 1 ? `${e.pass.n}/${e.pass.of}` : '—'}</td>
-            <td className="num nowrap">{e.window ? `${fmtD(e.window.start, tz)} – ${fmtD(e.window.end, tz)}` : '—'}</td>
+            <td className="num nowrap">{e.window ? `${fmtD(e.window.start, tz)} – ${fmtD(e.window.end, tz)}` : '—'}{e.window?.segments ? <div className="muted">{e.window.segments.length} parça: {e.window.segments.map((s) => `${fmtD(s.start, tz)}–${fmtD(s.end, tz)}`).join(', ')}</div> : null}</td>
             <td>{e.window ? `${DURATION_NAME[durationClass(e)!]} · ${Math.round(windowDays(e))} g` : '—'}</td>
           </tr>
         ))}
       </tbody>
     </table>
   )
+}
+
+const verText = (info?: AppInfo) => {
+  const v = info?.verification
+  const f = (r?: { date: string; version: string; passed: number; failed: number; sweph: string }, name?: string) => r ? `${name}: ${r.passed} kontrol geçti${r.failed ? `, ${r.failed} başarısız` : ''} (${new Date(r.date).toLocaleDateString('tr-TR')}, sürüm ${r.version}, Swiss Ephemeris ${r.sweph})` : ''
+  const t = [f(v?.verify, 'Testler (npm run verify)'), f(v?.audit, 'Değer denetimi (npm run denetim)')].filter(Boolean).join(' · ')
+  return t || 'Bu kurulumda doğrulama kaydı bulunamadı (testler bu bilgisayarda çalıştırılmamış).'
 }
 
 /** Teknik ek: sonuçları yeniden üretmek için gereken her şey */
@@ -135,12 +143,13 @@ export function TechnicalAppendix({ view, settings, info, reportAt }: { view: Vi
     ['Doğum saati güvenilirliği', i.rodden ? `Rodden ${i.rodden} — ${RODDEN.find((r) => r.id === i.rodden)?.desc ?? ''}` : 'Belirtilmedi'],
     ['Saat bilgisi', i.timeUnknown ? 'Doğum saati bilinmiyor: 12:00 yalnızca hesap referansı; Ay açıları gün boyunca tarandı' : `${i.date} ${i.time} yerel saat`],
     ['UTC dönüşümü', `${natal.utc.replace('T', ' ').replace(/(\.\d+)?Z$/, '')} UT · ofset ${fmtOffset(natal.offsetMinutes)} · ${i.timeMode === 'zone' ? `saat dilimi ${i.place.tz} (IANA tarihsel kuralları)` : i.timeMode === 'lmt' ? 'yerel ortalama zaman (LMT, boylamdan)' : 'elle girilen ofset'}`],
-    ['Jülyen günü', `${natal.jdUt.toFixed(6)} UT`],
-    ['Doğum yeri', `${placeLabel(i.place)} · ${i.place.lat.toFixed(5)}°, ${i.place.lon.toFixed(5)}° · kaynak: ${i.place.geonameId ? `GeoNames ${i.place.geonameId}${i.place.precision ? ` (${i.place.precision})` : ''}` : 'elle girilen koordinat'}`],
+    ['Jülyen günü', `${jdText(natal)} — hesaplar UT1 ile yapılır; UTC değeri saat dilimi dönüşümünden`],
+    ['Doğum yeri', `${placeLabel(i.place)} · ${i.place.lat.toFixed(5)}°, ${i.place.lon.toFixed(5)}° · kaynak: ${i.place.geonameId ? `GeoNames ${i.place.geonameId}${i.place.precision ? ` (${precisionText(i.place.precision)})` : ''}` : 'elle girilen koordinat'}`],
     ...(c.place && (c.place.lat !== i.place.lat || c.place.lon !== i.place.lon) ? [['Harita yeri', `${placeLabel(c.place)} · ${c.place.lat.toFixed(5)}°, ${c.place.lon.toFixed(5)}°`] as [string, string]] : []),
     ...(view.outer && view.outer.kind !== 'natal' ? [['İkinci çark', `${view.outer.label} · ${view.outer.utc.replace('T', ' ').replace(/(\.\d+)?Z$/, '')} UT`] as [string, string]] : []),
     ['Rapor oluşturuldu', `${new Date(reportAt).toLocaleString('tr-TR', { dateStyle: 'long', timeStyle: 'short' })} (bilgisayar saati)`],
-    ['Doğrulama', 'Gezegen konumları ve transit anları NASA JPL Horizons ile, ev başlangıçları bağımsız formüllerle, saat dilimleri IANA verisiyle düzenli olarak test edilir (npm run verify, npm run denetim).']
+    ['Doğrulama yöntemi', 'Gezegen konumları ve transit anları NASA JPL Horizons ile, ev başlangıçları bağımsız formüllerle, ortalama Ay düğümü Meeus formülüyle, saat dilimleri IANA verisiyle, şehir koordinatları OpenStreetMap ile karşılaştırılır.'],
+    ['Son doğrulama', verText(info)]
   ]
   return <dl className="p-meta p-tech">{rows.map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}</dl>
 }

@@ -12,14 +12,14 @@ import { HighlightsPanel } from './HighlightsPanel'
 import { TechnicalAppendix, TransitSummary, TransitTable, TransitTimeline } from './PrintExtras'
 import { TimeLordsPanel } from './TimeLords'
 import { EclipsePanel, MidpointsPanel, PatternsBlock, TraditionalPanel, type PdfSections } from './Extras'
-import { fmtDateTr, fmtOffset } from '../format'
+import { fmtDateTr, fmtOffset, precisionText } from '../format'
 import logoMark from '../assets/logo-mark.svg'
 
 const noop = () => undefined
 
-function Section({ title, who, children }: { title: string; who: string; children: React.ReactNode }) {
+function Section({ title, who, children, page }: { title: string; who: string; children: React.ReactNode; page?: boolean }) {
   return (
-    <section className="p-sec">
+    <section className={page ? 'p-sec p-page' : 'p-sec'}>
       <div className="p-h"><h2>{title}</h2><span>{who}</span></div>
       {children}
     </section>
@@ -43,7 +43,7 @@ function Meta({ view, reportAt }: { view: ViewResult; reportAt: string }) {
     ...(natal?.shiftMin ? [['Simülasyon', `harita ${shiftedTime(i.timeUnknown ? '12:00' : i.time, natal.shiftMin)} için hesaplandı (${natal.shiftMin > 0 ? '+' : ''}${natal.shiftMin} dk); kayıtlı saat değişmedi`] as [string, string]] : []),
     ['Doğum yeri', placeLabel(i.place)],
     ...(c.place && (c.place.lat !== i.place.lat || c.place.lon !== i.place.lon) ? [['Harita yeri', `${placeLabel(c.place)} · ${Math.abs(c.place.lat).toFixed(4)}° ${c.place.lat >= 0 ? 'K' : 'G'} · ${Math.abs(c.place.lon).toFixed(4)}° ${c.place.lon >= 0 ? 'D' : 'B'}`] as [string, string]] : []),
-    ['Koordinat', `${Math.abs(i.place.lat).toFixed(4)}° ${i.place.lat >= 0 ? 'K' : 'G'} · ${Math.abs(i.place.lon).toFixed(4)}° ${i.place.lon >= 0 ? 'D' : 'B'}${i.place.precision ? ` · ${i.place.precision}` : ''}`],
+    ['Koordinat', `${Math.abs(i.place.lat).toFixed(4)}° ${i.place.lat >= 0 ? 'K' : 'G'} · ${Math.abs(i.place.lon).toFixed(4)}° ${i.place.lon >= 0 ? 'D' : 'B'}${i.place.precision ? ` · ${precisionText(i.place.precision)}` : ''}`],
     ...(natal ? [['UTC', `${natal.utc.replace('T', ' ').replace(/(\.\d+)?Z$/, '')} · ${fmtOffset(natal.offsetMinutes)} (${i.timeMode === 'zone' ? i.place.tz : i.timeMode === 'lmt' ? 'LMT' : 'elle ofset'})`] as [string, string]] : []),
     ...(moment ? [[c.kind === 'solarreturn' || c.kind === 'lunarreturn' ? 'Dönüş anı' : 'Harita tarihi', `${local(moment)} (${(c.place ?? i.place).tz})`] as [string, string]] : []),
     ['Rapor tarihi', new Date(reportAt).toLocaleString('tr-TR', { dateStyle: 'long', timeStyle: 'short' })],
@@ -96,7 +96,7 @@ function Summary({ chart }: { chart: ChartResult }) {
   const maxIdx = (a: number[]) => a.indexOf(Math.max(...a))
   const sun = p('sun')
   const moon = p('moon')
-  const phase = sun && moon ? moonPhase(sun.lon, moon.lon).name : '—'
+  const phase = sun && moon ? moonPhase(sun.lon, moon.lon).text : '—'
   const patterns = chart.kind === 'harmonic' ? [] : aspectPatterns(chart)
   const rows: [string, string][] = [
     ['Güneş', sign(sun?.lon) + (chart.hasHouses && sun ? ` · ${sun.house}. ev` : '')],
@@ -135,7 +135,7 @@ export default function PrintView({ view, sections, library, transits, eclipses,
   }
 
   return (
-    <div className="print-page">
+    <div className={sections.compact ? "print-page compact" : "print-page"}>
       {sections.chart && (
         <section className="p-sec p-cover">
           <header className="p-title">
@@ -160,7 +160,7 @@ export default function PrintView({ view, sections, library, transits, eclipses,
       )}
 
       {sections.positions && (
-        <Section title="Konumlar" who={who}>
+        <Section title="Konumlar" who={who} page>
           {view.outer ? (
             <>
               <div className="p-two">
@@ -183,7 +183,7 @@ export default function PrintView({ view, sections, library, transits, eclipses,
 
       {sections.aspects && single && (
         <>
-          <Section title="Açı tablosu" who={who}>
+          <Section title="Açı tablosu" who={who} page>
             <AspectGrid chart={c} showMinor hovered={null} onHover={noop} legend={<OrbLegend settings={settings} />} />
           </Section>
           <Section title="Açı listesi" who={who}>

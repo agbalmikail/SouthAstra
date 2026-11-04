@@ -2,11 +2,11 @@ import { useEffect, useMemo, useState } from 'react'
 import type { ChartInput, ChartResult, HouseSystem, RectifyRow, TransitEvent } from '@shared/types'
 import { HOUSE_SYSTEMS } from '@shared/types'
 import { ASPECT_BY_TYPE, ELEMENT_TR, MODALITY, moonPhase, norm360, pad2, SIGNS, signOf, TRAD_RULER } from '@shared/zodiac'
-import { fmtDecl, fmtOrb, lonParts } from '../format'
+import { jdText, fmtDecl, fmtOrb, lonParts } from '../format'
 import { Lon, stationText } from './Tables'
 import { rectifyDefaults, rectifyKey, usePanelParam, type PanelParams } from '../panelParams'
 import { transitExplain } from '@shared/learn'
-import { durationClass, DURATION_NAME, importance, RANK_RULE, windowDays } from '@shared/transitRank'
+import { durationClass, DURATION_NAME, importance, rankRule, windowDays } from '@shared/transitRank'
 
 const err = (e: unknown) => (e as Error).message.replace(/^Error invoking remote method '[^']+': (Error: )?/, '')
 
@@ -66,7 +66,7 @@ export function PlanetDetail({ chart, id, onClose }: { chart: ChartResult; id: s
         {row('Zodyak', chart.zodiac + (chart.ayanamsa !== undefined ? ` · ayanamsa ${dms(chart.ayanamsa)}` : ''))}
         {row('Koordinat', 'Geosantrik · görünür konum · gerçek ekinoks')}
         {row('Efemeris', chart.ephemeris)}
-        {row('Jülyen günü', <span className="num">{chart.jdUt.toFixed(6)} UT · {chart.jdTt.toFixed(6)} TT</span>)}
+        {row('Jülyen günü', <span className="num">{jdText(chart)} · {chart.jdTt.toFixed(6)} TT</span>)}
         {row('ΔT', <span className="num">{chart.deltaT.toFixed(2)} sn</span>)}
         {row('Ekliptik eğimi', <span className="num">{dms(chart.obliquity)}</span>)}
         {chart.hasHouses && row('Yerel yıldız zamanı', <span className="num">{hms(chart.siderealTime)}</span>)}
@@ -204,7 +204,7 @@ export function Distribution({ chart }: { chart: ChartResult }) {
       )}
       <div className="cap">Diğer</div>
       <dl className="kv">
-        {phase && <><dt>Ay evresi</dt><dd>{phase.name} <span className="muted num">({phase.angle.toFixed(1)}°)</span></dd></>}
+        {phase && <><dt>Ay evresi</dt><dd title="Astrolojik evre Rudhyar'ın 8 evresine göredir (her biri 45°); astronomik durum ayrıca yazılır.">{phase.name} evresi <span className="muted small">· {phase.astro} ({phase.angle.toFixed(1)}°)</span></dd></>}
         <dt>Son dispozitör</dt><dd>{finalDisp}</dd>
         <dt>Retro gezegenler</dt><dd className="sym">{pts.filter((p) => p.retro).map((p) => p.glyph).join(' ') || '—'}</dd>
       </dl>
@@ -328,10 +328,10 @@ export function TransitListPanel({ input, natal, onPick }: { input: ChartInput; 
         <span className="muted small">Süre</span>
         {(['short', 'medium', 'long'] as const).map((c) => <label key={c} className="inline small" title={c === 'short' ? '< 14 gün' : c === 'medium' ? '14–90 gün' : '> 90 gün'}><input type="checkbox" checked={classes[c]} onChange={(e) => setTp({ ...tp, classes: { ...classes, [c]: e.target.checked } })} /> {DURATION_NAME[c]}</label>)}
         <span className="muted small" style={{ marginLeft: 8 }}>Sıra</span>
-        <div className="seg-btn small"><button className={sort === 'time' ? 'on' : ''} onClick={() => setTp({ ...tp, sort: 'time' })}>Tarih</button><button className={sort === 'rank' ? 'on' : ''} onClick={() => setTp({ ...tp, sort: 'rank' })} title={RANK_RULE}>Önem</button></div>
+        <div className="seg-btn small"><button className={sort === 'time' ? 'on' : ''} onClick={() => setTp({ ...tp, sort: 'time' })}>Tarih</button><button className={sort === 'rank' ? 'on' : ''} onClick={() => setTp({ ...tp, sort: 'rank' })} title={rankRule()}>Önem</button></div>
       </div>
       {error && <p className="error">{error}</p>}
-      <p className="hint">{busy ? 'Hesaplanıyor…' : `${shown.length} olay · saatler doğum yerinin saat dilimine göre · tam açı anı · parantezde transit gezegenin natal evi · dönem: orba giriş–çıkış (transit orbu ${events.find((e) => e.window)?.window?.orb ?? '—'}°)`}{sort === 'rank' && <> · <span title={RANK_RULE} className="link small">önem kuralı</span></>}</p>
+      <p className="hint">{busy ? 'Hesaplanıyor…' : `${shown.length} olay · saatler doğum yerinin saat dilimine göre · tam açı anı · parantezde transit gezegenin natal evi · dönem: orba giriş–çıkış (transit orbu ${events.find((e) => e.window)?.window?.orb ?? '—'}°)`}{sort === 'rank' && <> · <span title={rankRule()} className="link small">önem kuralı</span></>}</p>
       <table className="data tlist">
         <tbody>
           {shown.map((e, i) => {

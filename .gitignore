@@ -4,3 +4,9 @@ dist/
 .DS_Store
 *.log
 logo.png
+
+# test betiklerinin yazdığı doğrulama özeti (CI'da paketlemeden önce üretilir)
+resources/verification.json
+
+# kişisel regresyon verileri (doğum bilgileri) — asla GitHub'a gitmez
+local/

@@ -257,8 +257,8 @@ export function EclipsePanel({ input, chart, print, preloaded }: { input: ChartI
 
 // ——— PDF seçenekleri ———
 
-export type PdfSections = { chart: boolean; positions: boolean; aspects: boolean; analysis: boolean; timelords: boolean; eclipses: boolean; rectify: boolean; transits: boolean; technical: boolean; learning: boolean; highlights: boolean; interpretations: boolean; notes: boolean }
-export const DEFAULT_PDF: PdfSections = { chart: true, positions: true, aspects: true, analysis: true, timelords: false, eclipses: false, rectify: false, transits: true, technical: true, learning: false, highlights: true, interpretations: true, notes: false }
+export type PdfSections = { chart: boolean; positions: boolean; aspects: boolean; analysis: boolean; timelords: boolean; eclipses: boolean; rectify: boolean; transits: boolean; technical: boolean; learning: boolean; highlights: boolean; compact: boolean; interpretations: boolean; notes: boolean }
+export const DEFAULT_PDF: PdfSections = { chart: true, positions: true, aspects: true, analysis: true, timelords: false, eclipses: false, rectify: false, transits: true, technical: true, learning: false, highlights: true, compact: true, interpretations: true, notes: false }
 
 const PDF_PRESETS: Record<string, { name: string; hint: string; on: (keyof PdfSections)[] }> = {
   basic: { name: 'Temel', hint: 'Harita, konumlar, ana açılar ve kısa açıklamalar', on: ['chart', 'highlights', 'positions', 'aspects', 'learning'] },
@@ -266,27 +266,27 @@ const PDF_PRESETS: Record<string, { name: string; hint: string; on: (keyof PdfSe
   learn: { name: 'Öğrenme', hint: 'Temel teknik veriler, sembol açıklamaları, kendi yorumlarınız, belirsizlik ve yöntem notları', on: ['chart', 'highlights', 'positions', 'learning', 'interpretations', 'technical'] }
 }
 
-export function PdfDialog({ initial, available, onCancel, onExport }: { initial: PdfSections; available: (keyof PdfSections)[]; onCancel: () => void; onExport: (s: PdfSections) => void }) {
+export function PdfDialog({ initial, available, onCancel, onExport, details }: { initial: PdfSections; available: (keyof PdfSections)[]; onCancel: () => void; onExport: (s: PdfSections) => void; details?: Partial<Record<keyof PdfSections, string>> }) {
   const [s, setS] = useState(initial)
   const LABELS: Record<keyof PdfSections, string> = {
     chart: 'Harita çarkı ve doğum bilgileri', positions: 'Konumlar (gezegenler, evler)', aspects: 'Açılar',
-    analysis: 'Analiz (dağılım, orta noktalar, sabit yıldızlar)', timelords: 'Profeksiyon ve firdaria (paneldeki ayarlarla)', eclipses: 'Tutulmalar (paneldeki tarih aralığıyla)', rectify: 'Doğum saati aralığı (paneldeki saatlerle)', transits: 'Transit raporu: öne çıkanlar, zaman çizelgesi, liste (paneldeki aralık ve filtrelerle)', technical: 'Teknik ek (efemeris, saat dilimi, orblar, sürüm)', learning: 'Öğrenme: sembollerin geleneksel anlamları (yeni başlayanlar için)', highlights: 'Öne çıkanlar: kural tabanlı özet (düz dille)',
+    analysis: 'Analiz (dağılım, orta noktalar, sabit yıldızlar)', timelords: 'Profeksiyon ve firdaria (paneldeki ayarlarla)', eclipses: 'Tutulmalar (paneldeki tarih aralığıyla)', rectify: 'Doğum saati aralığı (paneldeki saatlerle)', transits: 'Transit raporu: öne çıkanlar, zaman çizelgesi, liste (paneldeki aralık ve filtrelerle)', technical: 'Teknik ek (efemeris, saat dilimi, orblar, sürüm)', learning: 'Öğrenme: sembollerin geleneksel anlamları (yeni başlayanlar için)', highlights: 'Öne çıkanlar: kural tabanlı özet (düz dille)', compact: 'Kısa bölümleri aynı sayfada sürdür (daha az boş sayfa)',
     interpretations: 'Yorumlarım (kütüphaneden)', notes: 'Notlar ve seans notları (danışana verilecekse kapalı tutun)'
   }
   return (
     <div className="modal-back" onMouseDown={(e) => { if (e.target === e.currentTarget) onCancel() }}>
       <div className="modal" onKeyDown={(e) => { if (e.key === 'Escape') onCancel() }}>
         <h2>PDF olarak kaydet</h2>
-        <p className="hint" style={{ marginTop: -6 }}>Her bölüm yeni sayfada başlar. Sayfalar numaralanır.</p>
+        <p className="hint" style={{ marginTop: -6 }}>Kapak, konumlar ve açı tablosu kendi sayfasında başlar; diğer bölümler “kısa bölümler” seçeneği açıksa kaldığı yerden sürer. Sayfalar numaralanır.</p>
         <div className="pdf-presets">
           <span className="muted small">Rapor türü</span>
           {(Object.keys(PDF_PRESETS) as (keyof typeof PDF_PRESETS)[]).map((k) => (
-            <button key={k} className="btn ghost small" title={PDF_PRESETS[k].hint} onClick={() => setS(Object.fromEntries(Object.keys(s).map((x) => [x, PDF_PRESETS[k].on.includes(x as keyof PdfSections)])) as PdfSections)}>{PDF_PRESETS[k].name}</button>
+            <button key={k} className="btn ghost small" title={PDF_PRESETS[k].hint} onClick={() => setS(Object.fromEntries(Object.keys(s).map((x) => [x, x === 'compact' ? s.compact : PDF_PRESETS[k].on.includes(x as keyof PdfSections)])) as PdfSections)}>{PDF_PRESETS[k].name}</button>
           ))}
         </div>
         <div className="pdf-opts">
           {available.map((k) => (
-            <label key={k} className="inline"><input type="checkbox" checked={s[k]} onChange={(e) => setS({ ...s, [k]: e.target.checked })} /> {LABELS[k]}</label>
+            <label key={k} className="inline"><input type="checkbox" checked={s[k]} onChange={(e) => setS({ ...s, [k]: e.target.checked })} /> {LABELS[k]}{details?.[k] && <span className="muted small pdf-detail"> · {details[k]}</span>}</label>
           ))}
         </div>
         <div className="actions">
@@ -316,7 +316,8 @@ export function TraditionalPanel({ chart }: { chart: ChartResult }) {
   const [assume, setAssume] = usePanelParam('sectAssume')
   const rows = essentialDignities(chart, unknown ? assume === 'day' : undefined)
   const mr = mutualReceptions(chart)
-  const chains = dispositorChains(chart)
+  const [sys, setSys] = useState<'traditional' | 'modern'>('traditional')
+  const chains = dispositorChains(chart, sys)
   const name = (id: string) => chart.points.find((p) => p.id === id)?.name ?? id
   const cell = (ruler: string | undefined, self: string) => ruler ? <span className={ruler === self ? 'sym self' : 'sym'} title={name(ruler)}>{glyphOf(ruler)}</span> : <span className="muted">—</span>
   return (
@@ -346,12 +347,13 @@ export function TraditionalPanel({ chart }: { chart: ChartResult }) {
       <ul className="mini-list dign-notes">
         {rows.map((r) => <li key={r.id}><span className="sym">{glyphOf(r.id)}</span> {r.has.join(' · ')}</li>)}
       </ul>
-      <p className="hint dign-rules"><b>Kurallar:</b> William Lilly, <i>Christian Astrology</i> (1647) puanlaması. Ev (burç yöneticisi) +5, yücelim +4, üçlük +3 (Lilly'nin üçlük yöneticileri; gündüz/gece haritasına göre), sınır +2 (Mısır sınırları), dekan +1 (Kalde sırası). Zarar −5, düşüş −4; hiçbir olumlu esas dignitesi olmayan gezegen peregrine −5. Yalnızca yedi geleneksel gezegen puanlanır; araz (accidental) dignite ve karşılıklı ağırlama puana dahil değildir. Dispozitör zinciri geleneksel burç yöneticileriyle izlenir.</p>
+      <p className="hint dign-rules"><b>Kurallar:</b> William Lilly, <i>Christian Astrology</i> (1647) puanlaması. Ev (burç yöneticisi) +5, yücelim +4, üçlük +3 (Lilly'nin üçlük yöneticileri; gündüz/gece haritasına göre), sınır +2 (Mısır sınırları), dekan +1 (Kalde sırası). Zarar −5, düşüş −4; hiçbir olumlu esas dignitesi olmayan gezegen peregrine −5. Yalnızca yedi geleneksel gezegen puanlanır; araz (accidental) dignite ve karşılıklı ağırlama puana dahil değildir. Dispozitör zinciri varsayılan olarak geleneksel burç yöneticileriyle izlenir; modern seçenekte Akrep Plüton, Kova Uranüs, Balık Neptün tarafından yönetilir.</p>
       <div className="cap">Karşılıklı ağırlama</div>
       {mr.length ? (
         <ul className="mini-list">{mr.map((m, i) => <li key={i}><span className="sym">{glyphOf(m.a)}</span> {name(m.a)} ⇄ <span className="sym">{glyphOf(m.b)}</span> {name(m.b)} <span className="muted">({m.kind})</span></li>)}</ul>
       ) : <p className="empty-note">Karşılıklı ağırlama yok.</p>}
-      <div className="cap">Dispozitör zincirleri (geleneksel yöneticiler)</div>
+      <div className="cap">Dispozitör zincirleri · {sys === 'traditional' ? 'geleneksel yöneticiler' : 'modern yöneticiler'}</div>
+      <div className="seg-btn small" style={{ marginBottom: 6 }}><button className={sys === 'traditional' ? 'on' : ''} onClick={() => setSys('traditional')}>Geleneksel (7 gezegen)</button><button className={sys === 'modern' ? 'on' : ''} onClick={() => setSys('modern')}>Modern (♇ Akrep, ♅ Kova, ♆ Balık)</button></div>
       <ul className="mini-list">
         {chains.map((c) => (
           <li key={c.start}>

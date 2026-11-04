@@ -42,7 +42,8 @@ export function PlanetTable({ chart, hovered, onHover, onSelect, prefix = '', co
             <td className={p.glyph.length > 2 ? 'g axis-txt' : 'sym g'}>{p.glyph}</td>
             <td>
               {p.name}
-              {p.id === 'moon' && chart.moonRange && <span className="tag cert-saate-bagli" title={`Doğum saati bilinmiyor: boylam 12:00 referansına göredir. Ay doğum gününde ${lonTxt(chart.moonRange.from)} ile ${lonTxt(chart.moonRange.to)} arasındadır.`}>12:00 ref. · gün içi {lonTxt(chart.moonRange.from)}–{lonTxt(chart.moonRange.to)}</span>}
+              {p.id === 'moon' && chart.moonRange && <span className="tag cert-saate-bagli" title={`Doğum saati bilinmiyor: boylam 12:00 referansına göredir. Ay doğum gününde ${lonTxt(chart.moonRange.from)} ile ${lonTxt(chart.moonRange.to)} arasındadır.`}>12:00 ref.</span>}
+              {p.id === 'moon' && chart.moonRange && <div className="moon-range-txt">gün içi {lonTxt(chart.moonRange.from)} – {lonTxt(chart.moonRange.to)}</div>}
               {p.retro && !NO_RETRO.has(p.id) && <span className="tag retro" title="Geri hareket (retro)">R</span>}
               {p.station && <span className="tag stat" title={stationText(p.station)}>{p.station.kind === 'retro' ? 'DR' : 'DD'}</span>}
               {p.dignity && <span className={`tag ${DIGNITY_CLS[p.dignity]}`} title="Esas dignite">{p.dignity}</span>}

@@ -1,5 +1,6 @@
 import type { FeedbackEntry } from './feedback'
 import type { BlindTrial } from './blind'
+import type { RankWeights } from './transitRank'
 export type HouseSystem = 'P' | 'K' | 'R' | 'C' | 'E' | 'W' | 'O' | 'B' | 'T' | 'M' | 'X'
 
 export const HOUSE_SYSTEMS: { id: HouseSystem; name: string }[] = [
@@ -223,7 +224,8 @@ export interface ChartResult {
   houseSystem: HouseSystem
   houseSystemUsed: string
   utc: string // ISO
-  jdUt: number
+  jdUt: number // UT1 (Dünya'nın gerçek dönüşüne bağlı); hesaplar bununla yapılır
+  jdUtc?: number // aynı anın UTC'ye göre Jülyen günü (yalnız gösterim); fark |UT1−UTC| < 0,9 s
   jdTt: number
   deltaT: number // saniye
   obliquity: number
@@ -243,6 +245,8 @@ export interface ChartResult {
   lots: Lot[]
   isDay?: boolean // Güneş ufkun üstünde
   moonRange?: { from: number; to: number } // saat bilinmiyorsa: Ay'ın doğum günündeki boylam aralığı
+  /** Saat duyarlılığı: burç sınırına yakın Ay/Yükselen/MC ve burcu değiştirecek saat farkı (dakika) */
+  sensitivity?: { id: string; name: string; minutes: number; direction: 'erken' | 'geç'; otherSign: number }[]
   /** Saat sürgüsü simülasyonu: kayıtlı saate eklenen dakika (kayıt değişmez) */
   shiftMin?: number
   place?: Place // haritanın kurulduğu yer (taşınma ve dönüşlerde doğum yerinden farklı olabilir)
@@ -266,7 +270,7 @@ export interface TransitEvent {
   sign?: number
   house?: number // transit gezegenin o anda bulunduğu natal ev
   /** Etkinlik dönemi: transit orbu içinde kalınan süre (tekrarlarda tüm serinin başı ve sonu) */
-  window?: { start: string; end: string; orb: number }
+  window?: { start: string; end: string; orb: number; segments?: { start: string; end: string }[] } // segments: arada orb dışına çıkılıyorsa orb içindeki parçalar
   /** Retrograd tekrarı: serideki sırası */
   pass?: { n: number; of: number }
 }
@@ -331,7 +335,8 @@ export interface Settings {
   defaultHouseSystem: HouseSystem // yeni haritalar için
   defaultNodeType: 'true' | 'mean'
   asteroids: boolean // Ceres, Pallas, Juno, Vesta
-  learningMode: boolean // öğrenme modu: sembollerin geleneksel anlamlarını açıklayan sekme ve PDF bölümü
+  learningMode: boolean
+  rankWeights?: Partial<RankWeights> // transit önem sıralaması ağırlıkları // öğrenme modu: sembollerin geleneksel anlamlarını açıklayan sekme ve PDF bölümü
   /** Gezegen tablosundaki dignite etiketleri: modern (dış gezegenler Kova/Balık/Akrep yöneticisi) veya geleneksel (yalnız yedi gezegen) */
   rulership: 'modern' | 'traditional'
   appearance: Appearance
@@ -386,7 +391,8 @@ export type MenuCommand = 'new' | 'edit' | 'find' | 'pdf' | 'settings' | 'now' |
 /** Kişisel yorum kütüphanesi: etken anahtarı → astrologun kendi metni */
 export type Library = Record<string, { text: string; updatedAt: string }>
 
-export interface AppInfo { version: string; sweph: string; ephePath: string; epheFiles: string[]; platform: string; dataDir: string }
+export interface VerificationRun { date: string; version: string; passed: number; failed: number; sweph: string }
+export interface AppInfo { version: string; sweph: string; ephePath: string; epheFiles: string[]; platform: string; dataDir: string; verification?: { verify?: VerificationRun; audit?: VerificationRun } }
 
 export interface SouthAstraApi {
   view: (input: ChartInput, req: ViewRequest) => Promise<ViewResult>

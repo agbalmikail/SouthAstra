@@ -145,10 +145,23 @@ export function dignityOf(id: string, lon: number, rulership: 'modern' | 'tradit
 export const TRAD_RULER = ['mars', 'venus', 'mercury', 'moon', 'sun', 'mercury', 'venus', 'mars', 'jupiter', 'saturn', 'saturn', 'jupiter']
 
 // ——— Ay evresi ———
-export function moonPhase(sunLon: number, moonLon: number): { name: string; angle: number } {
+/**
+ * Ay evresi. İki ayrı şey verilir:
+ * - astrolojik evre (Rudhyar'ın 8 evresi, her biri 45°): ör. "Dolunay evresi" 180°–225° arasıdır, yani dolunaydan sonraki 45°'yi kapsar;
+ * - astronomik durum: Ay'ın Güneş'ten açısal uzaklığı (0–360°, Ay'ın Güneş'in ne kadar doğusunda olduğu), büyüyor/küçülüyor ve en yakın ana evreye uzaklık.
+ */
+export function moonPhase(sunLon: number, moonLon: number): { name: string; angle: number; waxing: boolean; astro: string; text: string } {
   const a = norm360(moonLon - sunLon)
   const names = ['Yeni Ay', 'Hilal', 'İlk dördün', 'Şişkin Ay', 'Dolunay', 'Yayılan Ay', 'Son dördün', 'Balsamik Ay']
-  return { name: names[Math.floor(a / 45) % 8], angle: a }
+  const i = Math.floor(a / 45) % 8
+  const waxing = a < 180
+  // [açı, ad, -e hali, -den hali]
+  const astroNames: [number, string, string, string][] = [[0, 'yeni ay', 'yeni aya', 'yeni aydan'], [90, 'ilk dördün', 'ilk dördüne', 'ilk dördünden'], [180, 'dolunay', 'dolunaya', 'dolunaydan'], [270, 'son dördün', 'son dördüne', 'son dördünden'], [360, 'yeni ay', 'yeni aya', 'yeni aydan']]
+  const near = astroNames.reduce((b, x) => (Math.abs(a - x[0]) < Math.abs(a - b[0]) ? x : b))
+  const d = a - near[0]
+  const astro = Math.abs(d) < 1 ? `tam ${near[1]}` : `${waxing ? 'büyüyen' : 'küçülen'} Ay · ${d < 0 ? near[2] : near[3]} ${Math.abs(d).toFixed(0)}° ${d < 0 ? 'kala' : 'sonra'}`
+  const from = i * 45
+  return { name: names[i], angle: a, waxing, astro, text: `${names[i]} evresi (Rudhyar, ${from}°–${from + 45}°) · astronomik: ${astro} · Güneş–Ay uzaklığı ${a.toFixed(1).replace(".", ",")}°` }
 }
 
 export const MODALITY = ['Öncü', 'Sabit', 'Değişken'] as const

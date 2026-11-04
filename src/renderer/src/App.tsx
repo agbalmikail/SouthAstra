@@ -17,6 +17,7 @@ import type { BlindTrial } from '@shared/blind'
 import type { FeedbackEntry } from '@shared/feedback'
 import { HighlightsPanel } from './components/HighlightsPanel'
 import { getPanelParams, rectifyDefaults, rectifyKey } from './panelParams'
+import { setRankWeights } from '@shared/transitRank'
 import logoMarkSrc from './assets/logo-mark.svg'
 import { DateBar, ShiftBar } from './components/TimeBar'
 import { AspectGrid, AspectList, CrossList, HouseTable, PlanetTable } from './components/Tables'
@@ -28,7 +29,7 @@ import { AcgMap, AcgPanel, AcgPrint } from './components/AcgMap'
 import ZoomPane from './components/ZoomPane'
 import AboutModal from './components/AboutModal'
 import PlacePicker from './components/PlacePicker'
-import { fmtDateTr, fmtDecl, fmtOffset, lonParts } from './format'
+import { jdText, precisionText, fmtDateTr, fmtDecl, fmtOffset, lonParts } from './format'
 import { kbd } from './platform'
 import logoMark from './assets/logo-mark.svg'
 
@@ -101,6 +102,7 @@ export default function App() {
   const [roddenFilter, setRoddenFilter] = useState<Rodden | ''>('')
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS)
+  useEffect(() => setRankWeights(settings.rankWeights), [settings.rankWeights])
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [library, setLibrary] = useState<Library>({})
   const [libraryOpen, setLibraryOpen] = useState(false)
@@ -133,6 +135,9 @@ export default function App() {
   const [toast, setToast] = useState('')
   const [sideW, setSideW] = useState<number>(pref('sideW', 248))
   const [panelW, setPanelW] = useState<number>(pref('panelW', 460))
+  // pencere genişliği: kenar çubuğu ve panel, çarka en az 380 px bırakacak şekilde sınırlanır (pencere daralınca da)
+  const [winW, setWinW] = useState(window.innerWidth)
+  useEffect(() => { const f = () => setWinW(window.innerWidth); window.addEventListener('resize', f); return () => window.removeEventListener('resize', f) }, [])
   const [sideOpen, setSideOpen] = useState<boolean>(pref('sideOpen', true))
   const [panelOpen, setPanelOpen] = useState<boolean>(pref('panelOpen', true))
   useEffect(() => { savePref('sideW', sideW); savePref('panelW', panelW); savePref('sideOpen', sideOpen); savePref('panelOpen', panelOpen) }, [sideW, panelW, sideOpen, panelOpen])
@@ -326,8 +331,22 @@ export default function App() {
     ...(natalLike ? ['interpretations' as const] : []),
     ...(natalLike || mode === 'relocated' ? ['highlights' as const] : []),
     ...(natalLike || mode === 'transit' || mode === 'relocated' ? ['learning' as const] : []),
-    'technical', 'notes'
+    'technical', 'notes', 'compact'
   ]
+
+  /** PDF penceresinde panellerde seçili aralıkları göster */
+  const pdfDetails = (): Partial<Record<keyof PdfSections, string>> => {
+    const pp = getPanelParams()
+    const d = (x: string) => x.split('-').reverse().join('.')
+    const t0 = input ? input.time.slice(0, 5) : ''
+    const r = input ? pp.rectify[rectifyKey(input.date, t0, input.timeUnknown)] ?? rectifyDefaults(t0, input.timeUnknown) : undefined
+    const tk = pp.transitList
+    return {
+      transits: `${d(tk.from)} – ${d(tk.to)} · ${tk.planets.length} gezegen${tk.sort === 'rank' ? ' · önem sırası' : ''}`,
+      eclipses: `${d(pp.eclipses.from)} – ${d(pp.eclipses.to)}${pp.eclipses.onlyContacts ? ' · yalnız temaslı' : ''}`,
+      ...(r ? { rectify: `${r.from} – ${r.to} · ${r.step} dk adım` } : {})
+    }
+  }
 
   const exportPdf = useCallback(async (s: PdfSections) => {
     if (!view || !input) return
@@ -565,8 +584,10 @@ export default function App() {
     return t ? new Date(t).toLocaleString('tr-TR', { timeZone: tz, dateStyle: 'medium', timeStyle: 'short' }) : ''
   }
 
+  const effSideW = Math.max(200, Math.min(sideW, winW - 380 - 300))
+  const effPanelW = Math.max(300, Math.min(panelW, winW - (sideOpen ? effSideW : 34) - 380))
   return (
-    <div className="app" style={{ gridTemplateColumns: sideOpen ? `${sideW}px minmax(0, 1fr)` : '34px minmax(0, 1fr)' }}>
+    <div className="app" style={{ gridTemplateColumns: sideOpen ? `${effSideW}px minmax(0, 1fr)` : '34px minmax(0, 1fr)' }}>
       {!sideOpen ? (
         <aside className="side rail">
           <div className="drag rail-top" />
@@ -574,7 +595,7 @@ export default function App() {
         </aside>
       ) : (
       <aside className="side">
-        <div className="resizer right" onPointerDown={(e) => startResize(e, sideW, 1, setSideW, 200, 440)} onDoubleClick={() => setSideW(248)} title="Sürükleyerek genişlet · çift tıkla varsayılana dön" />
+        <div className="resizer right" onPointerDown={(e) => startResize(e, effSideW, 1, setSideW, 200, Math.max(200, Math.min(440, winW - 380 - 300)))} onDoubleClick={() => setSideW(248)} title="Sürükleyerek genişlet · çift tıkla varsayılana dön" />
         <div className="brand drag"><span className="logo"><img src={logoMark} alt="" className="logo-mark" /><span>South<b>Astra</b></span></span><button className="collapse-btn no-drag" onClick={() => setSideOpen(false)} title={`Kenar çubuğunu gizle (${kbd('\\')})`}>«</button></div>
         <div className="side-actions">
           <button className="btn primary block" onClick={() => setForm('new')} title={kbd('N')}>Yeni harita</button>
@@ -699,7 +720,7 @@ export default function App() {
         )}
 
         {shownView && inner && (
-          <div className="content" style={{ gridTemplateColumns: panelOpen ? `minmax(0, 1fr) ${panelW}px` : 'minmax(0, 1fr) 34px' }}>
+          <div className="content" style={{ gridTemplateColumns: panelOpen ? `minmax(0, 1fr) ${effPanelW}px` : 'minmax(0, 1fr) 34px' }}>
             <section className="wheel-pane">
               <ZoomPane resetKey={mode}>
                 {mode === 'acg' && input
@@ -736,7 +757,7 @@ export default function App() {
               </section>
             ) : (
             <section className="panel">
-              <div className="resizer left" onPointerDown={(e) => startResize(e, panelW, -1, setPanelW, 360, 820)} onDoubleClick={() => setPanelW(460)} title="Sürükleyerek genişlet · çift tıkla varsayılana dön" />
+              <div className="resizer left" onPointerDown={(e) => startResize(e, effPanelW, -1, setPanelW, 300, Math.max(300, Math.min(820, winW - (sideOpen ? effSideW : 34) - 380)))} onDoubleClick={() => setPanelW(460)} title="Sürükleyerek genişlet · çift tıkla varsayılana dön" />
               <div className="tabs">
                 {tabs.main.map((t) => <button key={t.k} className={tab === t.k && !selected ? 'on' : ''} onClick={() => { setTab(t.k); setSelected(null) }}>{t.label}</button>)}
                 {tabs.more.length > 0 && (
@@ -760,10 +781,10 @@ export default function App() {
                   {(() => { const pl = inner.place ?? inner.input.place; const other = pl.lat !== inner.input.place.lat || pl.lon !== inner.input.place.lon; return <>
                   <dt>{other ? 'Harita yeri' : 'Yer'}</dt><dd>{placeLabel(pl)}</dd>
                   <dt>Koordinat</dt><dd className="num">{Math.abs(pl.lat).toFixed(4)}°{pl.lat >= 0 ? 'K' : 'G'} {Math.abs(pl.lon).toFixed(4)}°{pl.lon >= 0 ? 'D' : 'B'}</dd>
-                  <dt>Doğruluk</dt><dd>{pl.precision ?? '—'}{pl.geonameId ? <span className="muted small num"> · GeoNames {pl.geonameId}</span> : ''}</dd>
+                  <dt>Doğruluk</dt><dd>{precisionText(pl.precision) ?? '—'}{pl.geonameId ? <span className="muted small num"> · GeoNames {pl.geonameId}</span> : ''}</dd>
                   {other && <><dt>Doğum yeri</dt><dd>{placeLabel(inner.input.place)}</dd></>}
                   </> })()}
-                  <dt>Jülyen günü</dt><dd className="num">{inner.jdUt.toFixed(6)} UT</dd>
+                  <dt>Jülyen günü</dt><dd className="num" title="Hesaplar UT1 ile yapılır (Dünya'nın gerçek dönüşü); UTC değeri saat dilimi dönüşümünden gelir. Fark 1 saniyenin altındadır.">{jdText(inner)}</dd>
                   <dt>Ev sistemi</dt><dd>{inner.hasHouses ? inner.houseSystemUsed : '— (evsiz)'}</dd>
                   <dt>Zodyak</dt><dd>{inner.zodiac}</dd>
                   <dt>Efemeris</dt><dd>{inner.ephemeris}</dd>
@@ -786,7 +807,7 @@ export default function App() {
       {libraryOpen && <LibraryModal library={library} onSave={saveInterp} onClose={() => setLibraryOpen(false)} feedback={charts.flatMap((c) => c.feedback ?? [])} />}
       {blindOpen && <BlindTest charts={charts} current={currentId ?? undefined} library={library} rulership={settings.rulership} onSave={saveBlind} onClose={() => setBlindOpen(false)} />}
       {feedbackOpen && inner && <FeedbackSession chart={inner} library={library} onSave={saveFeedback} onClose={() => setFeedbackOpen(false)} />}
-      {pdfOpen && <PdfDialog initial={pdfSections} available={pdfAvailable} onCancel={() => setPdfOpen(false)} onExport={exportPdf} />}
+      {pdfOpen && <PdfDialog initial={pdfSections} available={pdfAvailable} onCancel={() => setPdfOpen(false)} onExport={exportPdf} details={pdfDetails()} />}
       {toast && <div className="toast" role="status">{toast}</div>}
     </div>
   )

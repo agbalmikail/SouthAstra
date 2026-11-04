@@ -99,16 +99,21 @@ export function mutualReceptions(c: ChartResult): { a: P; b: P; kind: string }[]
   return out
 }
 
-/** Her gezegenden başlayarak burç yöneticisi zinciri (geleneksel yöneticiler) */
-export function dispositorChains(c: ChartResult): { start: P; chain: P[]; end: 'final' | 'loop' }[] {
-  const pos = Object.fromEntries(TRAD.map((id) => [id, c.points.find((p) => p.id === id)?.lon])) as Record<P, number | undefined>
+// Modern yöneticiler: Akrep Plüton, Kova Uranüs, Balık Neptün (diğerleri geleneksel)
+const MODERN_RULER = ['mars', 'venus', 'mercury', 'moon', 'sun', 'mercury', 'venus', 'pluto', 'jupiter', 'saturn', 'uranus', 'neptune']
+
+/** Her gezegenden başlayarak burç yöneticisi zinciri: geleneksel (7 gezegen) veya modern (10 gezegen) */
+export function dispositorChains(c: ChartResult, system: 'traditional' | 'modern' = 'traditional'): { start: P; chain: P[]; end: 'final' | 'loop' }[] {
+  const ids = (system === 'modern' ? [...TRAD, 'uranus', 'neptune', 'pluto'] : [...TRAD]) as P[]
+  const rulerOf = (lon: number) => (system === 'modern' ? MODERN_RULER[signOf(lon)] : signRuler(lon)) as P
+  const pos = Object.fromEntries(ids.map((id) => [id, c.points.find((p) => p.id === id)?.lon])) as Record<P, number | undefined>
   const out: { start: P; chain: P[]; end: 'final' | 'loop' }[] = []
-  for (const start of TRAD) {
+  for (const start of ids) {
     if (pos[start] === undefined) continue
     const chain: P[] = [start]
     let cur: P = start
-    for (let k = 0; k < 10; k++) {
-      const next = signRuler(pos[cur]!)
+    for (let k = 0; k < 12; k++) {
+      const next = rulerOf(pos[cur]!)
       if (next === cur) { out.push({ start, chain, end: 'final' }); break }
       if (chain.includes(next)) { chain.push(next); out.push({ start, chain, end: 'loop' }); break }
       chain.push(next)

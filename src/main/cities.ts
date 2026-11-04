@@ -10,7 +10,8 @@ type Row = [string, string, string, string, string, number, number, string, numb
 export function precisionOf(fcode: string, pop = 0): string {
   if (fcode === 'PPLC') return 'Başkent merkezi'
   if (fcode === 'PPLA') return 'İl/eyalet merkezi'
-  if (fcode === 'ADM2') return 'İlçe merkezi'
+  // ADM2: GeoNames'te ilçe alanının ortası (idari merkez değil); büyük ilçelerde birkaç km sapabilir
+  if (fcode === 'ADM2') return 'İlçe alanının ortası (merkezden birkaç km sapabilir)'
   if (fcode === 'PPLX') return 'Semt / mahalle'
   if (fcode === 'PPLL' || fcode === 'PPLF') return 'Mezra / küçük yerleşim'
   if (pop >= 100000) return 'Şehir merkezi'

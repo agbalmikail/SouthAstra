@@ -12,8 +12,8 @@
     "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",
     "verify": "tsx --tsconfig tsconfig.node.json scripts/verify.ts",
     "cities": "node scripts/build-cities.mjs",
-    "dist:mac": "electron-vite build && electron-builder --mac",
-    "dist:win": "electron-vite build && electron-builder --win",
+    "dist:mac": "npm run verify && npm run denetim && electron-vite build && electron-builder --mac",
+    "dist:win": "npm run verify && npm run denetim && electron-vite build && electron-builder --win",
     "denetim": "tsx --tsconfig tsconfig.node.json scripts/audit.ts",
     "icon": "node scripts/build-icon.mjs"
   },

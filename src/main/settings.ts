@@ -1,3 +1,4 @@
+import { DEFAULT_RANK } from '../shared/transitRank'
 // Kullanıcı ayarları (zodyak, orb profili…): kullanıcı klasöründe settings.json
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import type { Settings } from '@shared/types'
@@ -38,6 +39,7 @@ function sanitize(s: Settings): Settings {
     defaultNodeType: s.defaultNodeType === 'mean' ? 'mean' : 'true',
     asteroids: s.asteroids === true,
     learningMode: s.learningMode === true,
+    rankWeights: Object.fromEntries(Object.entries(s.rankWeights ?? {}).filter(([k, v]) => typeof v === 'number' && Number.isFinite(v) && v >= 0 && v <= 10 && k in DEFAULT_RANK)),
     rulership: s.rulership === 'traditional' ? 'traditional' : 'modern',
     appearance: {
       glyphScale: num(s.appearance?.glyphScale, 1, 0.8, 1.4),

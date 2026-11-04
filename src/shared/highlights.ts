@@ -60,11 +60,19 @@ export function chartHighlights(c: ChartResult, rulership: 'modern' | 'tradition
     out.push({
       id: 'big3', group: 'Genel tablo', points: ['sun', 'moon', ...(c.hasHouses ? ['asc'] : [])],
       title: `Güneş ${SIGNS[signOf(sun.lon)].name}, Ay ${SIGNS[signOf(moon.lon)].name}${c.hasHouses ? `, Yükselen ${SIGNS[signOf(c.angles.asc)].name}` : ''}`,
-      rule: `Haritanın en çok bakılan üç noktası. Ay evresi: ${ph.name} (Ay Güneş'ten ${ph.angle.toFixed(0)}° ileride).${c.hasHouses ? '' : ' Doğum saati bilinmediği için yükselen hesaplanmadı.'}`,
+      rule: `Haritanın en çok bakılan üç noktası. Ay evresi: ${ph.text}.${c.hasHouses ? '' : ' Doğum saati bilinmediği için yükselen hesaplanmadı.'}`,
       meaning: `${learnPoint('sun')?.text} ${learnPoint('moon')?.text}${c.hasHouses ? ' ' + learnPoint('asc')?.text : ''}`,
       uncertain: unsureMoon
     })
   }
+
+  // 2b) Saat duyarlılığı: burç sınırına yakın Ay / Yükselen / MC
+  for (const x of c.sensitivity ?? []) out.push({
+    id: 'sens-' + x.id, group: 'Genel tablo', points: [x.id],
+    title: `${x.name} burç sınırında: doğum saati yaklaşık ${Math.max(1, Math.round(x.minutes))} dakika ${x.direction} olsaydı ${SIGNS[x.otherSign].name} burcunda olurdu`,
+    rule: `${x.name} için eşik ${x.id === 'moon' ? '120' : '10'} dakika. Doğum saatinin kaynağı (Rodden derecesi) bu kadar kesin değilse ${x.name} burcu belirsiz sayılmalıdır.`,
+    uncertain: 'Burç doğum saatinin kesinliğine bağlı.'
+  })
 
   // 3) Harita yöneticisi (yükselen burcun yöneticisi)
   if (c.hasHouses) {
@@ -129,8 +137,8 @@ export function chartHighlights(c: ChartResult, rulership: 'modern' | 'tradition
   const rows = essentialDignities(c, sectUnknown(c) ? true : undefined)
   const best = [...rows].sort((a, b) => b.score - a.score)[0]
   const worst = [...rows].sort((a, b) => a.score - b.score)[0]
-  if (best && best.score >= 5) out.push({ id: 'dign-best', group: 'Gezegenlerin durumu', points: [best.id], title: `Burcunda en güçlü gezegen: ${nm(c, best.id)} (${SIGNS[best.sign].name})`, rule: `Lilly puanı +${best.score}: ${best.has.join(', ')}.${sectUnknown(c) ? ' Doğum saati bilinmiyor: üçlük puanı gündüz varsayımıyla.' : ''}`, meaning: 'Geleneksel astrolojide gezegen kendi burcunda ya da yücelim burcundaysa "güçlü" (rahat, etkili) sayılır.' })
-  if (worst && worst.score <= -5 && worst.id !== best?.id) out.push({ id: 'dign-worst', group: 'Gezegenlerin durumu', points: [worst.id], title: `Burcunda en zorlanan gezegen: ${nm(c, worst.id)} (${SIGNS[worst.sign].name})`, rule: `Lilly puanı ${worst.score}: ${worst.has.join(', ')}.`, meaning: 'Gezegen zarar ya da düşüş burcundaysa ya da hiçbir dignitesi yoksa (peregrine) geleneksel olarak "zorlanan" sayılır.' })
+  if (best && best.score >= 5) out.push({ id: 'dign-best', group: 'Gezegenlerin durumu', points: [best.id], title: `Lilly puanına göre en yüksek: ${nm(c, best.id)} (${SIGNS[best.sign].name})`, rule: `Lilly esas dignite puanı +${best.score}: ${best.has.join(', ')}. Bu yalnızca bir geleneksel puanlama yöntemidir; gezegenin haritadaki durumu açılar, ev ve diğer etkenlerle birlikte değerlendirilir.${sectUnknown(c) ? ' Doğum saati bilinmiyor: üçlük puanı gündüz varsayımıyla.' : ''}`, meaning: 'Geleneksel astrolojide gezegen kendi burcunda ya da yücelim burcundaysa "güçlü" (rahat, etkili) sayılır.' })
+  if (worst && worst.score <= -5 && worst.id !== best?.id) out.push({ id: 'dign-worst', group: 'Gezegenlerin durumu', points: [worst.id], title: `Lilly puanına göre en düşük: ${nm(c, worst.id)} (${SIGNS[worst.sign].name})`, rule: `Lilly esas dignite puanı ${worst.score}: ${worst.has.join(', ')}. Bu bir yöntem sonucudur, mutlak bir "zayıflık" değildir: puan yalnızca burçtaki esas digniteyi ölçer; açılar, ev konumu ve karşılıklı ağırlama hesaba katılmaz.`, meaning: 'Geleneksel astrolojide gezegen zarar ya da düşüş burcundaysa ya da hiçbir esas dignitesi yoksa (peregrine), o burçta "kendi kaynaklarından yoksun" sayılır. Modern ekollerin çoğu bu puanlamayı kullanmaz.' })
   return out
 }
 
@@ -141,7 +149,7 @@ const PATTERN_LEARN: Record<string, string> = {
   Yod: 'İki gezegenin altmışlık yapıp üçüncüsüne quincunx yapması; "özel görev" ya da ayar gerektiren bir odak olarak anılır.',
   Uçurtma: 'Büyük üçgene karşıt bir gezegenin eklenmesi; uyumun bir hedefe yönlendirilmesi olarak yorumlanır.',
   'Mistik dikdörtgen': 'İki karşıtlığın üçgen ve altmışlıklarla bağlanması; gerilimle uyumun dengesi olarak yorumlanır.',
-  Stelyum: 'Aynı burçta ya da evde dört veya daha fazla gezegen; o burcun ya da evin temalarının yoğunlaşması olarak yorumlanır.'
+  Stelyum: 'Aynı burçta ya da evde dört veya daha fazla gezegen; o burcun ya da evin temalarının yoğunlaşması olarak yorumlanır. Kullanılan kural: 10 ana gezegenden en az 4 (Ay düğümü ve küçük cisimler sayılmaz). Bazı ekoller 3 gezegeni de stelyum sayar ya da orb (ör. 10°) şartı koyar.'
 }
 
 /** Düz dille kısa açılış: astrolojiden anlamayan biri için haritanın ne olduğu */

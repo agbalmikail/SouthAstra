@@ -5,10 +5,10 @@
 import sweph from 'sweph'
 import { join } from 'node:path'
 import { acg, ephemeris, eclipses, initEphemeris, natalChart, rectify, transitList, useSettings, view } from '../src/main/engine'
-import { DEFAULT_SETTINGS, ORB_PROFILES } from '../src/shared/zodiac'
+import { DEFAULT_SETTINGS, ORB_PROFILES, moonPhase, SIGNS } from '../src/shared/zodiac'
 import { loadCities, searchCities } from '../src/main/cities'
 import { isNewer } from '../src/shared/version'
-import { essentialDignities, faceRuler, sectUnknown, termRuler, tripRuler } from '../src/shared/dignities'
+import { dispositorChains, essentialDignities, faceRuler, sectUnknown, termRuler, tripRuler } from '../src/shared/dignities'
 import { midpointHits } from '../src/shared/factors'
 import { firdaria, profections } from '../src/shared/timelords'
 import { chartHighlights, ANGLE_ORB, TIGHT_ORB } from '../src/shared/highlights'
@@ -16,6 +16,7 @@ import { transitExplain } from '../src/shared/learn'
 import { buildSession, feedbackStats, fitShare, looksGeneric, rng, type FeedbackEntry } from '../src/shared/feedback'
 import { chartFactors } from '../src/shared/factors'
 import { buildSheets, chanceP } from '../src/shared/blind'
+import { importance, rankRule, setRankWeights, DEFAULT_RANK } from '../src/shared/transitRank'
 import { aspectPatterns } from '../src/shared/patterns'
 import type { ChartResult } from '../src/shared/types'
 import { toUtc } from '../src/main/time'
@@ -25,7 +26,20 @@ import { separation } from '../src/shared/zodiac'
 initEphemeris(join(process.cwd(), 'resources/ephe'))
 const C = sweph.constants
 let fail = 0
-const ok = (cond: boolean, msg: string) => { console.log(`${cond ? '✓' : '✗'} ${msg}`); if (!cond) fail++ }
+let pass = 0
+const ok = (cond: boolean, msg: string) => { console.log(`${cond ? '✓' : '✗'} ${msg}`); if (!cond) fail++; else pass++ }
+/** Doğrulama özeti: resources/verification.json (uygulamanın teknik ekinde gösterilir; git'e girmez) */
+function writeVerification(part: 'verify' | 'audit', passed: number, failed: number) {
+  const fs = require('node:fs') as typeof import('node:fs')
+  const path = require('node:path') as typeof import('node:path')
+  const file = path.join(process.cwd(), 'resources/verification.json')
+  let cur: Record<string, unknown> = {}
+  try { cur = JSON.parse(fs.readFileSync(file, 'utf8')) } catch { /* yok */ }
+  const pkg = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'package.json'), 'utf8'))
+  cur[part] = { date: new Date().toISOString(), version: pkg.version, passed, failed, sweph: sweph.version() }
+  fs.writeFileSync(file, JSON.stringify(cur, null, 2))
+}
+
 const arcsec = (a: number, b: number) => separation(a, b) * 3600
 
 console.log('\n— Gezegen konumları (Meeus örnekleri, görünür geosantrik boylam)')
@@ -207,6 +221,43 @@ console.log('\n— Taşınma ve dönüş yeri')
   ok(Math.abs(srHome.jdUt - srBer.jdUt) < 1e-9 && separation(srBer.angles.asc, hs.points[0]) < 1e-9 && separation(srBer.angles.asc, srHome.angles.asc) > 1, 'Güneş dönüşü Berlin\'de: dönüş anı aynı, evler Berlin\'e göre')
 }
 
+console.log('\n— Ay evresi ve Jülyen günü (UT1 / UTC)')
+{
+  const p1 = moonPhase(10, 175.4), p2 = moonPhase(10, 205.4)
+  ok(p1.name === 'Şişkin Ay' && p1.waxing && p1.astro.includes('dolunaya 15° kala'), `Güneş–Ay 165,4°: ${p1.name} evresi · ${p1.astro}`)
+  ok(p2.name === 'Dolunay' && !p2.waxing && p2.astro.includes('dolunaydan 15° sonra') && p2.text.includes('180°–225°'), `Güneş–Ay 195,4°: ${p2.text}`)
+  ok(moonPhase(0, 0.4).astro === 'tam yeni ay' && moonPhase(0, 92).astro.includes('ilk dördünden 2° sonra'), 'Tam evre ve yakın evre ifadeleri')
+  const jc = natalChart({ ...base, date: '1988-03-10', time: '01:45', timeMode: 'manual', manualOffset: 0 })
+  const dut = (jc.jdUt - jc.jdUtc!) * 86400
+  ok(Math.abs(jc.jdUtc! - 2447230.5729166665) < 1e-9 && jc.utc.startsWith('1988-03-10T01:45:00.000'), `10.03.1988 01:45 UTC: JD(UTC) ${jc.jdUtc!.toFixed(6)} (beklenen 2447230.572917), UTC tam saniye`)
+  ok(dut > 0 && dut < 0.9, `JD(UT1) ${jc.jdUt.toFixed(6)}: UT1−UTC = +${dut.toFixed(2)} s (1988 için IERS değeri yaklaşık +0,2…+0,4 s; sınır 0,9 s)`)
+}
+
+console.log('\n— Saat duyarlılığı (burç sınırı)')
+{
+  // Ay 2024-01-03 00:47 UT'de Terazi'ye giriyor (yayımlanmış tablo, yukarıdaki boşluk testi): 13 dk sonra Ay ~0°07' Terazi
+  const sc = natalChart({ ...base, date: '2024-01-03', time: '01:00', timeMode: 'manual', manualOffset: 0 })
+  const m = sc.sensitivity?.find((x) => x.id === 'moon')
+  ok(!!m && m.direction === 'erken' && m.otherSign === 5 && Math.abs(m.minutes - 13) < 2 && sc.warnings.some((w) => w.includes('Başak')), `Ay 0°${Math.round((sc.points.find((p) => p.id === 'moon')!.lon % 30) * 60)}′ Terazi: ${m ? Math.round(m.minutes) : '?'} dk erken doğum → Başak (beklenen ~13 dk)`)
+  ok(chartHighlights(sc).some((h) => h.id === 'sens-moon'), 'Öne çıkanlarda da bildiriliyor')
+  const far = natalChart({ ...base, date: '2024-01-04', time: '12:00', timeMode: 'manual', manualOffset: 0 })
+  const mf = far.points.find((p) => p.id === 'moon')!.lon % 30
+  ok(!(far.sensitivity ?? []).some((x) => x.id === 'moon') || mf < 1.2 || mf > 28.8, `Sınırdan uzak Ay (${mf.toFixed(1)}°) için uyarı yok`)
+  // Yükselen: sınıra yakın bir an bul (her ~2 saatte bir burç değişir), 5 dk sonrası ile karşılaştır
+  let found = false
+  for (let h = 0; h < 24 && !found; h++) for (let mi = 0; mi < 60 && !found; mi += 5) {
+    const t = `${String(h).padStart(2, '0')}:${String(mi).padStart(2, '0')}`
+    const c1 = natalChart({ ...base, date: '2024-01-04', time: t, timeMode: 'manual', manualOffset: 0 })
+    const s1 = c1.sensitivity?.find((x) => x.id === 'asc')
+    if (!s1) continue
+    found = true
+    const mins = Math.round(s1.minutes) + 2
+    const shifted = natalChart({ ...base, date: '2024-01-04', time: t, timeMode: 'manual', manualOffset: 0 }, undefined, s1.direction === 'geç' ? mins : -mins)
+    ok(Math.floor(shifted.angles.asc / 30) === s1.otherSign, `Yükselen ${t} UT'de sınıra ${s1.minutes.toFixed(1)} dk; saat ${mins} dk ${s1.direction} alınınca gerçekten ${SIGNS[s1.otherSign].name} oluyor (bağımsız yeniden hesap)`)
+  }
+  ok(found, 'Yükselen için sınır duyarlılığı bulundu')
+}
+
 console.log('\n— Öne çıkanlar (kural tabanlı özet)')
 {
   const hs = chartHighlights(natal, 'traditional')
@@ -284,6 +335,32 @@ console.log('\n— Kör karşılaştırma: şans hesabı')
   ok(sh.map((x) => x.label).join('') === 'ABC' && new Set(sh.map((x) => x.chartId)).size === 3 && sh.every((x) => x.texts.length === 3), 'Sayfalar A/B/C, her harita bir kez, metinler eksiksiz')
   const order = new Set(Array.from({ length: 30 }, (_, i) => buildSheets([{ chartId: 'a', texts: [] }, { chartId: 'b', texts: [] }, { chartId: 'c', texts: [] }], rng(i + 1)).map((x) => x.chartId).join('')))
   ok(order.size >= 5, `Katılımcının sayfasının yeri rastgele (30 denemede ${order.size} farklı sıra)`)
+}
+
+console.log('\n— Dispozitör zincirleri: geleneksel ve modern')
+{
+  const MOD = ['mars', 'venus', 'mercury', 'moon', 'sun', 'mercury', 'venus', 'pluto', 'jupiter', 'saturn', 'uranus', 'neptune']
+  const TR = ['mars', 'venus', 'mercury', 'moon', 'sun', 'mercury', 'venus', 'mars', 'jupiter', 'saturn', 'saturn', 'jupiter']
+  let good = true
+  for (const [sys, map] of [['modern', MOD], ['traditional', TR]] as const) {
+    for (const c of dispositorChains(natal, sys)) for (let i = 1; i < c.chain.length; i++) {
+      const prev = natal.points.find((p) => p.id === c.chain[i - 1])!
+      if (map[Math.floor(prev.lon / 30)] !== c.chain[i]) good = false
+    }
+  }
+  const m = dispositorChains(natal, 'modern'), t = dispositorChains(natal, 'traditional')
+  ok(good && m.length === 10 && t.length === 7, `Her adım burç yöneticisi tablosuyla aynı; modern 10, geleneksel 7 başlangıç`)
+}
+
+console.log('\n— Transit önem ağırlıkları')
+{
+  const e = { jd: 0, utc: '2025-01-01T00:00:00Z', transit: 'saturn', natal: 'sun', type: 'square' as const, retro: false, window: { start: '2024-06-01T00:00:00Z', end: '2025-06-01T00:00:00Z', orb: 2 }, pass: { n: 1, of: 3 } }
+  setRankWeights()
+  const d = importance(e)
+  ok(d === DEFAULT_RANK.long + DEFAULT_RANK.hard + DEFAULT_RANK.lights + DEFAULT_RANK.series, `Varsayılan: Satürn kare natal Güneş, uzun seri = ${d}`)
+  setRankWeights({ lights: 0, long: 1 })
+  ok(importance(e) === 1 + DEFAULT_RANK.hard + 0 + DEFAULT_RANK.series && rankRule().includes('uzun 1') && rankRule().includes('MC 0'), 'Ayarlardan değişen ağırlık hem puana hem kural metnine yansıyor')
+  setRankWeights()
 }
 
 console.log('\n— Ay düğümü (bağımsız formül)')
@@ -367,6 +444,19 @@ console.log('\n— Transit: natal evler, retrograd serileri, etkinlik dönemi')
   const cut = transitList(base, '2025-01-01T00:00:00Z', '2025-03-31T00:00:00Z', ['saturn', 'jupiter', 'mars']).filter((e) => e.natal && e.pass)
   const same = cut.every((e) => { const f = asp.find((x) => x.utc === e.utc && x.transit === e.transit && x.natal === e.natal); return !f || (f.pass!.n === e.pass!.n && f.pass!.of === e.pass!.of) })
   ok(same, 'Seri numarası seçili tarih aralığından bağımsız (kısa aralıkta da 2/3 gibi doğru sayılıyor)')
+  // parçalar: her parçanın sınırında sapma = orb; parçalar arasında orb dışında; her kesinleşme bir parçanın içinde
+  const segd = asp.filter((e) => e.window!.segments)
+  let segOk = true
+  for (const e of segd.slice(0, 15)) {
+    const sg = e.window!.segments!
+    for (let j = 0; j < sg.length; j++) {
+      if (j > 0 && Math.abs(devAt(e, sg[j].start) - e.window!.orb) > 0.001) segOk = false
+      if (j < sg.length - 1 && Math.abs(devAt(e, sg[j].end) - e.window!.orb) > 0.001) segOk = false
+      if (j < sg.length - 1) { const mid = new Date((Date.parse(sg[j].end) + Date.parse(sg[j + 1].start)) / 2).toISOString(); if (devAt(e, mid) <= e.window!.orb) segOk = false }
+    }
+    if (!sg.some((x) => x.start <= e.utc && e.utc <= x.end)) segOk = false
+  }
+  ok(segOk, `Orb dışına çıkıp yeniden giren seriler: ${segd.length} olayda parçalar doğru (sınırlarda sapma = orb, aralarda orb dışında)`)
 }
 
 console.log('\n— Efemeris ve boşluktaki Ay (Ocak 2024)')
@@ -520,6 +610,19 @@ console.log('\n— Geleneksel: esas dignite (Lilly puanlaması) ve açı kalıpl
 console.log('\n— Yer araması (sıralama)')
 {
   loadCities(join(process.cwd(), 'resources/cities.json.gz'))
+  {
+    // Bağımsız kaynak: OpenStreetMap Nominatim (2026-11 sorgusu). Şehir noktaları 3 km içinde olmalı.
+    const OSM: [string, number, number, number][] = [
+      ['İstanbul', 41.006381, 28.9758715, 3], ['Ankara', 39.9207759, 32.8540497, 3], ['İzmir', 38.4192537, 27.128469, 3],
+      ['Berlin', 52.5173885, 13.3951309, 3], ['München', 48.1371079, 11.5753822, 3], ['Köln', 50.938361, 6.959974, 3], ['Bonn', 50.7352621, 7.1024635, 3],
+      ['Kadıköy', 40.9912955, 29.0245631, 8]
+    ]
+    const km = (a: number, b: number, c: number, d: number) => { const r = Math.PI / 180; const x = Math.sin(((c - a) * r) / 2) ** 2 + Math.cos(a * r) * Math.cos(c * r) * Math.sin(((d - b) * r) / 2) ** 2; return 12742 * Math.asin(Math.sqrt(x)) }
+    const res = OSM.map(([q, la, lo, tol]) => { const h = searchCities(q)[0]; return { q, d: km(h.lat, h.lon, la, lo), tol, prec: h.precision } })
+    ok(res.every((r) => r.d <= r.tol), `Koordinatlar OpenStreetMap ile: ${res.map((r) => `${r.q} ${r.d.toFixed(1).replace('.', ',')} km`).join(' · ')}`)
+    const kd = res.find((r) => r.q === 'Kadıköy')!
+    ok(kd.d > 3 ? !!kd.prec && kd.prec.includes('ortası') : true, `İlçe kaydında sapma ${kd.d.toFixed(1)} km: doğruluk etiketi bunu söylüyor ("${kd.prec}")`)
+  }
   const top = (q: string, f = {}, n = 1) => searchCities(q, f, 12).slice(0, n).map((h) => h.name)
   const koln = searchCities('Köln', { country: 'DE', region: 'Nordrhein-Westfalen' }, 12)
   const own = (h: { district: string }) => h.district.includes('Köln')
@@ -597,5 +700,23 @@ console.log('\n— Ek noktalar')
 console.log('\n— Sürüm karşılaştırma')
 ok(isNewer('0.10.0', '0.9.9') && isNewer('v1.0.0', '0.9.0') && !isNewer('0.4.0', '0.4.0') && !isNewer('0.3.9', '0.4.0'), 'Yeni sürüm denetimi: 0.10.0 > 0.9.9, 1.0.0 > 0.9.0, aynı sürüm yeni sayılmaz')
 
+// ——— Yerel regresyon (kişisel doğum verileri; local/regression.json git'e girmez) ———
+{
+  const fs = require('node:fs') as typeof import('node:fs')
+  const file = join(process.cwd(), 'local/regression.json')
+  if (fs.existsSync(file)) {
+    console.log('\n— Yerel regresyon (local/regression.json · yalnızca bu bilgisayarda)')
+    // biçim: [{ "label": "...", "input": ChartInput, "expect": { "sun": 342.5, "moon": 180.1, "asc": ..., "mc": ... }, "tolArcsec": 5, "source": "astro.com" }]
+    const list = JSON.parse(fs.readFileSync(file, 'utf8')) as { label: string; input: ChartInput; expect: Record<string, number>; tolArcsec?: number; source?: string }[]
+    for (const r of list) {
+      const c = natalChart(r.input)
+      const val = (id: string) => (id === 'asc' ? c.angles.asc : id === 'mc' ? c.angles.mc : c.points.find((p) => p.id === id)?.lon ?? NaN)
+      const diffs = Object.entries(r.expect).map(([id, v]) => [id, arcsec(val(id), v)] as const)
+      const tol = r.tolArcsec ?? 5
+      ok(diffs.every(([, d]) => d <= tol), `${r.label}${r.source ? ` (${r.source})` : ''}: ${diffs.map(([id, d]) => `${id} ${d.toFixed(1)}"`).join(' · ')} (sınır ${tol}")`)
+    }
+  }
+}
+writeVerification('verify', pass, fail)
 console.log(fail ? `\n${fail} test başarısız` : '\nTüm testler geçti')
 process.exit(fail ? 1 : 0)

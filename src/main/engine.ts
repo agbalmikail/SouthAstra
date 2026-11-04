@@ -387,7 +387,12 @@ export function natalChart(input: ChartInput, hsys?: HouseSystem, shiftMin = 0):
     offsetMinutes: b.t.offsetMinutes, offsetSource: b.t.source, warnings
   })
   if (shiftMin) ch.shiftMin = shiftMin
+  // UTC gösterimi saat dilimi dönüşümünden (tam saniye); Jülyen günü UT1'dir (Swiss Ephemeris utc_to_jd, UT1 = UTC + DUT1)
+  const utcMs = b.t.utcMs + shiftMin * 60000
+  ch.utc = new Date(utcMs).toISOString()
+  ch.jdUtc = utcMs / 86400000 + 2440587.5
   if (input.timeUnknown && !shiftMin) applyMoonUncertainty(ch, b.jd)
+  if (!input.timeUnknown) addTimeSensitivity(ch, b.jd)
   return ch
 }
 
@@ -435,6 +440,41 @@ function applyMoonUncertainty(ch: ChartResult, noonJd: number) {
     }
   }
   ch.aspects = [...keep, ...moonAsp].sort((x, y) => x.orb - y.orb)
+}
+
+/**
+ * Saat duyarlılığı: Ay, Yükselen veya MC burç sınırına yakınsa, doğum saatinde kaç dakikalık farkın burcu değiştireceği.
+ * Ay için hız, köşeler için sayısal türev (±2 dk) kullanılır. Eşik: Ay 120 dk, köşeler 10 dk.
+ */
+function addTimeSensitivity(ch: ChartResult, jd: number) {
+  const sens: { id: string; name: string; minutes: number; direction: 'erken' | 'geç'; otherSign: number }[] = []
+  const check = (id: string, name: string, lon: number, degPerDay: number, limitMin: number) => {
+    if (!degPerDay) return
+    const inSign = norm360(lon) % 30
+    // ileri hareket: sonraki sınıra (geç doğum), geriye: önceki sınıra (erken doğum)
+    const toNext = (30 - inSign) / Math.abs(degPerDay) * 1440
+    const toPrev = inSign / Math.abs(degPerDay) * 1440
+    const s = signOf(lon)
+    const fwd = degPerDay > 0
+    if (Math.min(toNext, toPrev) > limitMin) return
+    const useNext = toNext < toPrev
+    const later = useNext === fwd
+    sens.push({ id, name, minutes: Math.min(toNext, toPrev), direction: later ? 'geç' : 'erken', otherSign: (s + (useNext ? 1 : 11)) % 12 })
+  }
+  const moon = ch.points.find((p) => p.id === 'moon')
+  if (moon) check('moon', 'Ay', moon.lon, moon.speed, 120)
+  if (ch.hasHouses && ch.place) {
+    const geo = { lat: ch.place.lat, lon: ch.place.lon }
+    const dt = 2 / 1440
+    const w: string[] = []
+    const a = computeHouses(jd - dt, geo, ch.houseSystem, w), b = computeHouses(jd + dt, geo, ch.houseSystem, w)
+    const ascSpeed = norm180(b.asc - a.asc) / (2 * dt), mcSpeed = norm180(b.mc - a.mc) / (2 * dt)
+    check('asc', 'Yükselen', ch.angles.asc, ascSpeed, 10)
+    check('mc', 'MC', ch.angles.mc, mcSpeed, 10)
+  }
+  if (!sens.length) return
+  ch.sensitivity = sens
+  for (const x of sens) ch.warnings.push(`Saat duyarlılığı: ${x.name} burç sınırına çok yakın (${SIGNS[signOf(x.id === 'moon' ? ch.points.find((p) => p.id === 'moon')!.lon : x.id === 'asc' ? ch.angles.asc : ch.angles.mc)].name}). Doğum saati yaklaşık ${Math.max(1, Math.round(x.minutes))} dakika ${x.direction} olsaydı ${x.name} ${SIGNS[x.otherSign].name} burcunda olurdu. Saat kaydının kaynağını (Rodden) dikkate alın.`)
 }
 
 function draconic(ch: ChartResult): ChartResult {
@@ -675,7 +715,7 @@ const SERIES_GAP: Record<string, number> = { sun: 0, mercury: 70, venus: 90, mar
 function addTransitWindows(events: TransitEvent[], targets: { id: string; lon: number }[], flags: number) {
   const orb = settings.transitOrb
   const tlon = Object.fromEntries(targets.map((t) => [t.id, t.lon]))
-  const done = new Map<string, { hits: number[]; start: string; end: string }>()
+  const done = new Map<string, { hits: number[]; start: string; end: string; segments?: { start: string; end: string }[] }>()
   for (const e of events) {
     if (!e.natal || tlon[e.natal] === undefined) continue
     const body = BODY_BY_ID[e.transit]
@@ -717,11 +757,28 @@ function addTransitWindows(events: TransitEvent[], targets: { id: string; lon: n
         }
         return t0
       }
-      series = { hits, start: isoFromJd(edge(hits[0], -1)), end: isoFromJd(edge(hits[hits.length - 1], 1)) }
+      const s0 = edge(hits[0], -1), s1 = edge(hits[hits.length - 1], 1)
+      // orb içinde kalınan parçalar: arada orb dışına çıkılıyorsa birden çok parça olur
+      const segments: { start: string; end: string }[] = []
+      if (hits.length > 1) {
+        let inside = true, segStart = s0, t0 = s0
+        for (let t1 = s0 + step; t1 < s1; t1 += step) {
+          const ins = dev(t1) <= 0
+          if (ins !== inside) {
+            const tb = bisect(t0, t1, dev)
+            if (inside) segments.push({ start: isoFromJd(segStart), end: isoFromJd(tb) })
+            else segStart = tb
+            inside = ins
+          }
+          t0 = t1
+        }
+        if (inside) segments.push({ start: isoFromJd(segStart), end: isoFromJd(s1) })
+      }
+      series = { hits, start: isoFromJd(s0), end: isoFromJd(s1), segments: segments.length > 1 ? segments : undefined }
       done.set(`${key}|${hits[0].toFixed(3)}`, series)
     }
     const n = series.hits.findIndex((h) => Math.abs(h - e.jd) < 1e-3) + 1
-    e.window = { start: series.start, end: series.end, orb }
+    e.window = { start: series.start, end: series.end, orb, ...(series.segments ? { segments: series.segments } : {}) }
     e.pass = { n: n || 1, of: series.hits.length }
   }
 }
