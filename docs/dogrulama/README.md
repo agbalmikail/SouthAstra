@@ -25,6 +25,12 @@ python3 scripts/validate/fetch_tz.py   # saat dilimi referansını yeniden üret
 
 `npm run dogrula` önce gerekli sorguları `tests/reference/requests.json`'a yazar. Referans dosyası yoksa ilgili bölüm başarılı değil **DOĞRULANMADI** olarak raporlanır.
 
+## Raporda ve uygulamada
+
+- **PDF teknik eki** referans haritalardaki NASA karşılaştırmasının özetini yazar: kontrol sayısı, en büyük farklar, Horizons sürümü ve efemeris kaynakları, referansın alındığı tarih, `tests/reference/jpl.json` dosyasının SHA-256 parmak izi ve bu raporun adresi. Parmak izi, raporu okuyan kişinin aynı referans dosyasıyla sonucu yeniden üretebilmesi içindir.
+- **Haritanın kendisi için:** uygulamada "Hesaplama bilgileri" altındaki *NASA JPL ile karşılaştır* düğmesi o haritanın 11 cismini Horizons'a sorar ve sonucu kayda yazar; PDF teknik ekinde cisim cisim NASA değeri, SouthAstra değeri ve farkı tablo olarak çıkar. Doğum bilgisi değişirse sonuç geçersiz sayılır. NASA'ya yalnızca Jülyen günü (UT) ve cisim numarası gider.
+- **Geleneksel yöntemler** (dignite puanları, karşılıklı ağırlama, dispozitör döngüleri, Arap noktaları, sabit yıldızlar, firdaria, profeksiyon) için kullanılan kurallar ve elle türetilmiş test örnekleri: [GELENEKSEL.md](GELENEKSEL.md).
+
 ## Kişisel haritalar
 
 Gerçek doğum verileri depoya girmez. `local/validate-charts.json` (git dışında) varsa:

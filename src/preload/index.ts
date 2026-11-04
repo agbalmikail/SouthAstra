@@ -33,6 +33,7 @@ const api: SouthAstraApi = {
     return () => { ipcRenderer.removeListener('menu', h) }
   },
   info: () => ipcRenderer.invoke('app:info'),
+  jplCheck: (input) => ipcRenderer.invoke('chart:jpl', input),
   notices: () => ipcRenderer.invoke('app:notices'),
   openExternal: (url) => ipcRenderer.invoke('app:open', url),
   checkUpdate: () => ipcRenderer.invoke('app:update')

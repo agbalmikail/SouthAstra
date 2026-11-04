@@ -2,6 +2,13 @@
 import { registerEn } from '../index'
 
 registerEn({
+  'NASA JPL karşılaştırması (referans haritalar)': 'NASA JPL comparison (reference charts)',
+  '{passed}/{total} kontrol geçti · {charts} haritaları · en büyük fark: gezegenler {pl}″, köşeler {an}″, evler {ho}″, açılar {as}″, progresyon {pr}″, transit anları {tr}″, ortalama düğüm {no}″; {tz} saat dilimi vakası · Horizons: {hz}, referans alındı {fetched} · referans dosyası SHA-256 {sha} · ayrıntılı rapor: {url}': '{passed}/{total} checks passed · charts from {charts} · largest difference: planets {pl}″, angles {an}″, houses {ho}″, aspects {as}″, progressions {pr}″, transit times {tr}″, mean node {no}″; {tz} time-zone cases · Horizons: {hz}, reference fetched {fetched} · reference file SHA-256 {sha} · full report: {url}',
+  'Bu harita için NASA JPL karşılaştırması': 'NASA JPL comparison for this chart',
+  'Geosantrik görünür ekliptik boylam, günün ekliptiği; NASA JPL Horizons ({api}), doğum anı JD(UT) {jd}; sorgu {date}. Efemeris kaynakları: {src}.': 'Geocentric apparent ecliptic longitude, ecliptic of date; NASA JPL Horizons ({api}), birth moment JD(UT) {jd}; queried {date}. Ephemeris sources: {src}.',
+  'Cisim': 'Body',
+  'Fark': 'Difference',
+  'Bu harita için NASA JPL karşılaştırması yapılmadı. Uygulamada "Hesaplama bilgileri" altındaki "NASA JPL ile karşılaştır" düğmesiyle eklenebilir (internet gerekir; NASA\'ya yalnızca tarih ve saat gider).': 'No NASA JPL comparison has been made for this chart. It can be added with the "Compare with NASA JPL" button under "Calculation details" in the app (internet required; only the date and time are sent to NASA).',
   'kayıtta beyan edilen; SouthAstra kaynağı doğrulamaz': 'as declared in the record; SouthAstra does not verify the source',
   'Belirtilmedi (Rodden derecesi girilmemiş)': 'Not specified (no Rodden rating entered)',
   'cümle::Gezegen': 'The planet',

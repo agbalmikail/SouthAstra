@@ -8,7 +8,7 @@ import { acg, ephemeris, eclipses, initEphemeris, natalChart, rectify, transitLi
 import { DEFAULT_SETTINGS, ORB_PROFILES, moonPhase, SIGNS } from '../src/shared/zodiac'
 import { loadCities, searchCities } from '../src/main/cities'
 import { isNewer } from '../src/shared/version'
-import { dispositorChains, essentialDignities, faceRuler, sectUnknown, termRuler, tripRuler } from '../src/shared/dignities'
+import { dispositorChains, essentialDignities, faceRuler, mutualReceptions, sectUnknown, termRuler, tripRuler } from '../src/shared/dignities'
 import { midpointHits } from '../src/shared/factors'
 import { firdaria, profections } from '../src/shared/timelords'
 import { chartHighlights, ANGLE_ORB, TIGHT_ORB } from '../src/shared/highlights'
@@ -361,6 +361,91 @@ console.log('\n— Transit önem ağırlıkları')
   setRankWeights({ lights: 0, long: 1 })
   ok(importance(e) === 1 + DEFAULT_RANK.hard + 0 + DEFAULT_RANK.series && rankRule().includes('uzun 1') && rankRule().includes('MC 0'), 'Ayarlardan değişen ağırlık hem puana hem kural metnine yansıyor')
   setRankWeights()
+}
+
+console.log('\n— Geleneksel yöntemler: beklenen sonuçlar yayımlanmış tablolardan elle türetildi')
+{
+  // Kurgu harita: gezegenler verilen boylamlara konur; gündüz/gece Güneş yüksekliğiyle
+  const fake = (lons: Record<string, number>, day: boolean): ChartResult => ({ ...natal, input: { ...natal.input, timeUnknown: false }, kind: 'natal', points: natal.points.map((p) => (lons[p.id] !== undefined ? { ...p, lon: lons[p.id], altitude: p.id === 'sun' ? (day ? 30 : -30) : p.altitude } : p.id === 'sun' ? { ...p, altitude: day ? 30 : -30 } : p)) })
+  const sc = (c: ChartResult, id: string) => essentialDignities(c).find((r) => r.id === id)!
+  // Lilly, Christian Astrology (1647) puanları; Mısır sınırları; Kalde dekanları; Lilly üçlükleri
+  // Elle hesap: Güneş 15° Aslan (gündüz) = ev +5, üçlük (ateş gündüz: Güneş) +3; sınır 11–18 Satürn, dekan 10–20 Jüpiter → +8
+  const c1 = fake({ sun: 135 }, true)
+  ok(sc(c1, 'sun').score === 8, `Güneş 15° Aslan, gündüz: Lilly +8 (ev +5, üçlük +3) → ${sc(c1, 'sun').score}`)
+  // Mars 5° Oğlak (gece): yücelim +4; üçlük (toprak gece: Ay) yok; sınır 0–7 Merkür; dekan 0–10 Jüpiter → +4
+  const c2 = fake({ mars: 275 }, false)
+  ok(sc(c2, 'mars').score === 4, `Mars 5° Oğlak, gece: +4 (yücelim) → ${sc(c2, 'mars').score}`)
+  // Venüs 3° Başak (gündüz): düşüş −4; üçlük (toprak gündüz: Venüs) +3; sınır 0–7 Merkür; dekan 0–10 Güneş → −1
+  const c3 = fake({ venus: 153 }, true)
+  ok(sc(c3, 'venus').score === -1, `Venüs 3° Başak, gündüz: −1 (düşüş −4, üçlük +3) → ${sc(c3, 'venus').score}`)
+  // Satürn 25° Koç (gece): düşüş −4; üçlük (ateş gece: Jüpiter) yok; sınır 25–30 Satürn +2; dekan 20–30 Venüs → −2
+  const c4 = fake({ saturn: 25 }, false)
+  ok(sc(c4, 'saturn').score === -2, `Satürn 25° Koç, gece: −2 (düşüş −4, sınır +2) → ${sc(c4, 'saturn').score}`)
+  // Ay 20° Yay (gece): üçlük (ateş gece: Jüpiter) yok; sınır 17–21 Merkür; dekan 20–30 Satürn → hiçbiri: peregrine −5
+  const c5 = fake({ moon: 260 }, false)
+  ok(sc(c5, 'moon').score === -5 && sc(c5, 'moon').has.some((h) => h.includes('Peregrine')), `Ay 20° Yay, gece: peregrine −5 → ${sc(c5, 'moon').score}`)
+  // Jüpiter 10° İkizler (gündüz): zarar −5; üçlük (hava gündüz: Satürn) yok; sınır 6–12 Jüpiter +2; dekan 10–20 Mars → −3
+  const c6 = fake({ jupiter: 70 }, true)
+  ok(sc(c6, 'jupiter').score === -3, `Jüpiter 10° İkizler, gündüz: −3 (zarar −5, sınır +2) → ${sc(c6, 'jupiter').score}`)
+
+  // Karşılıklı ağırlama (Lilly: iki gezegen birbirinin ev ya da yücelim burcunda)
+  const rx = (lons: Record<string, number>) => mutualReceptions(fake(lons, true)).map((m) => `${[m.a, m.b].sort().join('-')}:${m.kind}`)
+  ok(rx({ venus: 10, mars: 40, sun: 100, moon: 200, mercury: 300, jupiter: 160, saturn: 330 }).includes('mars-venus:ev ile'), 'Venüs Koç\'ta, Mars Boğa\'da: ev ile karşılıklı ağırlama')
+  ok(rx({ mars: 100, jupiter: 280, sun: 130, moon: 200, mercury: 300, venus: 50, saturn: 330 }).includes('jupiter-mars:yücelim ile'), 'Mars Yengeç\'te (Jüpiter\'in yücelimi), Jüpiter Oğlak\'ta (Mars\'ın yücelimi): yücelim ile')
+  ok(rx({ moon: 10, mars: 40, sun: 130, mercury: 300, venus: 200, jupiter: 160, saturn: 330 }).includes('mars-moon:karma (ev / yücelim)'), 'Ay Koç\'ta (Mars\'ın evi), Mars Boğa\'da (Ay\'ın yücelimi): karma')
+  ok(rx({ venus: 130, sun: 70, mars: 200, moon: 300, mercury: 10, jupiter: 160, saturn: 330 }).every((x) => !x.startsWith('sun-venus')), 'Venüs Aslan\'da, Güneş İkizler\'de: ağırlama yok')
+  // Dispozitör döngüsü: Venüs Yay → Jüpiter, Jüpiter Koç → Mars, Mars Terazi → Venüs (üç gezegen)
+  const loop = dispositorChains(fake({ venus: 250, jupiter: 10, mars: 190, sun: 130, moon: 100, mercury: 160, saturn: 290 }, true)).find((x) => x.start === 'venus')!
+  ok(loop.end === 'loop' && loop.chain.join('>') === 'venus>jupiter>mars>venus', `Dispozitör döngüsü: ${loop.chain.join(' → ')} (3 gezegen)`)
+
+  // Arap noktaları (Paulus Alexandrinus, Hermetik noktalar): gündüz AC + A − B, gece AC + B − A
+  const lt = (c: ChartResult, id: string) => c.lots.find((l) => l.id === id)!.lon
+  const n360 = (x: number) => ((x % 360) + 360) % 360
+  const P = (id: string) => natal.points.find((p) => p.id === id)!.lon
+  const A = natal.angles.asc, day = !!natal.isDay
+  const fo = n360(day ? A + P('moon') - P('sun') : A + P('sun') - P('moon')), sp = n360(day ? A + P('sun') - P('moon') : A + P('moon') - P('sun'))
+  const L2 = (a: number, b: number) => n360(day ? A + a - b : A + b - a)
+  const exp: Record<string, number> = { fortune: fo, spirit: sp, eros: L2(P('venus'), sp), necessity: L2(fo, P('mercury')), courage: L2(fo, P('mars')), victory: L2(P('jupiter'), sp), nemesis: L2(fo, P('saturn')) }
+  const worstLot = Math.max(...Object.entries(exp).map(([id, v]) => Math.abs(((lt(natal, id) - v + 540) % 360) - 180) * 3600))
+  ok(worstLot < 0.01, `7 Arap noktası Paulus formülleriyle (${day ? 'gündüz' : 'gece'} haritası) aynı: en büyük fark ${worstLot.toFixed(4)}"`)
+
+  {
+    const nc = natalChart({ ...base, date: '2010-07-01', time: '23:30' })
+    const Q = (id: string) => nc.points.find((p) => p.id === id)!.lon
+    const AS = nc.angles.asc
+    const foN = n360(AS + Q('sun') - Q('moon')), spN = n360(AS + Q('moon') - Q('sun'))
+    const expN: Record<string, number> = { fortune: foN, spirit: spN, eros: n360(AS + spN - Q('venus')), necessity: n360(AS + Q('mercury') - foN), courage: n360(AS + Q('mars') - foN), victory: n360(AS + spN - Q('jupiter')), nemesis: n360(AS + Q('saturn') - foN) }
+    const wN = Math.max(...Object.entries(expN).map(([id, v]) => Math.abs(((lt(nc, id) - v + 540) % 360) - 180) * 3600))
+    ok(nc.isDay === false && wN < 0.01, `Gece haritası (23:30): 7 Arap noktası ters formüllerle (AC + B − A) aynı, en büyük fark ${wN.toFixed(4)}"`)
+  }
+  // Sabit yıldızlar: Swiss Ephemeris katalog konumları SIMBAD (ICRS, J2000) ile — RA/Dec, yay saniyesi
+  const SIMBAD: [string, string, string][] = [
+    ['Aldebaran', '04 35 55.239', '+16 30 33.49'], ['Regulus', '10 08 22.311', '+11 58 01.95'], ['Spica', '13 25 11.579', '-11 09 40.75'],
+    ['Antares', '16 29 24.459', '-26 25 55.21'], ['Sirius', '06 45 08.917', '-16 42 58.02'], ['Fomalhaut', '22 57 39.046', '-29 37 20.05'],
+    ['Vega', '18 36 56.336', '+38 47 01.28'], ['Algol', '03 08 10.132', '+40 57 20.33']
+  ]
+  const hms = (s: string) => { const [h, m, x] = s.split(' ').map(Number); return (h + m / 60 + x / 3600) * 15 }
+  const dms = (s: string) => { const neg = s.startsWith('-'); const [d, m, x] = s.replace(/^[+-]/, '').split(' ').map(Number); return (neg ? -1 : 1) * (d + m / 60 + x / 3600) }
+  const J2000 = 2451545.0
+  let worstStar = { d: 0, n: '' }
+  for (const [n, ra, de] of SIMBAD) {
+    const r = sweph.fixstar2(n, J2000, C.SEFLG_SWIEPH | C.SEFLG_EQUATORIAL | C.SEFLG_J2000 | C.SEFLG_ICRS | C.SEFLG_NOABERR | C.SEFLG_NOGDEFL).data
+    const dRa = Math.abs(r[0] - hms(ra)) * 3600 * Math.cos(dms(de) * Math.PI / 180), dDe = Math.abs(r[1] - dms(de)) * 3600
+    const d = Math.max(dRa, dDe)
+    if (d > worstStar.d) worstStar = { d, n }
+  }
+  ok(worstStar.d < 1, `8 sabit yıldız SIMBAD (ICRS J2000) ile: en büyük fark ${worstStar.d.toFixed(2)}" (${worstStar.n}); sınır 1"`)
+  // yıldız kavuşumu kuralı: orb yalnızca ekliptik boylam farkı, sınır Ayarlar'daki sabit yıldız orbu
+  ok(natal.stars.every((s) => s.orb <= DEFAULT_SETTINGS.fixedStarOrb && Math.abs(Math.abs(((s.starLon - (s.point === 'asc' ? natal.angles.asc : s.point === 'mc' ? natal.angles.mc : P(s.point)) + 540) % 360) - 180) - s.orb) < 1e-9), `Yıldız kavuşumları boylam farkıyla ve ${DEFAULT_SETTINGS.fixedStarOrb}° orb içinde (${natal.stars.length} temas)`)
+
+  // Firdaria (Abu Ma'shar): başlangıç yaşları elle hesaplandı
+  const ages = (c: ChartResult, nn: 'end' | 'afterMars' = 'end') => firdaria(c, Date.parse(c.utc), 1, nn).map((f) => `${f.major.lord}@${Math.round((Date.parse(f.major.from.toISOString()) - Date.parse(c.utc)) / (365.2422 * 864e5))}`).join(' ')
+  const dayC = fake({}, true), nightC = fake({}, false)
+  ok(ages(dayC) === 'sun@0 venus@10 mercury@18 moon@31 saturn@40 jupiter@51 mars@63 northnode@70 southnode@73', `Gündüz: ${ages(dayC)}`)
+  ok(ages(nightC) === 'moon@0 saturn@9 jupiter@20 mars@32 sun@39 venus@49 mercury@57 northnode@70 southnode@73', `Gece (Abu Ma'shar): ${ages(nightC)}`)
+  ok(ages(nightC, 'afterMars') === 'moon@0 saturn@9 jupiter@20 mars@32 northnode@39 southnode@42 sun@44 venus@54 mercury@62', `Gece (Bonatti): ${ages(nightC, 'afterMars')}`)
+  const merc = firdaria(dayC, Date.parse(dayC.utc), 1).find((f) => f.major.lord === 'mercury')!
+  ok(merc.subs.map((x) => x.sub).join(',') === 'mercury,moon,saturn,jupiter,mars,sun,venus' && Math.abs(merc.subs[0].years - 13 / 7) < 1e-9, 'Merkür dönemi (13 yıl): alt dönemler Merkür, Ay, Satürn, Jüpiter, Mars, Güneş, Venüs; her biri 13/7 yıl')
 }
 
 console.log('\n— Ay düğümü (bağımsız formül)')

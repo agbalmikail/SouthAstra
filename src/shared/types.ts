@@ -91,6 +91,7 @@ export interface ChartInput {
   sessions?: Session[]
   feedback?: FeedbackEntry[] // seans geri bildirimi (Uyuyor / Kısmen / Uymuyor), kontrol metinleri dahil
   blindTrials?: BlindTrial[] // kör karşılaştırma denemeleri (bu kişi katılımcıyken)
+  jplCheck?: JplCheck // bu haritanın NASA JPL Horizons karşılaştırması (isteğe bağlı)
   events?: LifeEvent[]
   residence?: Place // danışanın yaşadığı yer: dönüş ve taşınma haritalarında varsayılan
 }
@@ -404,8 +405,12 @@ export type MenuCommand = 'new' | 'edit' | 'find' | 'pdf' | 'settings' | 'now' |
 /** Kişisel yorum kütüphanesi: etken anahtarı → astrologun kendi metni */
 export type Library = Record<string, { text: string; updatedAt: string }>
 
+/** Haritanın NASA JPL Horizons ile karşılaştırması: geosantrik görünür ekliptik boylam, UT */
+export interface JplCheck { date: string; key: string; jdUt: number; api: string; sources: Record<string, string>; rows: { id: string; jpl: number; sa: number; diff: number }[]; max: number }
+
 export interface VerificationRun { date: string; version: string; passed: number; failed: number; sweph: string }
-export interface AppInfo { version: string; sweph: string; ephePath: string; epheFiles: string[]; platform: string; dataDir: string; verification?: { verify?: VerificationRun; audit?: VerificationRun } }
+export interface JplSummary { date: string; version: string; passed: number; failed: number; missing: number; charts: string[]; max: Record<string, number>; horizons: string; sources: Record<string, string>; fetched: string; sha256: string; report: string }
+export interface AppInfo { version: string; sweph: string; ephePath: string; epheFiles: string[]; platform: string; dataDir: string; verification?: { verify?: VerificationRun; audit?: VerificationRun; jpl?: JplSummary } }
 
 export interface SouthAstraApi {
   view: (input: ChartInput, req: ViewRequest) => Promise<ViewResult>
@@ -435,6 +440,7 @@ export interface SouthAstraApi {
   copyRect: (r: { x: number; y: number; width: number; height: number }) => Promise<{ width: number; height: number }>
   onMenu: (cb: (cmd: MenuCommand) => void) => () => void
   info: () => Promise<AppInfo>
+  jplCheck: (input: ChartInput) => Promise<JplCheck>
   notices: () => Promise<{ license: string; thirdParty: string }>
   openExternal: (url: string) => Promise<void>
   checkUpdate: () => Promise<UpdateInfo>

@@ -10,6 +10,7 @@ import PrintView from './components/PrintView'
 import EphemerisView, { EphemerisPrint } from './components/EphemerisView'
 import CommandPalette, { type Command } from './components/CommandPalette'
 import Onboarding from './components/Onboarding'
+import { JplCheckBox } from './components/JplCheckBox'
 import { LearnPanel } from './components/LearnPanel'
 import FeedbackSession from './components/FeedbackSession'
 import BlindTest from './components/BlindTest'
@@ -794,6 +795,7 @@ export default function App() {
                   <dt>{t('Zodyak')}</dt><dd>{inner.zodiac}</dd>
                   <dt>{t('Efemeris')}</dt><dd>{inner.ephemeris}</dd>
                 </dl>
+                {mode === 'natal' && input && !shift && <JplCheckBox input={input} chart={inner} canSave={!!currentId} onSave={async (c) => { const saved = await window.southastra.saveChart({ ...input, jplCheck: c, id: currentId! }); setInput(saved); await refresh(); setToast(t('NASA JPL karşılaştırması kaydedildi')) }} />}
                 {[...inner.warnings, ...(outer?.warnings ?? []).filter((w) => !inner.warnings.includes(w))].map((w, i) => <p key={i} className="warn">{w}</p>)}
                 {inner.input.notes && <p className="note small">{inner.input.notes}</p>}
               </details>

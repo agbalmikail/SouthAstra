@@ -8,6 +8,7 @@ import { browsePlaces, listCountries, listDistricts, listRegions, loadCities, ne
 import { deleteChart, exportTo, importFrom, initStore, listCharts, readArchive, saveChart } from './store'
 import { getSettings, initSettings, setSettings } from './settings'
 import { buildMenu } from './menu'
+import { jplCheck } from './jplcheck'
 import { getLang, setLang, t } from '@shared/i18n'
 import '@shared/i18n/en/all'
 import { toUtc } from './time'
@@ -81,6 +82,7 @@ app.whenReady().then(() => {
   ipcMain.handle('chart:rectify', (_e, input, from: string, to: string, step: number) => rectify(input, from, to, step))
   ipcMain.handle('chart:eclipses', (_e, input, from: string, to: string) => eclipses(input, from, to))
   ipcMain.handle('chart:acg', (_e, input) => acg(input))
+  ipcMain.handle('chart:jpl', (_e, input) => jplCheck(input))
   ipcMain.handle('chart:ephemeris', (_e, from: string, to: string, vp: 'modern' | 'traditional') => ephemeris(from, to, vp))
   ipcMain.handle('library:get', () => getLibrary())
   ipcMain.handle('library:set', (_e, key: string, text: string) => setLibraryEntry(key, text))

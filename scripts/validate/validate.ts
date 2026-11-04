@@ -85,6 +85,8 @@ const jplFile = join(DIR, 'jpl.json')
 const jpl: { meta?: Record<string, unknown>; values?: Record<string, number[]> } = existsSync(jplFile) ? JSON.parse(readFileSync(jplFile, 'utf8')) : {}
 const V = jpl.values ?? {}
 let pass = 0, fail = 0, missing = 0
+const maxd = { planets: 0, angles: 0, houses: 0, aspects: 0, progressions: 0, transits: 0, node: 0, tzCases: 0 }
+const mx = (k: keyof typeof maxd, v: number) => { if (Number.isFinite(v) && v > maxd[k]) maxd[k] = v }
 const lines: string[] = []
 const out = (s = '') => lines.push(s)
 const fails: string[] = []
@@ -138,6 +140,7 @@ for (const p of plans) {
     const dTT = arcsec(swTT, V[kTT][0]), dUT = arcsec(app, V[kUT][0])
     const dRA = arcsec(eq[0], V[kAS][0]) * Math.cos(eq[1] * Math.PI / 180), dDec = Math.abs(eq[1] - V[kAS][1]) * 3600
     const tol = b === 'chiron' ? T_CHIRON : T_POS
+    if (b !== 'chiron') mx('planets', Math.max(dTT, dUT, dRA, dDec))
     const ok = dTT <= tol && dUT <= tol && dRA <= tol && dDec <= tol
     out(check(ok, `| ${b} | ${f6(V[kTT][0])} | ${f6(swTT)} | ${f2(dTT)} | ${f6(V[kUT][0])} | ${f6(app)} | ${f2(dUT)} | ${f2(dRA)} / ${f2(dDec)} |`, `${ch.id} ${b}: beklenen (JPL) TT ${f6(V[kTT][0])}°, UT ${f6(V[kUT][0])}°, RA ${f6(V[kAS][0])} Dec ${f6(V[kAS][1])}; hesaplanan TT ${f6(swTT)}°, UT ${f6(app)}°, RA ${f6(eq[0])} Dec ${f6(eq[1])}; fark ${f2(dTT)}″/${f2(dUT)}″/${f2(dRA)}″/${f2(dDec)}″; sınır ${tol}″; parametreler: JD(TT) ${f6(p.jdTt)}, JD(UT1) ${f6(p.jdUt)}`).replace(/^([✓✗]) \|/, '| $1 '))
   }
@@ -163,12 +166,14 @@ for (const p of plans) {
     out(`**Köşeler ve evler (bağımsız: Meeus yıldız zamanı + IAU 1980 nütasyon + ev formülleri).** RAMC ${f6(ramc)}° (SwissEph ${f6(c.angles.armc)}°, fark ${f2(arcsec(ramc, c.angles.armc))}″) · ε ${f6(eps)}° (SwissEph ${f6(c.obliquity)}°, fark ${f2(arcsec(eps, c.obliquity))}″)`)
     out()
     const dA = arcsec(H.ASC, c.angles.asc), dM = arcsec(H.MC, c.angles.mc)
+    mx('angles', Math.max(dA, dM))
     out(check(dA <= 5 && dM <= 5, `ASC formül ${f6(H.ASC)}° · SouthAstra ${f6(c.angles.asc)}° · fark ${f2(dA)}″ — MC formül ${f6(H.MC)}° · SouthAstra ${f6(c.angles.mc)}° · fark ${f2(dM)}″ (sınır 5″)`, `${ch.id} ASC/MC: beklenen ${f6(H.ASC)}/${f6(H.MC)}, hesaplanan ${f6(c.angles.asc)}/${f6(c.angles.mc)}, fark ${f2(dA)}″/${f2(dM)}″, RAMC ${f6(ramc)}, ε ${f6(eps)}`))
     out()
     for (const hs of ['P', 'K', 'R', 'C', 'O', 'E', 'W'] as HouseSystem[]) {
       const ac = natalChart({ ...ch.input, houseSystem: hs })
       const exp = H.sys[hs]()
       const worst = Math.max(...exp.map((x, i) => arcsec(x, ac.cusps[i])))
+    mx('houses', worst)
       out(check(worst <= 5, `Ev sistemi ${hs} (${ac.houseSystemUsed}): 12 başlangıcın en büyük farkı ${f2(worst)}″ (sınır 5″)`, `${ch.id} ev ${hs}: beklenen ${exp.map((x) => x.toFixed(4)).join(', ')}; hesaplanan ${ac.cusps.map((x) => x.toFixed(4)).join(', ')}; en büyük fark ${f2(worst)}″`))
     }
     out()
@@ -177,6 +182,7 @@ for (const p of plans) {
   // Ortalama düğüm
   const mn = natalChart({ ...ch.input, nodeType: 'mean' }).points.find((x) => x.id === 'northnode')!.lon
   const mnRef = meanNode(p.jdTt)
+  mx('node', arcsec(mn, mnRef))
   out(check(arcsec(mn, mnRef) <= 3, `Ortalama Ay düğümü: Meeus ${f6(mnRef)}° · SouthAstra ${f6(mn)}° · fark ${f2(arcsec(mn, mnRef))}″ (sınır 3″). Gerçek (oskülatör) düğüm: bağımsız referans yok — DOĞRULANMADI.`, `${ch.id} ortalama düğüm: beklenen ${f6(mnRef)}, hesaplanan ${f6(mn)}`))
   out()
 
@@ -191,6 +197,7 @@ for (const p of plans) {
     const got = new Map(c.aspects.filter((a) => bodies.includes(a.a) && bodies.includes(a.b) && ASPECTS.some((x) => x.type === a.type)).map((a) => [`${a.a}|${a.b}|${a.type}`, a.orb]))
     const miss = [...exp.keys()].filter((k) => !got.has(k)), extra = [...got.keys()].filter((k) => !exp.has(k))
     const worst = Math.max(0, ...[...exp].filter(([k]) => got.has(k)).map(([k, o]) => Math.abs(o - got.get(k)!) * 3600))
+    mx('aspects', worst)
     out(check(!miss.length && !extra.length && worst <= 2, `Açılar (10 gezegen, standart orb profili): JPL konumlarından ${exp.size} açı · SouthAstra ${got.size} · eksik ${miss.length} · fazla ${extra.length} · en büyük orb farkı ${f2(worst)}″`, `${ch.id} açılar: eksik ${miss.join(', ') || '—'}; fazla ${extra.join(', ') || '—'}; orb farkı ${f2(worst)}″`))
     out()
   }
@@ -200,6 +207,7 @@ for (const p of plans) {
     const rows = Object.entries(p.prog.points).filter(([b]) => has(`${ch.id}|${b}|prog`)).map(([b, lon]) => [b, arcsec(lon, V[`${ch.id}|${b}|prog`][0])] as const)
     if (rows.length) {
       const worst = Math.max(...rows.map(([, d]) => d))
+      mx('progressions', worst)
       out(check(worst <= 1.5, `İkincil progresyon (${ch.progressTo!.slice(0, 10)}; progresif an JD ${f6(p.prog.jdUt)}): ${rows.length} cisim, en büyük fark ${f2(worst)}″ (sınır 1,5″)`, `${ch.id} progresyon: ${rows.map(([b, d]) => `${b} ${f2(d)}″`).join(', ')}`))
       out()
     }
@@ -210,6 +218,7 @@ for (const p of plans) {
     const rows = p.transits.filter((e) => has(`${ch.id}|${e.body}|tr|${e.jdUt.toFixed(6)}`) && V[`${ch.id}|${e.natal}|UT|31`]).map((e) => ({ e, d: Math.abs(separation(V[`${ch.id}|${e.body}|tr|${e.jdUt.toFixed(6)}`][0], V[`${ch.id}|${e.natal}|UT|31`][0]) - ANG[e.type]) * 3600 }))
     if (rows.length) {
       const worst = rows.reduce((m, r) => (r.d > m.d ? r : m))
+      mx('transits', worst.d)
       out(check(worst.d <= 1.5, `Transit kesinleşme anları: ${rows.length} olay (${ch.transits![0].slice(0, 10)} – ${ch.transits![1].slice(0, 10)}), JPL'e göre en büyük açı sapması ${f2(worst.d)}″ (${worst.e.body} ${worst.e.type} natal ${worst.e.natal}, ${worst.e.utc.slice(0, 16)} UT) · sınır 1,5″ (≈ yavaş gezegende birkaç dakika)`, `${ch.id} transit: ${rows.filter((r) => r.d > 1.5).map((r) => `${r.e.body} ${r.e.type} ${r.e.natal} ${r.e.utc} ${f2(r.d)}″`).join('; ')}`))
       out()
     }
@@ -228,6 +237,7 @@ if (existsSync(tzFile)) {
   out('|---|---|---|---|---|')
   for (const [zone, date, time, off] of tz.values) {
     const got = toUtc({ name: 'x', date, time, timeMode: 'zone', houseSystem: 'P', nodeType: 'true', place: place('', 0, 0, zone) }).offsetMinutes
+    maxd.tzCases++
     out(check(got === off, `| ${zone} | ${date} ${time} | ${off} | ${got} |`, `${zone} ${date} ${time}: beklenen ofset ${off} dk (Python zoneinfo), hesaplanan ${got} dk`).replace(/^([✓✗]) (\|.*)$/, '$2 $1 |'))
   }
   out()
@@ -240,6 +250,17 @@ if (fails.length) { out(); out('### Başarısızlar (beklenen, hesaplanan, fark,
 out()
 out('Sınırlar: gezegenler 1″, Chiron 3″, toposentrik Ay 2″, köşeler ve evler 5″ (bağımsız nütasyon serisi kısaltılmış: ~0,1″), ortalama düğüm 3″, transit ve progresyon 1,5″.')
 writeFileSync(REPORT, lines.join('\n') + '\n')
+// uygulamanın teknik eki için özet (resources/verification.json; git'e girmez, CI'da paketlemeden önce üretilir)
+if (!LOCAL) {
+  const vf = join(ROOT, 'resources/verification.json')
+  let cur: Record<string, unknown> = {}
+  try { cur = JSON.parse(readFileSync(vf, 'utf8')) } catch { /* yok */ }
+  const { createHash } = require('node:crypto') as typeof import('node:crypto')
+  const sha = existsSync(jplFile) ? createHash('sha256').update(readFileSync(jplFile)).digest('hex') : ''
+  const pkg = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8'))
+  cur.jpl = { date: new Date().toISOString(), version: pkg.version, passed: pass, failed: fail, missing, charts: CHARTS.map((c) => c.input.date.slice(0, 4)), max: maxd, horizons: jpl.meta?.['Horizons API'] ?? '', sources: jpl.meta?.['Efemeris kaynakları (Horizons)'] ?? {}, fetched: jpl.meta?.['Alındı'] ?? '', sha256: sha, report: 'https://github.com/agbalmikail/SouthAstra/blob/main/docs/dogrulama/RAPOR.md' }
+  writeFileSync(vf, JSON.stringify(cur, null, 2))
+}
 console.log(lines.filter((l) => /^[✓✗]|\| [✓✗]|DOĞRULANMADI|Özet|Geçen/.test(l)).join('\n'))
 console.log(`\nRapor: ${REPORT}`)
 console.log(fail ? `${fail} kontrol başarısız` : missing ? `Başarısız yok; ${missing} kalem referans olmadığı için doğrulanmadı` : 'Bütün kontroller bağımsız referanslarla geçti')

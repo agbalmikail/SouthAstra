@@ -2,6 +2,20 @@
 import { registerEn } from '../index'
 
 registerEn({
+  "Bu haritanın gezegen konumları NASA JPL Horizons'a sorulacak ve SouthAstra'nın değerleriyle karşılaştırılacak (internet gerekir).\n\nNASA'ya yalnızca doğum anının Jülyen günü (UT) ve cisim numaraları gönderilir; ad, yer ya da başka bir kişisel bilgi gönderilmez. Sonuç bu kayda ve PDF'in teknik ekine eklenir.\n\nDevam edilsin mi?": "This chart's planetary positions will be requested from NASA JPL Horizons and compared with SouthAstra's values (internet required).\n\nOnly the Julian day (UT) of the birth moment and the body numbers are sent to NASA; no name, place or other personal information. The result is added to this record and to the PDF's technical appendix.\n\nContinue?",
+  'NASA JPL karşılaştırması': 'NASA JPL comparison',
+  '{n} cisim, en büyük fark {d}″ (gezegenler) · {date}': '{n} bodies, largest difference {d}″ (planets) · {date}',
+  'gizle': 'hide',
+  'ayrıntılar': 'details',
+  'Cisim': 'Body',
+  'Fark': 'Difference',
+  'Doğum bilgisi değiştiği için önceki NASA karşılaştırması geçersiz.': 'The previous NASA comparison is no longer valid because the birth data changed.',
+  'Önce haritayı arşive kaydedin': 'Save the chart to the archive first',
+  'NASA JPL sorgulanıyor…': 'Querying NASA JPL…',
+  'NASA JPL ile karşılaştır…': 'Compare with NASA JPL…',
+  'NASA JPL karşılaştırması kaydedildi': 'NASA JPL comparison saved',
+  'NASA JPL yanıt vermedi ({status}).': 'NASA JPL did not respond ({status}).',
+  'NASA JPL yanıtı okunamadı ({body}).': 'Could not read the NASA JPL response ({body}).',
   'Geçersiz yorum anahtarı': 'Invalid interpretation key',
   'Özel': 'Custom',
   "Şu an": "Now",

@@ -1,10 +1,11 @@
 // PDF ekleri: transit özeti, zaman çizelgesi, ayrıntılı transit tablosu ve teknik ek
-import type { AppInfo, ChartResult, Settings, TransitEvent, ViewResult } from '@shared/types'
+import type { JplSummary, AppInfo, ChartResult, Settings, TransitEvent, ViewResult } from '@shared/types'
 import { HOUSE_SYSTEMS, placeLabel, RODDEN } from '@shared/types'
 import { activeOrbs, ASPECT_BY_TYPE, ASPECTS, AYANAMSAS, SIGNS } from '@shared/zodiac'
 import { durationClass, DURATION_NAME, importance, rankRule, topTransits, windowDays } from '@shared/transitRank'
 import { fmtOffset, jdText, precisionText } from '../format'
-import { loc, t } from '@shared/i18n'
+import { jplKey } from '@shared/jplkey'
+import { loc, t, getLang } from '@shared/i18n'
 
 const fmtD = (iso: string, tz: string) => new Date(iso).toLocaleDateString(loc(), { timeZone: tz, day: '2-digit', month: '2-digit', year: 'numeric' })
 const fmtDT = (iso: string, tz: string) => new Date(iso).toLocaleString(loc(), { timeZone: tz, day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
@@ -119,6 +120,14 @@ export function TransitTable({ natal, transits, tz }: { natal: ChartResult; tran
   )
 }
 
+const jplSummaryText = (j: JplSummary) => {
+  const s = (x?: number) => { const v = (x ?? 0).toFixed(2); return getLang() === 'en' ? v : v.replace('.', ',') }
+  return t('{passed}/{total} kontrol geçti · {charts} haritaları · en büyük fark: gezegenler {pl}″, köşeler {an}″, evler {ho}″, açılar {as}″, progresyon {pr}″, transit anları {tr}″, ortalama düğüm {no}″; {tz} saat dilimi vakası · Horizons: {hz}, referans alındı {fetched} · referans dosyası SHA-256 {sha} · ayrıntılı rapor: {url}', {
+    passed: j.passed, total: j.passed + j.failed + j.missing, charts: j.charts.join(', '), pl: s(j.max.planets), an: s(j.max.angles), ho: s(j.max.houses), as: s(j.max.aspects), pr: s(j.max.progressions), tr: s(j.max.transits), no: s(j.max.node), tz: j.max.tzCases ?? 0,
+    hz: `${j.horizons} (${[...new Set(Object.values(j.sources))].join(', ')})`, fetched: j.fetched.slice(0, 10), sha: j.sha256.slice(0, 16) + '…', url: j.report
+  })
+}
+
 const verText = (info?: AppInfo) => {
   const v = info?.verification
   const f = (r?: { date: string; version: string; passed: number; failed: number; sweph: string }, name?: string) => r ? t('{name}: {passed} kontrol geçti', { name: name ?? '', passed: r.passed }) + (r.failed ? t(', {n} başarısız', { n: r.failed }) : '') + ' ' + t('({date}, sürüm {version}, Swiss Ephemeris {sweph})', { date: new Date(r.date).toLocaleDateString(loc()), version: r.version, sweph: r.sweph }) : ''
@@ -151,7 +160,24 @@ export function TechnicalAppendix({ view, settings, info, reportAt }: { view: Vi
     ...(view.outer && view.outer.kind !== 'natal' ? [[t('İkinci çark'), `${view.outer.label} · ${view.outer.utc.replace('T', ' ').replace(/(\.\d+)?Z$/, '')} UT`] as [string, string]] : []),
     [t('Rapor oluşturuldu'), `${new Date(reportAt).toLocaleString(loc(), { dateStyle: 'long', timeStyle: 'short' })} ${t('(bilgisayar saati)')}`],
     [t('Doğrulama yöntemi'), t('Gezegen konumları ve transit anları NASA JPL Horizons ile, ev başlangıçları bağımsız formüllerle, ortalama Ay düğümü Meeus formülüyle, saat dilimleri IANA verisiyle, şehir koordinatları OpenStreetMap ile karşılaştırılır.')],
-    [t('Son doğrulama'), verText(info)]
+    [t('Son doğrulama'), verText(info)],
+    ...(info?.verification?.jpl ? [[t('NASA JPL karşılaştırması (referans haritalar)'), jplSummaryText(info.verification.jpl)] as [string, string]] : [])
   ]
-  return <dl className="p-meta p-tech">{rows.map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}</dl>
+  const jc = i.jplCheck && i.jplCheck.key === jplKey(i) ? i.jplCheck : null
+  const pname = (id: string) => natal.points.find((p) => p.id === id)?.name ?? id
+  return (
+    <>
+      <dl className="p-meta p-tech">{rows.map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}</dl>
+      <h3>{t('Bu harita için NASA JPL karşılaştırması')}</h3>
+      {jc ? (
+        <>
+          <p className="hint">{t('Geosantrik görünür ekliptik boylam, günün ekliptiği; NASA JPL Horizons ({api}), doğum anı JD(UT) {jd}; sorgu {date}. Efemeris kaynakları: {src}.', { api: jc.api, jd: jc.jdUt.toFixed(6), date: new Date(jc.date).toLocaleString(loc()), src: Object.values(jc.sources).filter((v, k, a) => a.indexOf(v) === k).join(', ') })}</p>
+          <table className="data p-jpl">
+            <thead><tr><th>{t('Cisim')}</th><th className="r">NASA JPL</th><th className="r">SouthAstra</th><th className="r">{t('Fark')}</th></tr></thead>
+            <tbody>{jc.rows.map((r) => <tr key={r.id}><td>{pname(r.id)}</td><td className="r num">{r.jpl.toFixed(6)}°</td><td className="r num">{r.sa.toFixed(6)}°</td><td className="r num">{getLang() === 'en' ? r.diff.toFixed(2) : r.diff.toFixed(2).replace('.', ',')}″</td></tr>)}</tbody>
+          </table>
+        </>
+      ) : <p className="hint">{t("Bu harita için NASA JPL karşılaştırması yapılmadı. Uygulamada \"Hesaplama bilgileri\" altındaki \"NASA JPL ile karşılaştır\" düğmesiyle eklenebilir (internet gerekir; NASA'ya yalnızca tarih ve saat gider).")}</p>}
+    </>
+  )
 }

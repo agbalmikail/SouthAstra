@@ -736,3 +736,5 @@ table.data.tlist td:last-child .tag { white-space: nowrap; }
 /* Ölçüm düzeni: her sütun bir A4 içerik alanı; sayfa sonları sütun sonu olarak uygulanır */
 .print-page.pg-measure { column-width: 186mm; column-gap: 0; column-fill: auto; width: 186mm; overflow: visible; }
 .print-page.pg-measure .pg-break, .print-page.pg-measure .p-sec.p-page:not(:first-child), .print-page.pg-measure:not(.compact) .p-sec:not(:first-child) { break-before: column !important; }
+.jpl-box { margin: 6px 0 4px; }
+.jpl-box table.data { margin-top: 4px; }
