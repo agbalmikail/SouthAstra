@@ -70,7 +70,7 @@ interface Props {
   appearance?: Appearance
 }
 
-const DEFAULT_LOOK: Appearance = { glyphScale: 1, showDegrees: true, showAspectLines: true, showHouseNumbers: true, coloredSigns: true, aspectLineWidth: 0.9 }
+const DEFAULT_LOOK: Appearance = { glyphScale: 1, showDegrees: true, showAspectLines: true, showHouseNumbers: true, coloredSigns: true, aspectLineWidth: 0.9, focusOthers: 'dim' }
 
 export default function Wheel({ inner, outer, cross, hovered, selected, onHover, onSelect, showMinor, print, appearance }: Props) {
   const look = appearance ?? DEFAULT_LOOK
@@ -108,13 +108,16 @@ export default function Wheel({ inner, outer, cross, hovered, selected, onHover,
     ? cross.filter((a) => a.type !== 'conjunction' && (showMinor || ASPECT_BY_TYPE[a.type]?.major)).map((a) => ({ a: 'o:' + a.a, b: a.b, la: ob[a.a]?.lon ?? 0, lb: lonIn(a.b), type: a.type, orb: a.orb }))
     : inner.aspects.filter((a) => a.type !== 'conjunction' && a.type !== 'parallel' && a.type !== 'contraparallel' && (showMinor || ASPECT_BY_TYPE[a.type]?.major)).map((a) => ({ a: a.a, b: a.b, la: lonIn(a.a), lb: lonIn(a.b), type: a.type, orb: a.orb }))
 
+  // odak: üstüne gelinen gezegen; yoksa tıklanıp seçilen gezegen (kalıcı)
+  const focus = hovered ?? (print ? null : selected ?? null)
+  const pinned = !hovered && !!focus
   const relatedSet = useMemo(() => {
-    if (!hovered) return null
-    const s = new Set<string>([hovered])
-    for (const l of lines) { if (l.a === hovered) s.add(l.b); if (l.b === hovered) s.add(l.a) }
-    if (!outer) for (const a of inner.aspects) { if (a.a === hovered) s.add(a.b); if (a.b === hovered) s.add(a.a) }
+    if (!focus) return null
+    const s = new Set<string>([focus])
+    for (const l of lines) { if (l.a === focus) s.add(l.b); if (l.b === focus) s.add(l.a) }
+    if (!outer) for (const a of inner.aspects) { if (a.a === focus) s.add(a.b); if (a.b === focus) s.add(a.a) }
     return s
-  }, [hovered, lines, outer, inner])
+  }, [focus, lines, outer, inner])
 
   const ticks = []
   for (let d = 0; d < 360; d++) {
@@ -203,11 +206,11 @@ export default function Wheel({ inner, outer, cross, hovered, selected, onHover,
       })()}
 
       {/* açı çizgileri */}
-      <g className={hovered ? 'aspects dim' : 'aspects'}>
+      <g className={focus ? `aspects dim${pinned && look.focusOthers === 'hide' ? ' hide' : ''}` : 'aspects'}>
         {look.showAspectLines && lines.map((l, i) => {
           const [x1, y1] = pt(l.la, RA)
           const [x2, y2] = pt(l.lb, RA)
-          const on = hovered && (l.a === hovered || l.b === hovered)
+          const on = focus && (l.a === focus || l.b === focus)
           return <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} className={`asp ${l.type}${on ? ' on' : ''}`} style={{ opacity: on ? 1 : Math.max(0.3, 1 - l.orb / 9), strokeWidth: on ? look.aspectLineWidth * 1.6 : look.aspectLineWidth }} />
         })}
       </g>

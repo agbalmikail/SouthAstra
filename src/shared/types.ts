@@ -306,6 +306,8 @@ export interface Appearance {
   showHouseNumbers: boolean
   coloredSigns: boolean // burç işaretleri element renginde (kapalıysa tek renk)
   aspectLineWidth: number // 0,6–2
+  /** Gezegen seçilince (tıklayınca) diğer açı çizgileri: soluk veya gizli */
+  focusOthers: 'dim' | 'hide'
 }
 
 /** Arap noktası (Hermetik araz) */

@@ -111,6 +111,12 @@ export default function SettingsModal({ initial, onClose, onSave, onAbout }: { i
               <label className="inline"><input id="s-deg" type="checkbox" checked={s.appearance.showDegrees} onChange={(e) => setS({ ...s, appearance: { ...s.appearance, showDegrees: e.target.checked } })} /> Gezegenlerin yanında derece</label>
               <label className="inline"><input id="s-asp" type="checkbox" checked={s.appearance.showAspectLines} onChange={(e) => setS({ ...s, appearance: { ...s.appearance, showAspectLines: e.target.checked } })} /> Açı çizgileri</label>
               <label className="inline"><input id="s-hn" type="checkbox" checked={s.appearance.showHouseNumbers} onChange={(e) => setS({ ...s, appearance: { ...s.appearance, showHouseNumbers: e.target.checked } })} /> Ev numaraları</label>
+              <label className="field-row">Gezegen seçilince diğer açı çizgileri
+                <select id="s-focus" value={s.appearance.focusOthers} onChange={(e) => setS({ ...s, appearance: { ...s.appearance, focusOthers: e.target.value as 'dim' | 'hide' } })}>
+                  <option value="dim">Soluklaşsın</option>
+                  <option value="hide">Gizlensin</option>
+                </select>
+              </label>
               <label className="inline"><input id="s-col" type="checkbox" checked={s.appearance.coloredSigns} onChange={(e) => setS({ ...s, appearance: { ...s.appearance, coloredSigns: e.target.checked } })} /> Burç işaretleri element renginde</label>
             </div>
             <p className="hint">Görünüm ayarları ekrandaki çarka ve PDF'e birlikte uygulanır.</p>

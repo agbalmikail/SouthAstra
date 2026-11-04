@@ -44,7 +44,8 @@ function sanitize(s: Settings): Settings {
       showAspectLines: s.appearance?.showAspectLines !== false,
       showHouseNumbers: s.appearance?.showHouseNumbers !== false,
       coloredSigns: s.appearance?.coloredSigns !== false,
-      aspectLineWidth: num(s.appearance?.aspectLineWidth, 0.9, 0.6, 2)
+      aspectLineWidth: num(s.appearance?.aspectLineWidth, 0.9, 0.6, 2),
+      focusOthers: s.appearance?.focusOthers === 'hide' ? 'hide' : 'dim'
     },
     updateCheck: s.updateCheck !== false
   }

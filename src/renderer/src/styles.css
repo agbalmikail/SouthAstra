@@ -188,6 +188,7 @@ table.data .g { width: 22px; text-align: center; font-size: 15px; }
 .asp.square { stroke: var(--square); } .asp.opposition { stroke: var(--opposition); }
 .asp.quincunx, .asp.semisextile, .asp.semisquare, .asp.sesquiquadrate, .asp.quintile, .asp.biquintile { stroke: var(--minor); stroke-dasharray: 1.5 2; }
 .aspects.dim .asp:not(.on) { opacity: 0.08 !important; }
+.aspects.dim.hide .asp:not(.on) { display: none; }
 .asp.on { stroke-width: 1.5; }
 .planet { cursor: default; transition: opacity 0.12s; }
 .planet.faded { opacity: 0.35; }

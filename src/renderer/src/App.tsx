@@ -71,6 +71,12 @@ export default function App() {
   const [view, setView] = useState<ViewResult | null>(null)
   const [hovered, setHovered] = useState<string | null>(null)
   const [selected, setSelected] = useState<string | null>(null)
+  // Esc: seçili gezegeni bırak (açık bir pencere yoksa)
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape' && !document.querySelector('.modal-back')) setSelected(null) }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
   const [tab, setTab] = useState('planets')
   const [showMinor, setShowMinor] = useState<boolean>(pref('showMinor', false))
   const [form, setForm] = useState<null | 'new' | 'edit'>(null)
@@ -521,7 +527,7 @@ export default function App() {
                   {hp ? (() => {
                     const l = lonParts(hp.lon)
                     return <><span className={hp.glyph.length > 2 ? 'axis-txt' : 'sym g'}>{hp.glyph}</span><b>{hp.name}</b><span className="muted">{hc?.label}</span><span>{l.deg}° {l.signName} {String(l.min).padStart(2, '0')}'</span>{hc?.hasHouses && hp.house > 0 && <span className="muted">{hp.house}. ev</span>}{hp.retro && !NO_RETRO.has(hp.id) && <span className="tag retro">Retro</span>}{hp.dignity && <span className="muted">{hp.dignity}</span>}{hp.declination !== 0 && <span className="muted">Dekl. {fmtDecl(hp.declination)}</span>}</>
-                  })() : <span className="muted">Bir gezegenin üstüne gelin; tıklayınca tüm hesaplama ayrıntıları açılır.</span>}
+                  })() : <span className="muted">Bir gezegenin üstüne gelin; tıklayınca seçili kalır, açıları öne çıkar ve ayrıntıları açılır (Esc ile bırakın).</span>}
                 </div>
               )}
             </section>
