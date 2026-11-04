@@ -1,3 +1,5 @@
+import { useLayoutEffect, useRef } from 'react'
+import { paginate } from '../paginate'
 import type { AppInfo, ChartResult, EclipseEvent, Library, RectifyRow, Settings, TransitEvent, ViewResult } from '@shared/types'
 import { HOUSE_SYSTEMS, placeLabel, RODDEN } from '@shared/types'
 import { activeOrbs, ASPECT_BY_TYPE, ASPECTS, moonPhase, SIGNS } from '@shared/zodiac'
@@ -53,7 +55,7 @@ function Meta({ view, reportAt }: { view: ViewResult; reportAt: string }) {
     [t('Ev sistemi'), c.hasHouses ? c.houseSystemUsed : (HOUSE_SYSTEMS.find((h) => h.id === c.houseSystem)?.name ?? '') + ' · ' + t('evler gösterilmiyor')],
     [t('Zodyak'), `${c.zodiac} · ${t('geosantrik · görünür konum')}`],
     [t('Ay düğümü'), i.nodeType === 'mean' ? t('Ortalama düğüm') : t('Gerçek (oskülatör) düğüm')],
-    ...(i.rodden ? [[t('Veri güvenilirliği'), `Rodden ${i.rodden} — ${RODDEN.find((r) => r.id === i.rodden)?.desc}`] as [string, string]] : [])
+    ...(i.rodden ? [[t('Veri güvenilirliği'), `Rodden ${i.rodden} — ${RODDEN.find((r) => r.id === i.rodden)?.desc} · ${t('kayıtta beyan edilen; SouthAstra kaynağı doğrulamaz')}`] as [string, string]] : [[t('Veri güvenilirliği'), t('Belirtilmedi (Rodden derecesi girilmemiş)')] as [string, string]])
   ]
   return <dl className="p-meta">{rows.map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}</dl>
 }
@@ -99,7 +101,7 @@ function Summary({ chart }: { chart: ChartResult }) {
   const maxIdx = (a: number[]) => a.indexOf(Math.max(...a))
   const sun = p('sun')
   const moon = p('moon')
-  const phase = sun && moon ? moonPhase(sun.lon, moon.lon).text : '—'
+  const ph = sun && moon ? moonPhase(sun.lon, moon.lon) : null
   const patterns = chart.kind === 'harmonic' ? [] : aspectPatterns(chart)
   const rows: [string, string][] = [
     [t('Güneş'), sign(sun?.lon) + (chart.hasHouses && sun ? ' · ' + t('{n}. ev', { n: sun.house }) : '')],
@@ -107,7 +109,7 @@ function Summary({ chart }: { chart: ChartResult }) {
     ...(chart.hasHouses ? [[t('Yükselen'), sign(chart.angles.asc)] as [string, string], ['MC', sign(chart.angles.mc)] as [string, string]] : []),
     [t('Baskın element'), `${EL[maxIdx(el)]} (${el.map((n, i) => `${EL[i]} ${n}`).join(', ')})`],
     [t('Baskın nitelik'), `${MO[maxIdx(mo)]} (${mo.map((n, i) => `${MO[i]} ${n}`).join(', ')})`],
-    [t('Ay evresi'), phase],
+    ...(ph ? [[t('Astronomik evre'), ph.astro], [t('Rudhyar sınıflandırması'), ph.rudhyar], [t('Güneş–Ay boylam farkı'), `${ph.dist}°`]] as [string, string][] : []),
     ...(patterns.length ? [[t('Açı kalıpları'), patterns.map((x) => t(x.name)).join(', ')] as [string, string]] : [])
   ]
   return (
@@ -122,6 +124,16 @@ export default function PrintView({ view, sections, library, transits, eclipses,
   view: ViewResult; sections: PdfSections; library: Library; transits?: TransitEvent[]; eclipses?: EclipseEvent[]
   rectify?: { rows: RectifyRow[]; from: string; to: string; step: number }; modeName: string; settings: Settings; info?: AppInfo; reportAt: string
 }) {
+  const pageRef = useRef<HTMLDivElement>(null)
+  // basmadan önce sayfa sonlarını yerleştir (bölüm/başlık/tablo kuralları: paginate.ts)
+  useLayoutEffect(() => {
+    const el = pageRef.current
+    if (!el) return
+    const run = () => { const r = paginate(el, sections.compact); el.dataset.pages = String(r.pages); el.dataset.breaks = String(r.breaks) }
+    run()
+    // yazı tipleri ve görseller yerleşince bir kez daha
+    void document.fonts?.ready.then(run)
+  }, [sections, view])
   const c = view.inner
   const i = c.input
   const who = `${view.title} · ${modeName}`
@@ -138,7 +150,7 @@ export default function PrintView({ view, sections, library, transits, eclipses,
   }
 
   return (
-    <div className={sections.compact ? "print-page compact" : "print-page"}>
+    <div ref={pageRef} className={sections.compact ? "print-page compact" : "print-page"}>
       {sections.chart && (
         <section className="p-sec p-cover">
           <header className="p-title">

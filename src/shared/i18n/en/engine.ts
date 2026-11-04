@@ -47,6 +47,18 @@ registerEn({
   'Düşüşte': 'Fall',
 
   // ——— Ay evresi ———
+  'Büyüyen hilal': 'Waxing crescent',
+  'Büyüyen şişkin Ay': 'Waxing gibbous',
+  'Küçülen şişkin Ay': 'Waning gibbous',
+  'Küçülen hilal': 'Waning crescent',
+  '{name} (tam)': '{name} (exact)',
+  '{name} · {phase} {deg}° kala': '{name} · {deg}° before {phase}',
+  '{name} · {phase} {deg}° sonra': '{name} · {deg}° after {phase}',
+  '{name} evresi ({from}°–{to}°)': '{name} phase ({from}°–{to}°)',
+  'Astronomik evre: {astro} · Rudhyar sınıflandırması: {rudhyar} · Güneş–Ay boylam farkı: {dist}°': 'Astronomical phase: {astro} · Rudhyar classification: {rudhyar} · Sun–Moon elongation: {dist}°',
+  'Astronomik evre': 'Astronomical phase',
+  'Rudhyar sınıflandırması': 'Rudhyar classification',
+  'Güneş–Ay boylam farkı': 'Sun–Moon elongation',
   'Yeni Ay': 'New Moon',
   'Hilal': 'Crescent',
   'İlk dördün': 'First Quarter',

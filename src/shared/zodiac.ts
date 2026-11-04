@@ -158,7 +158,7 @@ export const TRAD_RULER = ['mars', 'venus', 'mercury', 'moon', 'sun', 'mercury',
  * - astrolojik evre (Rudhyar'ın 8 evresi, her biri 45°): ör. "Dolunay evresi" 180°–225° arasıdır, yani dolunaydan sonraki 45°'yi kapsar;
  * - astronomik durum: Ay'ın Güneş'ten açısal uzaklığı (0–360°, Ay'ın Güneş'in ne kadar doğusunda olduğu), büyüyor/küçülüyor ve en yakın ana evreye uzaklık.
  */
-export function moonPhase(sunLon: number, moonLon: number): { name: string; angle: number; waxing: boolean; astro: string; text: string } {
+export function moonPhase(sunLon: number, moonLon: number): { name: string; angle: number; waxing: boolean; astroName: string; astro: string; rudhyar: string; dist: string; text: string } {
   const a = norm360(moonLon - sunLon)
   const names = ['Yeni Ay', 'Hilal', 'İlk dördün', 'Şişkin Ay', 'Dolunay', 'Yayılan Ay', 'Son dördün', 'Balsamik Ay']
   const i = Math.floor(a / 45) % 8
@@ -168,14 +168,17 @@ export function moonPhase(sunLon: number, moonLon: number): { name: string; angl
   const near = astroNames.reduce((b, x) => (Math.abs(a - x[0]) < Math.abs(a - b[0]) ? x : b))
   const d = a - near[0]
   const deg = Math.abs(d).toFixed(0)
+  // astronomik evre adı: ana evreye 1°'den yakınsa o evre; değilse çeyreğe göre (büyüyen/küçülen hilal veya şişkin Ay)
+  const exact: Record<number, string> = { 0: 'Yeni Ay', 90: 'İlk dördün', 180: 'Dolunay', 270: 'Son dördün', 360: 'Yeni Ay' }
+  const astroName = t(Math.abs(d) < 1 ? exact[near[0]] : a < 90 ? 'Büyüyen hilal' : a < 180 ? 'Büyüyen şişkin Ay' : a < 270 ? 'Küçülen şişkin Ay' : 'Küçülen hilal')
   const astro = Math.abs(d) < 1
-    ? t('tam {phase}', { phase: t(near[1]) })
-    : d < 0
-      ? t(waxing ? 'büyüyen Ay · {phase} {deg}° kala' : 'küçülen Ay · {phase} {deg}° kala', { phase: t(near[2]), deg })
-      : t(waxing ? 'büyüyen Ay · {phase} {deg}° sonra' : 'küçülen Ay · {phase} {deg}° sonra', { phase: t(near[3]), deg })
+    ? t('{name} (tam)', { name: astroName })
+    : t(d < 0 ? '{name} · {phase} {deg}° kala' : '{name} · {phase} {deg}° sonra', { name: astroName, phase: t(d < 0 ? near[2] : near[3]), deg })
   const from = i * 45
+  const dist = a.toFixed(1).replace('.', getLang() === 'en' ? '.' : ',')
+  const rudhyar = t('{name} evresi ({from}°–{to}°)', { name: t(names[i]), from, to: from + 45 })
   // name Türkçe kalır (anahtar olarak kullanılır); metinler seçili dilde
-  return { name: names[i], angle: a, waxing, astro, text: t('{name} evresi (Rudhyar, {from}°–{to}°) · astronomik: {astro} · Güneş–Ay uzaklığı {dist}°', { name: t(names[i]), from, to: from + 45, astro, dist: a.toFixed(1).replace('.', getLang() === 'en' ? '.' : ',') }) }
+  return { name: names[i], angle: a, waxing, astroName, astro, rudhyar, dist, text: t('Astronomik evre: {astro} · Rudhyar sınıflandırması: {rudhyar} · Güneş–Ay boylam farkı: {dist}°', { astro, rudhyar, dist }) }
 }
 
 const MODALITY_TR = ['Öncü', 'Sabit', 'Değişken']

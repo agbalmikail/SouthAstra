@@ -142,7 +142,7 @@ export function TechnicalAppendix({ view, settings, info, reportAt }: { view: Vi
     [t('Burç yöneticiliği'), settings.rulership === 'traditional' ? t('Geleneksel (yedi gezegen)') : t('Modern (♅ Kova, ♆ Balık, ♇ Akrep)')],
     [t('Orb profili'), `${t(prof.name)}: ${ASPECTS.map((a) => `${a.name} ±${prof.orbs[a.type] ?? '—'}°`).join(', ')}; ${t('Güneş/Ay ek orbu {n}°', { n: prof.luminaryBonus })}`],
     [t('Transit / progresyon orbu'), t('±{n}° (transit etkinlik dönemi bu orba göre)', { n: settings.transitOrb })],
-    [t('Doğum saati güvenilirliği'), i.rodden ? `Rodden ${i.rodden} — ${RODDEN.find((r) => r.id === i.rodden)?.desc ?? ''}` : t('Belirtilmedi')],
+    [t('Doğum saati güvenilirliği'), i.rodden ? `Rodden ${i.rodden} — ${RODDEN.find((r) => r.id === i.rodden)?.desc ?? ''} · ${t('kayıtta beyan edilen; SouthAstra kaynağı doğrulamaz')}` : t('Belirtilmedi')],
     [t('Saat bilgisi'), i.timeUnknown ? t('Doğum saati bilinmiyor: 12:00 yalnızca hesap referansı; Ay açıları gün boyunca tarandı') : t('{date} {time} yerel saat', { date: i.date, time: i.time })],
     [t('UTC dönüşümü'), `${natal.utc.replace('T', ' ').replace(/(\.\d+)?Z$/, '')} UT · ${t('ofset {offset}', { offset: fmtOffset(natal.offsetMinutes) })} · ${i.timeMode === 'zone' ? t('saat dilimi {tz} (IANA tarihsel kuralları)', { tz: i.place.tz }) : i.timeMode === 'lmt' ? t('yerel ortalama zaman (LMT, boylamdan)') : t('elle girilen ofset')}`],
     [t('Jülyen günü'), `${jdText(natal)} — ${t('hesaplar UT1 ile yapılır; UTC değeri saat dilimi dönüşümünden')}`],

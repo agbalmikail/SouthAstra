@@ -2,6 +2,7 @@
 import { registerEn } from '../index'
 
 registerEn({
+  'AA yalnızca doğum belgesi ya da resmî kayıt gerçekten görüldüyse seçilmeli. Danışanın hatırladığı saat A, ikinci el aktarım B ya da C sayılır.': 'Choose AA only if a birth certificate or official record has actually been seen. A time remembered by the client counts as A; second-hand information as B or C.',
   'ev::Başlangıç': 'Cusp',
   "K": "N",
   "G": "S",

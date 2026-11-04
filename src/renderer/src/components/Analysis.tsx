@@ -205,7 +205,7 @@ export function Distribution({ chart }: { chart: ChartResult }) {
       )}
       <div className="cap">{t('Diğer')}</div>
       <dl className="kv">
-        {phase && <><dt>{t('Ay evresi')}</dt><dd title={t("Astrolojik evre Rudhyar'ın 8 evresine göredir (her biri 45°); astronomik durum ayrıca yazılır.")}>{t('{phase} evresi', { phase: phase.name })} <span className="muted small">· {phase.astro} ({phase.angle.toFixed(1)}°)</span></dd></>}
+        {phase && <><dt>{t('Astronomik evre')}</dt><dd>{phase.astro}</dd><dt>{t('Rudhyar sınıflandırması')}</dt><dd title={t("Astrolojik evre Rudhyar'ın 8 evresine göredir (her biri 45°); astronomik durum ayrıca yazılır.")}>{phase.rudhyar}</dd><dt>{t('Güneş–Ay boylam farkı')}</dt><dd className="num">{phase.dist}°</dd></>}
         <dt>{t('Son dispozitör')}</dt><dd>{finalDisp}</dd>
         <dt>{t('Retro gezegenler')}</dt><dd className="sym">{pts.filter((p) => p.retro).map((p) => p.glyph).join(' ') || '—'}</dd>
       </dl>

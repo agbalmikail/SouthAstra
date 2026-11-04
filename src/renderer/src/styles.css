@@ -727,3 +727,12 @@ table.data.tlist td:last-child .tag { white-space: nowrap; }
 .print-page.compact .p-sec:not(.p-page):not(.p-cover) > .p-h { break-after: avoid; }
 .print-page.compact .p-sec > .p-h + * { break-before: avoid; }
 .print-page .seg-btn, .print-page .explain-btn { display: none !important; }
+
+/* PDF sayfalaması (paginate.ts): ölçüm için A4 içerik genişliği; elle yerleştirilen sayfa sonları */
+:root[data-printing] .print-page { width: 186mm; }
+.print-page .pg-break { break-before: page !important; margin-top: 0 !important; }
+.print-page thead { display: table-header-group; }
+.print-page tr, .print-page .hl-item, .print-page .learn-item, .print-page .p-factor { break-inside: avoid; }
+/* Ölçüm düzeni: her sütun bir A4 içerik alanı; sayfa sonları sütun sonu olarak uygulanır */
+.print-page.pg-measure { column-width: 186mm; column-gap: 0; column-fill: auto; width: 186mm; overflow: visible; }
+.print-page.pg-measure .pg-break, .print-page.pg-measure .p-sec.p-page:not(:first-child), .print-page.pg-measure:not(.compact) .p-sec:not(:first-child) { break-before: column !important; }

@@ -226,7 +226,7 @@ console.log('\n— Ay evresi ve Jülyen günü (UT1 / UTC)')
   const p1 = moonPhase(10, 175.4), p2 = moonPhase(10, 205.4)
   ok(p1.name === 'Şişkin Ay' && p1.waxing && p1.astro.includes('dolunaya 15° kala'), `Güneş–Ay 165,4°: ${p1.name} evresi · ${p1.astro}`)
   ok(p2.name === 'Dolunay' && !p2.waxing && p2.astro.includes('dolunaydan 15° sonra') && p2.text.includes('180°–225°'), `Güneş–Ay 195,4°: ${p2.text}`)
-  ok(moonPhase(0, 0.4).astro === 'tam yeni ay' && moonPhase(0, 92).astro.includes('ilk dördünden 2° sonra'), 'Tam evre ve yakın evre ifadeleri')
+  ok(moonPhase(0, 0.4).astro === 'Yeni Ay (tam)' && moonPhase(0, 92).astro === 'Büyüyen şişkin Ay · ilk dördünden 2° sonra' && moonPhase(10, 205.4).astroName === 'Küçülen şişkin Ay' && moonPhase(0, 300).astroName === 'Küçülen hilal', 'Astronomik ad: tam evre, büyüyen/küçülen hilal ve şişkin Ay')
   const jc = natalChart({ ...base, date: '1988-03-10', time: '01:45', timeMode: 'manual', manualOffset: 0 })
   const dut = (jc.jdUt - jc.jdUtc!) * 86400
   ok(Math.abs(jc.jdUtc! - 2447230.5729166665) < 1e-9 && jc.utc.startsWith('1988-03-10T01:45:00.000'), `10.03.1988 01:45 UTC: JD(UTC) ${jc.jdUtc!.toFixed(6)} (beklenen 2447230.572917), UTC tam saniye`)

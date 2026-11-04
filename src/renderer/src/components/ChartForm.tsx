@@ -451,6 +451,7 @@ export default function ChartForm({ initial, defaults, onCancel, onSubmit }: Pro
               <option value="">{t('Belirtilmedi')}</option>
               {RODDEN.map((r) => <option key={r.id} value={r.id}>{r.id} — {r.desc}</option>)}
             </select>
+            {rodden === 'AA' && <span className="hint">{t('AA yalnızca doğum belgesi ya da resmî kayıt gerçekten görüldüyse seçilmeli. Danışanın hatırladığı saat A, ikinci el aktarım B ya da C sayılır.')}</span>}
           </label>
           <label className="field">
             <span>{t('Etiketler (virgülle)')}</span>

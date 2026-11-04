@@ -2,6 +2,8 @@
 import { registerEn } from '../index'
 
 registerEn({
+  'kayıtta beyan edilen; SouthAstra kaynağı doğrulamaz': 'as declared in the record; SouthAstra does not verify the source',
+  'Belirtilmedi (Rodden derecesi girilmemiş)': 'Not specified (no Rodden rating entered)',
   'cümle::Gezegen': 'The planet',
   "K": "N",
   "G": "S",
