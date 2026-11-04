@@ -8,6 +8,7 @@ import ChartForm from './components/ChartForm'
 import SettingsModal from './components/SettingsModal'
 import PrintView from './components/PrintView'
 import EphemerisView, { EphemerisPrint } from './components/EphemerisView'
+import CommandPalette, { type Command } from './components/CommandPalette'
 import logoMarkSrc from './assets/logo-mark.svg'
 import { DateBar, ShiftBar } from './components/TimeBar'
 import { AspectGrid, AspectList, CrossList, HouseTable, PlanetTable } from './components/Tables'
@@ -93,6 +94,7 @@ export default function App() {
   const [library, setLibrary] = useState<Library>({})
   const [libraryOpen, setLibraryOpen] = useState(false)
   const [ephemOpen, setEphemOpen] = useState(false)
+  const [paletteOpen, setPaletteOpen] = useState(false)
   const [ephemPrint, setEphemPrint] = useState<{ data: Ephemeris; tz: string; title: string } | null>(null)
   const [aboutOpen, setAboutOpen] = useState(false)
   const [update, setUpdate] = useState<UpdateInfo | null>(null)
@@ -324,7 +326,33 @@ export default function App() {
   }, [theme])
 
   // Menü ve kısayollar
-  useEffect(() => window.southastra.onMenu(async (cmd: MenuCommand) => {
+  /** Çarkı panoya kopyala: seçim ve yakınlaştırma düğmeleri gizlenir, kare bölge yakalanır */
+  const copyChartImage = async () => {
+    const svg = document.querySelector('.center svg.wheel, svg.wheel') as SVGSVGElement | null
+    if (!svg) { setToast('Kopyalanacak çark yok'); return }
+    const prevSel = selected
+    setSelected(null); setHovered(null)
+    document.documentElement.dataset.capturing = '1'
+    // gizlenen düğmeler ekrandan gerçekten kalksın (pencere arka plandayken kare beklemesi takılabilir; düz süre beklenir)
+    await new Promise((r) => setTimeout(r, 220))
+    const b = svg.getBoundingClientRect()
+    const pane = svg.closest('.zoom-pane')?.getBoundingClientRect() ?? b
+    // görünen alanla kesiştir, ortadaki kareyi al (viewBox orantısı korunur)
+    const x0 = Math.max(b.left, pane.left), y0 = Math.max(b.top, pane.top)
+    const x1 = Math.min(b.right, pane.right), y1 = Math.min(b.bottom, pane.bottom)
+    const side = Math.min(x1 - x0, y1 - y0)
+    const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2
+    try {
+      const sz = await window.southastra.copyRect({ x: cx - side / 2, y: cy - side / 2, width: side, height: side })
+      setToast(`Çark panoya kopyalandı (${sz.width}×${sz.height} piksel)`)
+    } catch (e) { setError(errText(e)) }
+    delete document.documentElement.dataset.capturing
+    setSelected(prevSel)
+  }
+
+  const handleMenu = async (cmd: MenuCommand) => {
+    if (cmd === 'copy-image' && view && mode !== 'acg') await copyChartImage()
+    if (cmd === 'palette') setPaletteOpen(true)
     if (cmd === 'new') setForm('new')
     if (cmd === 'edit' && currentId) setForm('edit')
     if (cmd === 'find') filterRef.current?.focus()
@@ -349,7 +377,36 @@ export default function App() {
         if (r) { await refresh(); setLibrary(await window.southastra.getLibrary()); setToast(`${r.added} harita eklendi${r.skipped ? `, ${r.skipped} tanesi zaten vardı` : ''}${r.notes ? ` · ${r.notes} yorum eklendi` : ''}`) }
       } catch (e) { setError(errText(e)) }
     }
-  }), [currentId, input, view, mode])
+  }
+  const menuRef = useRef(handleMenu)
+  menuRef.current = handleMenu
+  useEffect(() => window.southastra.onMenu((cmd: MenuCommand) => { void menuRef.current(cmd) }), [])
+
+  // ⌘K hızlı arama komutları
+  const paletteCommands = useMemo((): Command[] => {
+    const out: Command[] = []
+    for (const c of charts) out.push({ id: 'c:' + c.id, group: 'Haritalar', label: c.name, hint: `${fmtDateTr(c.date)} · ${c.place.name}`, keywords: [c.place.region, c.place.country, ...(c.tags ?? [])].filter(Boolean).join(' '), run: () => select(c) })
+    if (input) {
+      for (const m of VIEW_MODES) out.push({ id: 'v:' + m.id, group: 'Görünüm', label: m.name, hint: m.group, keywords: `görünüm harita türü ${m.id}`, run: () => { setMode(m.id); setShift(0) } })
+      for (const t of [...tabs.main, ...tabs.more]) out.push({ id: 't:' + t.k, group: 'Panel', label: t.label, keywords: 'sekme panel araç', run: () => { setTab(t.k); setSelected(null); setPanelOpen(true) } })
+    }
+    const cmd = (id: MenuCommand, label: string, hint?: string, keywords?: string) => out.push({ id: 'm:' + id, group: 'Komutlar', label, hint, keywords, run: () => { void menuRef.current(id) } })
+    cmd('new', 'Yeni harita', kbd('N'))
+    cmd('now', 'Şu anın haritası', kbd('T'))
+    if (currentId) cmd('edit', 'Haritayı düzenle', kbd('E'))
+    if (view && mode !== 'acg') cmd('pdf', 'PDF olarak kaydet', kbd('P'))
+    if (view && mode !== 'acg') out.push({ id: 'x:copy', group: 'Komutlar', label: 'Haritayı resim olarak kopyala', hint: kbd('C', { shift: true }), keywords: 'png görüntü pano', run: () => { void copyChartImage() } })
+    cmd('ephemeris', 'Efemeris', kbd('E', { shift: true }), 'ay boşluk geçiş void')
+    cmd('library', 'Yorum kütüphanesi', kbd('L'))
+    cmd('settings', 'Ayarlar', kbd(','), 'orb zodyak ev sistemi')
+    cmd('find', 'Arşivde filtrele', kbd('F'))
+    cmd('export', 'Arşivi dışa aktar', undefined, 'yedek')
+    cmd('import', 'Arşivi içe aktar', undefined, 'yedek')
+    out.push({ id: 'x:theme', group: 'Komutlar', label: theme === 'dark' ? 'Açık temaya geç' : 'Koyu temaya geç', keywords: 'tema görünüm', run: () => setTheme(theme === 'dark' ? 'light' : 'dark') })
+    cmd('update-check', 'Güncellemeleri denetle')
+    cmd('about', 'SouthAstra hakkında', undefined, 'lisans sürüm')
+    return out
+  }, [charts, input, tabs, currentId, view, mode, theme])
 
   const allTags = useMemo(() => [...new Set(charts.flatMap((c) => c.tags ?? []))].sort((a, b) => a.localeCompare(b, 'tr')), [charts])
   const shown = useMemo(() => {
@@ -433,8 +490,9 @@ export default function App() {
         <div className="side-actions">
           <button className="btn primary block" onClick={() => setForm('new')} title={kbd('N')}>Yeni harita</button>
           <button className="btn ghost block" onClick={() => { setCurrentId(null); setInput(nowInput(input?.place)); setMode('natal') }} title={kbd('T')}>Şu anın haritası</button>
+          <button id="open-palette" className="palette-btn" onClick={() => setPaletteOpen(true)}><span>Hızlı arama</span><kbd>{kbd('K')}</kbd></button>
         </div>
-        <input id="side-filter" ref={filterRef} className="filter" placeholder={`Arşivde ara… (${kbd('K')})`} value={filter} onChange={(e) => setFilter(e.target.value)} />
+        <input id="side-filter" ref={filterRef} className="filter" placeholder={`Arşivde ara… (${kbd('F')})`} value={filter} onChange={(e) => setFilter(e.target.value)} />
         <div className="side-filters">
           <select id="side-rodden" className="compact" value={roddenFilter} onChange={(e) => setRoddenFilter(e.target.value as Rodden | '')} title="Güvenilirlik">
             <option value="">Tüm dereceler</option>
@@ -614,6 +672,7 @@ export default function App() {
       {form && <ChartForm initial={form === 'edit' ? input : null} defaults={{ houseSystem: settings.defaultHouseSystem, nodeType: settings.defaultNodeType }} onCancel={() => setForm(null)} onSubmit={submitForm} />}
       {settingsOpen && <SettingsModal initial={settings} onAbout={() => { setSettingsOpen(false); setAboutOpen(true) }} onClose={() => setSettingsOpen(false)} onSave={async (s) => { setSettings(await window.southastra.setSettings(s)); setSettingsOpen(false); setToast('Ayarlar kaydedildi') }} />}
       {aboutOpen && <AboutModal onClose={() => setAboutOpen(false)} />}
+      {paletteOpen && <CommandPalette commands={paletteCommands} onClose={() => setPaletteOpen(false)} />}
       {ephemOpen && <EphemerisView tzChoices={ephemTzChoices} onClose={() => setEphemOpen(false)} onPdf={exportEphemPdf} />}
       {libraryOpen && <LibraryModal library={library} onSave={saveInterp} onClose={() => setLibraryOpen(false)} />}
       {pdfOpen && <PdfDialog initial={pdfSections} available={pdfAvailable} onCancel={() => setPdfOpen(false)} onExport={exportPdf} />}

@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron'
+import { app, BrowserWindow, clipboard, ClipboardItem, dialog, ipcMain, shell } from 'electron'
 import { join } from 'node:path'
 import { readFileSync, writeFileSync } from 'node:fs'
 import { acg, ephemeris, eclipses, getEphePath, initEphemeris, rectify, swephVersion, transitList, useSettings, view } from './engine'
@@ -125,6 +125,17 @@ app.whenReady().then(() => {
     writeFileSync(target, pdf)
     if (!process.env.SA_PDF) shell.showItemInFolder(target)
     return target
+  })
+  // Çarkı resim olarak panoya kopyala: pencerenin verilen bölgesini ekran çözünürlüğünde yakala
+  ipcMain.handle('app:copy-rect', async (e, r: { x: number; y: number; width: number; height: number }) => {
+    const win = BrowserWindow.fromWebContents(e.sender)!
+    const rect = { x: Math.max(0, Math.round(r.x)), y: Math.max(0, Math.round(r.y)), width: Math.round(r.width), height: Math.round(r.height) }
+    const img = await win.webContents.capturePage(rect)
+    if (img.isEmpty()) throw new Error('Görüntü alınamadı.')
+    const png = img.toPNG()
+    await clipboard.write([new ClipboardItem({ 'image/png': new Blob([new Uint8Array(png)], { type: 'image/png' }) })])
+    if (process.env.SA_COPY) writeFileSync(process.env.SA_COPY, png) // test
+    return img.getSize()
   })
   const docDir = app.isPackaged ? process.resourcesPath : join(__dirname, '../..')
   ipcMain.handle('app:notices', () => {

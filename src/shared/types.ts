@@ -364,7 +364,7 @@ export interface SavedChart extends ChartInput {
   updatedAt: string
 }
 
-export type MenuCommand = 'new' | 'edit' | 'find' | 'pdf' | 'settings' | 'now' | 'export' | 'import' | 'library' | 'toggle-side' | 'toggle-panel' | 'about' | 'update-check' | 'ephemeris'
+export type MenuCommand = 'new' | 'edit' | 'find' | 'pdf' | 'settings' | 'now' | 'export' | 'import' | 'library' | 'toggle-side' | 'toggle-panel' | 'about' | 'update-check' | 'ephemeris' | 'palette' | 'copy-image'
 
 /** Kişisel yorum kütüphanesi: etken anahtarı → astrologun kendi metni */
 export type Library = Record<string, { text: string; updatedAt: string }>
@@ -394,6 +394,7 @@ export interface SouthAstraApi {
   getSettings: () => Promise<Settings>
   setSettings: (s: Settings) => Promise<Settings>
   exportPdf: (fileName: string, footer: string) => Promise<string | null>
+  copyRect: (r: { x: number; y: number; width: number; height: number }) => Promise<{ width: number; height: number }>
   onMenu: (cb: (cmd: MenuCommand) => void) => () => void
   info: () => Promise<{ version: string; sweph: string; ephePath: string; platform: string; dataDir: string }>
   notices: () => Promise<{ license: string; thirdParty: string }>

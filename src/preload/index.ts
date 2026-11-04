@@ -26,6 +26,7 @@ const api: SouthAstraApi = {
   getSettings: () => ipcRenderer.invoke('settings:get'),
   setSettings: (s) => ipcRenderer.invoke('settings:set', s),
   exportPdf: (name, footer) => ipcRenderer.invoke('pdf:export', name, footer),
+  copyRect: (r) => ipcRenderer.invoke('app:copy-rect', r),
   onMenu: (cb) => {
     const h = (_e: unknown, cmd: MenuCommand) => cb(cmd)
     ipcRenderer.on('menu', h)
