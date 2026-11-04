@@ -558,3 +558,27 @@ body.resizing * { cursor: col-resize !important; }
 table.data tr.tl-sub td { color: var(--muted); }
 .print-page table.data tr.tl-sub td { color: #646d7e; }
 .sim-badge { color: var(--accent); border: 1px solid var(--accent); border-radius: 4px; padding: 0 6px; font-size: 12px; white-space: nowrap; }
+
+/* Efemeris */
+.ephem-modal { width: min(1280px, calc(100vw - 40px)); max-height: calc(100vh - 40px); padding: 16px 20px; gap: 10px; }
+.ephem-head { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; position: sticky; top: -16px; background: var(--surface); z-index: 3; padding: 4px 0 8px; border-bottom: 1px solid var(--line); }
+.ephem-head h2 { margin: 0; }
+.ephem-month { min-width: 120px; text-align: center; font-weight: 600; }
+.ephem-tz { display: inline-flex; align-items: center; gap: 6px; }
+.ephem-actions { margin-left: auto; display: flex; gap: 8px; }
+.ephem-head .seg-btn button { padding: 5px 10px; font-size: 12.5px; }
+table.data.ephem { font-size: 12px; }
+table.data.ephem td, table.data.ephem th { padding: 3px 4px; }
+table.data.ephem td.c { text-align: center; }
+table.data.ephem td.rx { color: var(--bad, #e0503f); }
+table.data.ephem td.ing { background: color-mix(in srgb, var(--accent) 16%, transparent); font-weight: 600; }
+table.data.ephem td.st { box-shadow: inset 0 0 0 1px var(--accent); }
+table.data.ephem sup { font-size: 0.7em; margin-left: 1px; color: var(--accent); }
+table.data tr.phase td { font-weight: 500; }
+.ephem-print table.data.ephem td, .ephem-print table.data.ephem th { font-size: 7.6px; padding: 1.2px 2px; }
+.ephem-print table.data.ephem .sym { font-size: 8.5px; }
+.ephem-print .p-h h2 { display: flex; align-items: center; gap: 6px; }
+.ephem-print .p-h h2 .logo-mark { width: 16px; height: 16px; }
+.print-page table.data.ephem td.ing { background: #f1e6c8; }
+.print-page table.data.ephem td.rx { color: #b2382b; }
+.print-page table.data.ephem td.st { box-shadow: inset 0 0 0 1px #b08a2e; }

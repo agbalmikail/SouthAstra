@@ -27,6 +27,7 @@ export function buildMenu(): void {
         { label: 'Haritayı düzenle', accelerator: 'CmdOrCtrl+E', click: send('edit') },
         { label: 'Arşivde ara', accelerator: 'CmdOrCtrl+K', click: send('find') },
         { label: 'Yorum kütüphanesi', accelerator: 'CmdOrCtrl+L', click: send('library') },
+        { label: 'Efemeris', accelerator: 'CmdOrCtrl+Shift+E', click: send('ephemeris') },
         { type: 'separator' },
         { label: 'PDF olarak kaydet…', accelerator: 'CmdOrCtrl+P', click: send('pdf') },
         { type: 'separator' },

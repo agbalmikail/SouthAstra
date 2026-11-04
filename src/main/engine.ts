@@ -2,8 +2,8 @@
 // Swiss Ephemeris © Astrodienst AG, AGPL-3.0 lisansıyla kullanılmaktadır.
 import sweph from 'sweph'
 import type {
-  AcgLine, Aspect, ChartInput, ChartResult, EclipseEvent, HouseSystem, Place, PointPos, RectifyRow, Settings, StarContact,
-  TransitEvent, ViewRequest, ViewResult
+  AcgLine, Aspect, AspectType, ChartInput, ChartResult, EclipseEvent, Ephemeris, EphemerisEvent, HouseSystem, Place, PointPos, RectifyRow, Settings, StarContact,
+  TransitEvent, ViewRequest, ViewResult, VoidPeriod
 } from '@shared/types'
 import { HOUSE_SYSTEMS, placeLabel } from '@shared/types'
 import { activeOrbs, ASPECTS, DEFAULT_SETTINGS, dignityOf, norm360, separation, signOf, AYANAMSAS } from '@shared/zodiac'
@@ -593,6 +593,148 @@ export function transitList(input: ChartInput, fromIso: string, toIso: string, p
     }
   }
   return events.sort((a, b) => a.jd - b.jd)
+}
+
+// ——— Efemeris, Ay geçişleri ve boşluktaki Ay ———
+
+const bisect = (a: number, b: number, f: (jd: number) => number): number => {
+  let fa = f(a)
+  for (let k = 0; k < 50; k++) {
+    const m = (a + b) / 2
+    const fm = f(m)
+    if (Math.sign(fm) === Math.sign(fa)) { a = m; fa = fm } else b = m
+  }
+  return (a + b) / 2
+}
+
+const VOID_ASPECTS: { type: AspectType; off: number }[] = [
+  { type: 'conjunction', off: 0 }, { type: 'sextile', off: 60 }, { type: 'sextile', off: -60 }, { type: 'square', off: 90 }, { type: 'square', off: -90 },
+  { type: 'trine', off: 120 }, { type: 'trine', off: -120 }, { type: 'opposition', off: 180 }
+]
+
+/**
+ * Ay'ın boşlukta olduğu dönemler: Ay'ın bulunduğu burçta yaptığı son tam Ptolemaik açıdan (kavuşum, altmışlık, kare, üçgen, karşıt)
+ * bir sonraki burca girişine kadar. Modern: Güneş–Plüton; geleneksel: Güneş–Satürn.
+ */
+function voidPeriods(fromJd: number, toJd: number, planets: string[], flags: number): VoidPeriod[] {
+  const moonAt = (jd: number) => sweph.calc_ut(jd, C.SE_MOON, flags).data[0]
+  // Ay geçişleri: aralığın 3 gün öncesinden başla (ilk dönemin başlangıcı için)
+  const ingresses: number[] = []
+  const step = 0.25
+  let prevJd = fromJd - 3
+  let prevLon = moonAt(prevJd)
+  for (let jd = prevJd + step; jd <= toJd + 3; jd += step) {
+    const lon = moonAt(jd)
+    if (signOf(lon) !== signOf(prevLon)) {
+      const boundary = signOf(lon) * 30
+      ingresses.push(bisect(prevJd, jd, (x) => norm180(moonAt(x) - boundary)))
+    }
+    prevJd = jd; prevLon = lon
+  }
+  const out: VoidPeriod[] = []
+  const seAt = (id: string) => BODY_BY_ID[id].se
+  for (let i = 1; i < ingresses.length; i++) {
+    const a = ingresses[i - 1]
+    const b = ingresses[i]
+    if (b < fromJd || a > toJd) continue
+    let last: { jd: number; planet: string; type: AspectType } | null = null
+    for (const pid of planets) {
+      const se = seAt(pid)
+      for (const asp of VOID_ASPECTS) {
+        const f = (jd: number) => norm180(moonAt(jd) - sweph.calc_ut(jd, se, flags).data[0] - asp.off)
+        let t0 = a + 1e-6
+        let v0 = f(t0)
+        const n = Math.ceil((b - a) / 0.1)
+        for (let k = 1; k <= n; k++) {
+          const t1 = Math.min(b - 1e-6, a + k * 0.1)
+          const v1 = f(t1)
+          if (v0 !== 0 && Math.sign(v0) !== Math.sign(v1) && Math.abs(v0 - v1) < 90) {
+            const jd = bisect(t0, t1, f)
+            if (!last || jd > last.jd) last = { jd, planet: pid, type: asp.type }
+          }
+          t0 = t1; v0 = v1
+        }
+      }
+    }
+    const sign = signOf(moonAt((a + b) / 2))
+    const start = last ? last.jd : a
+    out.push({
+      start: isoFromJd(start), end: isoFromJd(b), sign, nextSign: (sign + 1) % 12,
+      ...(last ? { last: { planet: last.planet, type: last.type, utc: isoFromJd(last.jd) } } : {})
+    })
+  }
+  return out
+}
+
+const EPHEM_IDS = ['sun', 'moon', 'mercury', 'venus', 'mars', 'jupiter', 'saturn', 'uranus', 'neptune', 'pluto', 'chiron']
+
+export function ephemeris(fromIso: string, toIso: string, voidPlanets: 'modern' | 'traditional' = 'modern'): Ephemeris {
+  const from = jdFromMs(Date.parse(fromIso))
+  const to = jdFromMs(Date.parse(toIso))
+  if (!(to > from)) throw new Error('Geçersiz tarih aralığı.')
+  if (to - from > 400) throw new Error('Efemeris en fazla bir yıllık aralık için hesaplanır.')
+  const flags = C.SEFLG_SWIEPH | C.SEFLG_SPEED | zf()
+  const nodeSe = settings.defaultNodeType === 'mean' ? C.SE_MEAN_NODE : C.SE_TRUE_NODE
+  const bodies = [
+    ...EPHEM_IDS.map((id) => ({ id, name: BODY_BY_ID[id].name, glyph: BODY_BY_ID[id].glyph + VS, se: BODY_BY_ID[id].se })),
+    { id: 'northnode', name: settings.defaultNodeType === 'mean' ? 'K. Ay Düğümü (ortalama)' : 'K. Ay Düğümü (gerçek)', glyph: '☊' + VS, se: nodeSe }
+  ]
+  const at = (jd: number, se: number) => sweph.calc_ut(jd, se, flags).data
+
+  // günlük satırlar: her gün 0h UT
+  const rows = []
+  for (let jd = Math.ceil(from - 0.5) + 0.5; jd < to; jd += 1) {
+    const pos: Record<string, { lon: number; speed: number }> = {}
+    for (const b of bodies) { const d = at(jd, b.se); pos[b.id] = { lon: d[0], speed: d[3] } }
+    rows.push({ utc: isoFromJd(jd), sidTime: sweph.sidtime(jd), pos })
+  }
+
+  // olaylar: burç geçişleri, duraklamalar, Ay evreleri
+  const events: EphemerisEvent[] = []
+  const push = (jd: number, e: Omit<EphemerisEvent, 'jd' | 'utc'>) => { if (jd >= from && jd < to) events.push({ jd, utc: isoFromJd(jd), ...e }) }
+  for (const b of bodies) {
+    const step = b.id === 'moon' ? 0.25 : 1
+    let s0 = { jd: from - step, d: at(from - step, b.se) }
+    for (let jd = from; jd <= to + step; jd += step) {
+      const s1 = { jd, d: at(jd, b.se) }
+      if (b.id !== 'sun' && b.id !== 'moon' && b.id !== 'northnode' && Math.sign(s0.d[3]) !== Math.sign(s1.d[3])) {
+        const t = bisect(s0.jd, s1.jd, (x) => at(x, b.se)[3])
+        push(t, { body: b.id, type: s0.d[3] > 0 ? 'station-retro' : 'station-direct', sign: signOf(at(t, b.se)[0]) })
+      }
+      if (signOf(s0.d[0]) !== signOf(s1.d[0]) && Math.abs(norm180(s1.d[0] - s0.d[0])) < 30) {
+        const boundary = s1.d[3] >= 0 ? signOf(s1.d[0]) * 30 : signOf(s0.d[0]) * 30
+        const t = bisect(s0.jd, s1.jd, (x) => norm180(at(x, b.se)[0] - boundary))
+        push(t, { body: b.id, type: 'ingress', retro: s1.d[3] < 0, sign: signOf(s1.d[0]) })
+      }
+      s0 = s1
+    }
+  }
+  {
+    const elong = (jd: number) => norm360(at(jd, C.SE_MOON)[0] - at(jd, C.SE_SUN)[0])
+    let t0 = from - 0.25
+    let e0 = elong(t0)
+    for (let jd = from; jd <= to + 0.25; jd += 0.25) {
+      const e1 = elong(jd)
+      for (let q = 0; q < 4; q++) {
+        const goal = q * 90
+        const v0 = norm180(e0 - goal)
+        const v1 = norm180(e1 - goal)
+        if (v0 !== 0 && Math.sign(v0) !== Math.sign(v1) && Math.abs(v0 - v1) < 90) {
+          const t = bisect(t0, jd, (x) => norm180(elong(x) - goal))
+          push(t, { body: 'moon', type: 'phase', phase: q as 0 | 1 | 2 | 3, sign: signOf(at(t, C.SE_MOON)[0]) })
+        }
+      }
+      t0 = jd; e0 = e1
+    }
+  }
+  events.sort((a, b) => a.jd - b.jd)
+
+  const vp = voidPlanets === 'traditional' ? ['sun', 'mercury', 'venus', 'mars', 'jupiter', 'saturn'] : ['sun', 'mercury', 'venus', 'mars', 'jupiter', 'saturn', 'uranus', 'neptune', 'pluto']
+  return {
+    from: isoFromJd(from), to: isoFromJd(to), zodiac: zodiacName(),
+    bodies: bodies.map(({ id, name, glyph }) => ({ id, name, glyph })),
+    rows, events, voids: voidPeriods(from, to, vp, flags), voidPlanets
+  }
 }
 
 // ——— Doğum saati aralığı (basit rektifikasyon) ———

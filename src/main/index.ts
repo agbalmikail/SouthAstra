@@ -1,7 +1,7 @@
 import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron'
 import { join } from 'node:path'
 import { readFileSync, writeFileSync } from 'node:fs'
-import { acg, eclipses, getEphePath, initEphemeris, rectify, swephVersion, transitList, useSettings, view } from './engine'
+import { acg, ephemeris, eclipses, getEphePath, initEphemeris, rectify, swephVersion, transitList, useSettings, view } from './engine'
 import { getLibrary, initLibrary, mergeLibrary, setLibraryEntry } from './library'
 import { browsePlaces, listCountries, listDistricts, listRegions, loadCities, nearest, searchCities } from './cities'
 import { deleteChart, exportTo, importFrom, initStore, listCharts, readArchive, saveChart } from './store'
@@ -73,6 +73,7 @@ app.whenReady().then(() => {
   ipcMain.handle('chart:rectify', (_e, input, from: string, to: string, step: number) => rectify(input, from, to, step))
   ipcMain.handle('chart:eclipses', (_e, input, from: string, to: string) => eclipses(input, from, to))
   ipcMain.handle('chart:acg', (_e, input) => acg(input))
+  ipcMain.handle('chart:ephemeris', (_e, from: string, to: string, vp: 'modern' | 'traditional') => ephemeris(from, to, vp))
   ipcMain.handle('library:get', () => getLibrary())
   ipcMain.handle('library:set', (_e, key: string, text: string) => setLibraryEntry(key, text))
   ipcMain.handle('cities:search', (_e, q: string, filter) => searchCities(q, filter ?? {}))

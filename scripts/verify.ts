@@ -4,7 +4,7 @@
 // 3) Ev sistemi ve drakonik harita kurallarını kontrol eder
 import sweph from 'sweph'
 import { join } from 'node:path'
-import { acg, eclipses, initEphemeris, natalChart, rectify, transitList, useSettings, view } from '../src/main/engine'
+import { acg, ephemeris, eclipses, initEphemeris, natalChart, rectify, transitList, useSettings, view } from '../src/main/engine'
 import { DEFAULT_SETTINGS } from '../src/shared/zodiac'
 import { loadCities, searchCities } from '../src/main/cities'
 import { isNewer } from '../src/shared/version'
@@ -198,6 +198,62 @@ console.log('\n— Taşınma ve dönüş yeri')
   const srBer = view(base, { mode: 'solarreturn', date: '2030-01-01T00:00:00Z', place: berlin }).inner
   const hs = sweph.houses_ex2(srBer.jdUt, 0, berlin.lat, berlin.lon, 'P').data
   ok(Math.abs(srHome.jdUt - srBer.jdUt) < 1e-9 && separation(srBer.angles.asc, hs.points[0]) < 1e-9 && separation(srBer.angles.asc, srHome.angles.asc) > 1, 'Güneş dönüşü Berlin\'de: dönüş anı aynı, evler Berlin\'e göre')
+}
+
+console.log('\n— Efemeris ve boşluktaki Ay (Ocak 2024)')
+{
+  const ep = ephemeris('2024-01-01T00:00:00Z', '2024-02-01T00:00:00Z', 'modern')
+  ok(ep.rows.length === 31 && ep.rows[0].utc.startsWith('2024-01-01T00:00:00'), `Efemeris: 31 günlük satır, 0h UT (${ep.rows.length})`)
+  const min = (iso: string, ref: string) => Math.abs(Date.parse(iso) - Date.parse(ref)) / 60000
+  const nm = ep.events.find((e) => e.type === 'phase' && e.phase === 0)!
+  const fm = ep.events.find((e) => e.type === 'phase' && e.phase === 2)!
+  ok(min(nm.utc, '2024-01-11T11:57:00Z') < 2, `Yeni ay 11.01.2024 11:57 UT (yayımlanmış) — hesap ${nm.utc.slice(11, 16)}`)
+  ok(min(fm.utc, '2024-01-25T17:54:00Z') < 2, `Dolunay 25.01.2024 17:54 UT (yayımlanmış) — hesap ${fm.utc.slice(11, 16)}`)
+  const sunAq = ep.events.find((e) => e.type === 'ingress' && e.body === 'sun')!
+  ok(sunAq.sign === 10 && min(sunAq.utc, '2024-01-20T14:07:00Z') < 2, `Güneş Kova'ya 20.01.2024 14:07 UT (yayımlanmış) — hesap ${sunAq.utc.slice(11, 16)}`)
+  const mst = ep.events.find((e) => e.body === 'mercury' && e.type === 'station-direct')!
+  ok(mst && min(mst.utc, '2024-01-02T03:08:00Z') < 3, `Merkür düz harekete 02.01.2024 03:08 UT (yayımlanmış) — hesap ${mst?.utc.slice(11, 16)}`)
+  const moonIng = ep.events.filter((e) => e.type === 'ingress' && e.body === 'moon')
+  ok(moonIng.length >= 13 && moonIng.length <= 15, `Ay bir ayda ${moonIng.length} burç geçişi yaptı (beklenen 13–14)`)
+  // boşluk dönemleri: bitiş = Ay geçişi; başlangıçta açı tam; arada bağımsız taramayla başka tam açı yok
+  ok(ep.voids.every((v) => moonIng.some((e) => min(e.utc, v.end) < 0.1) || Date.parse(v.end) >= Date.parse(ep.to) || Date.parse(v.end) < Date.parse(ep.from) || true) && ep.voids.filter((v) => Date.parse(v.end) < Date.parse(ep.to)).every((v) => moonIng.some((e) => min(e.utc, v.end) < 0.1)), 'Boşluk dönemleri Ay\'ın burç geçişinde bitiyor')
+  const SE: Record<string, number> = { sun: 0, mercury: 2, venus: 3, mars: 4, jupiter: 5, saturn: 6, uranus: 7, neptune: 8, pluto: 9 }
+  const ANG: Record<string, number> = { conjunction: 0, sextile: 60, square: 90, trine: 120, opposition: 180 }
+  const lonOf = (jd: number, se: number) => sweph.calc_ut(jd, se, sweph.constants.SEFLG_SWIEPH).data[0]
+  const jdOf = (iso: string) => Date.parse(iso) / 86400000 + 2440587.5
+  let exact = true, clean = true
+  for (const v of ep.voids) {
+    if (!v.last) continue
+    const t = jdOf(v.last.utc)
+    const sep = separation(lonOf(t, 1), lonOf(t, SE[v.last.planet]))
+    if (Math.abs(sep - ANG[v.last.type]) > 0.002) exact = false
+    // bağımsız tarama: başlangıçtan bitişe 0,02 gün adımla, hiçbir gezegenle açı farkının işaret değiştirmemesi
+    for (const [pid, se] of Object.entries(SE)) {
+      for (const ang of Object.values(ANG)) {
+        let prev: number | null = null
+        for (let jd = t + 0.003; jd < jdOf(v.end) - 0.001; jd += 0.02) {
+          const d = separation(lonOf(jd, 1), lonOf(jd, se)) - ang
+          if (prev !== null && Math.sign(prev) !== Math.sign(d) && Math.abs(prev - d) < 5) { clean = false; console.log('   açı bulundu', pid, ang, v.start) }
+          prev = d
+        }
+      }
+    }
+  }
+  ok(exact, 'Boşluğu başlatan son açı o anda tam (fark < 7")')
+  ok(clean, 'Boşluk süresince Ay hiçbir gezegenle (Güneş–Plüton) tam Ptolemaik açı yapmıyor (bağımsız 30 dk tarama)')
+  // Yayımlanmış tablo: Cafe Astrology, Ocak 2024 (EST'den UT'ye +5 sa çevrildi; Güneş–Plüton, Ptolemaik açılar)
+  const REF: [string, string, string, string][] = [
+    ['2024-01-02T23:36', '2024-01-03T00:47', 'pluto', 'trine'], ['2024-01-05T11:41', '2024-01-05T12:39', 'pluto', 'square'],
+    ['2024-01-07T20:22', '2024-01-07T21:08', 'pluto', 'sextile'], ['2024-01-09T18:24', '2024-01-10T01:33', 'mercury', 'conjunction'],
+    ['2024-01-12T02:33', '2024-01-12T03:01', 'pluto', 'conjunction'], ['2024-01-13T09:59', '2024-01-14T03:29', 'uranus', 'square'],
+    ['2024-01-16T04:32', '2024-01-16T04:48', 'pluto', 'sextile'], ['2024-01-18T08:02', '2024-01-18T08:12', 'pluto', 'square'],
+    ['2024-01-20T13:57', '2024-01-20T13:58', 'sun', 'trine'], ['2024-01-22T20:40', '2024-01-22T21:51', 'venus', 'opposition'],
+    ['2024-01-24T22:58', '2024-01-25T07:36', 'neptune', 'trine'], ['2024-01-26T21:19', '2024-01-27T19:11', 'uranus', 'square'],
+    ['2024-01-29T23:20', '2024-01-30T08:04', 'neptune', 'opposition']
+  ]
+  const bad = REF.filter(([st, en, pl, ty]) => !ep.voids.some((v) => min(v.start, st + ':00Z') <= 1.5 && min(v.end, en + ':00Z') <= 1.5 && v.last?.planet === pl && v.last?.type === ty))
+  ok(bad.length === 0, `Boşluktaki Ay: yayımlanmış Ocak 2024 tablosundaki 13 dönemin ${13 - bad.length}'i başlangıç, bitiş ve son açıyla aynı (±1 dk yuvarlama)${bad.length ? ' — farklı: ' + bad.map((b) => b[0]).join(', ') : ''}`)
+  console.log('   ' + ep.voids.slice(0, 4).map((v) => `${v.start.slice(5, 16)}→${v.end.slice(5, 16)} ${v.last?.planet ?? ''} ${v.last?.type ?? ''}`).join(' · '))
 }
 
 console.log('\n— Duraklama (kesin an) ve yöneticilik')

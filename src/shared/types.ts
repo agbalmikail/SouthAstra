@@ -255,6 +255,39 @@ export interface TransitEvent {
   sign?: number
 }
 
+/** Efemeris: günlük konumlar (0h UT), ay içindeki olaylar ve Ay'ın boşlukta olduğu dönemler */
+export interface EphemerisRow {
+  utc: string
+  sidTime: number // Greenwich yıldız zamanı, saat
+  pos: Record<string, { lon: number; speed: number }>
+}
+export interface EphemerisEvent {
+  jd: number
+  utc: string
+  body: string
+  type: 'ingress' | 'station-retro' | 'station-direct' | 'phase'
+  sign?: number // girilen burç (geçişte) veya bulunulan burç
+  retro?: boolean
+  phase?: 0 | 1 | 2 | 3 // yeni ay, ilk dördün, dolunay, son dördün
+}
+export interface VoidPeriod {
+  start: string
+  end: string // Ay'ın bir sonraki burca girdiği an
+  sign: number // Ay'ın bulunduğu burç
+  nextSign: number
+  last?: { planet: string; type: AspectType; utc: string } // boşluğu başlatan son açı
+}
+export interface Ephemeris {
+  from: string
+  to: string
+  zodiac: string
+  bodies: { id: string; name: string; glyph: string }[]
+  rows: EphemerisRow[]
+  events: EphemerisEvent[]
+  voids: VoidPeriod[]
+  voidPlanets: 'modern' | 'traditional'
+}
+
 export interface RectifyRow {
   time: string
   asc: number
@@ -331,7 +364,7 @@ export interface SavedChart extends ChartInput {
   updatedAt: string
 }
 
-export type MenuCommand = 'new' | 'edit' | 'find' | 'pdf' | 'settings' | 'now' | 'export' | 'import' | 'library' | 'toggle-side' | 'toggle-panel' | 'about' | 'update-check'
+export type MenuCommand = 'new' | 'edit' | 'find' | 'pdf' | 'settings' | 'now' | 'export' | 'import' | 'library' | 'toggle-side' | 'toggle-panel' | 'about' | 'update-check' | 'ephemeris'
 
 /** Kişisel yorum kütüphanesi: etken anahtarı → astrologun kendi metni */
 export type Library = Record<string, { text: string; updatedAt: string }>
@@ -341,6 +374,7 @@ export interface SouthAstraApi {
   transitList: (input: ChartInput, fromIso: string, toIso: string, planets: string[]) => Promise<TransitEvent[]>
   rectify: (input: ChartInput, from: string, to: string, stepMin: number) => Promise<RectifyRow[]>
   eclipses: (input: ChartInput, fromIso: string, toIso: string) => Promise<EclipseEvent[]>
+  ephemeris: (fromIso: string, toIso: string, voidPlanets: 'modern' | 'traditional') => Promise<Ephemeris>
   acg: (input: ChartInput) => Promise<AcgLine[]>
   getLibrary: () => Promise<Library>
   setLibraryEntry: (key: string, text: string) => Promise<Library>

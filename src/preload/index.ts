@@ -6,6 +6,7 @@ const api: SouthAstraApi = {
   transitList: (input, from, to, planets) => ipcRenderer.invoke('chart:transits', input, from, to, planets),
   rectify: (input, from, to, step) => ipcRenderer.invoke('chart:rectify', input, from, to, step),
   eclipses: (input, from, to) => ipcRenderer.invoke('chart:eclipses', input, from, to),
+  ephemeris: (from, to, vp) => ipcRenderer.invoke('chart:ephemeris', from, to, vp),
   acg: (input) => ipcRenderer.invoke('chart:acg', input),
   getLibrary: () => ipcRenderer.invoke('library:get'),
   setLibraryEntry: (key, text) => ipcRenderer.invoke('library:set', key, text),

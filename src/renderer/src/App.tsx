@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import type { AcgLine, ChartInput, ChartResult, CityHit, HouseSystem, Library, LifeEvent, MenuCommand, Place, Rodden, SavedChart, Session, Settings, TransitEvent, UpdateInfo, ViewMode, ViewResult } from '@shared/types'
+import type { Ephemeris, AcgLine, ChartInput, ChartResult, CityHit, HouseSystem, Library, LifeEvent, MenuCommand, Place, Rodden, SavedChart, Session, Settings, TransitEvent, UpdateInfo, ViewMode, ViewResult } from '@shared/types'
 import { HOUSE_SYSTEMS, placeLabel, RODDEN, VIEW_MODES } from '@shared/types'
 import { DEFAULT_SETTINGS } from '@shared/zodiac'
 import { fold } from './search'
@@ -7,6 +7,8 @@ import Wheel, { NO_RETRO } from './components/Wheel'
 import ChartForm from './components/ChartForm'
 import SettingsModal from './components/SettingsModal'
 import PrintView from './components/PrintView'
+import EphemerisView, { EphemerisPrint } from './components/EphemerisView'
+import logoMarkSrc from './assets/logo-mark.svg'
 import { DateBar, ShiftBar } from './components/TimeBar'
 import { AspectGrid, AspectList, CrossList, HouseTable, PlanetTable } from './components/Tables'
 import { TimeLordsPanel } from './components/TimeLords'
@@ -90,6 +92,8 @@ export default function App() {
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [library, setLibrary] = useState<Library>({})
   const [libraryOpen, setLibraryOpen] = useState(false)
+  const [ephemOpen, setEphemOpen] = useState(false)
+  const [ephemPrint, setEphemPrint] = useState<{ data: Ephemeris; tz: string; title: string } | null>(null)
   const [aboutOpen, setAboutOpen] = useState(false)
   const [update, setUpdate] = useState<UpdateInfo | null>(null)
   const [altPlace, setAltPlace] = useState<Place | null>(null) // dönüş/taşınma yeri (null: doğum yeri)
@@ -294,6 +298,31 @@ export default function App() {
     setPdfSections({ ...DEFAULT_PDF, ...s })
   }, [view, input, modeDef, dateMs, pdfAvailable])
 
+  // Efemeris: saat dilimi seçenekleri ve PDF
+  const sysTz = Intl.DateTimeFormat().resolvedOptions().timeZone
+  const ephemTzChoices = useMemo(() => {
+    const list = [{ tz: sysTz, label: `Bilgisayar · ${sysTz}` }]
+    if (input && input.place.tz !== sysTz) list.push({ tz: input.place.tz, label: `${input.place.name} · ${input.place.tz}` })
+    if (input?.residence && ![sysTz, input.place.tz].includes(input.residence.tz)) list.push({ tz: input.residence.tz, label: `${input.residence.name} · ${input.residence.tz}` })
+    list.push({ tz: 'UTC', label: 'UT (Greenwich)' })
+    return list
+  }, [input, sysTz])
+  const exportEphemPdf = useCallback(async (data: Ephemeris, tz: string, title: string) => {
+    setEphemOpen(false)
+    setEphemPrint({ data, tz, title })
+    document.documentElement.dataset.theme = 'light'
+    document.documentElement.dataset.printing = '1'
+    await new Promise((r) => setTimeout(r, 500))
+    try {
+      const path = await window.southastra.exportPdf(`Efemeris ${title}`, `SouthAstra · Efemeris · ${title} · ${new Date().toLocaleDateString('tr-TR')}`)
+      if (path) setToast('PDF kaydedildi')
+    } catch (e) { setError(errText(e)) }
+    setEphemPrint(null)
+    document.documentElement.dataset.theme = theme
+    delete document.documentElement.dataset.printing
+    setEphemOpen(true)
+  }, [theme])
+
   // Menü ve kısayollar
   useEffect(() => window.southastra.onMenu(async (cmd: MenuCommand) => {
     if (cmd === 'new') setForm('new')
@@ -302,6 +331,7 @@ export default function App() {
     if (cmd === 'now') { setCurrentId(null); setInput(nowInput(input?.place)); setMode('natal') }
     if (cmd === 'settings') setSettingsOpen(true)
     if (cmd === 'library') setLibraryOpen(true)
+    if (cmd === 'ephemeris') setEphemOpen(true)
     if (cmd === 'about') setAboutOpen(true)
     if (cmd === 'update-check') {
       const u = await window.southastra.checkUpdate()
@@ -347,6 +377,7 @@ export default function App() {
   const hp = hc?.points.find((p) => p.id === hid)
   const [sc, sid] = chartFor(selected)
 
+  if (ephemPrint) return <EphemerisPrint data={ephemPrint.data} tz={ephemPrint.tz} title={ephemPrint.title} logo={logoMarkSrc} />
   if (printing && shownView) return <PrintView view={shownView} sections={pdfSections} library={library} transits={printTransits} modeName={modeDef.name} settings={settings} />
 
   const inner = shownView?.inner
@@ -430,6 +461,7 @@ export default function App() {
         </ul>
         <div className="side-foot muted small">
           <button className="link" onClick={() => setLibraryOpen(true)} title={kbd('L')}>Yorumlar</button>
+          <button className="link" onClick={() => setEphemOpen(true)} title={kbd('E', { shift: true })}>Efemeris</button>
           <button className="link" onClick={() => setSettingsOpen(true)}>Ayarlar</button>
           <button className="link" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>{theme === 'dark' ? 'Açık' : 'Koyu'} tema</button>
         </div>
@@ -582,6 +614,7 @@ export default function App() {
       {form && <ChartForm initial={form === 'edit' ? input : null} defaults={{ houseSystem: settings.defaultHouseSystem, nodeType: settings.defaultNodeType }} onCancel={() => setForm(null)} onSubmit={submitForm} />}
       {settingsOpen && <SettingsModal initial={settings} onAbout={() => { setSettingsOpen(false); setAboutOpen(true) }} onClose={() => setSettingsOpen(false)} onSave={async (s) => { setSettings(await window.southastra.setSettings(s)); setSettingsOpen(false); setToast('Ayarlar kaydedildi') }} />}
       {aboutOpen && <AboutModal onClose={() => setAboutOpen(false)} />}
+      {ephemOpen && <EphemerisView tzChoices={ephemTzChoices} onClose={() => setEphemOpen(false)} onPdf={exportEphemPdf} />}
       {libraryOpen && <LibraryModal library={library} onSave={saveInterp} onClose={() => setLibraryOpen(false)} />}
       {pdfOpen && <PdfDialog initial={pdfSections} available={pdfAvailable} onCancel={() => setPdfOpen(false)} onExport={exportPdf} />}
       {toast && <div className="toast" role="status">{toast}</div>}
