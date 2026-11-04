@@ -181,6 +181,8 @@ export interface PointPos {
   housePos?: number // ondalıklı ev konumu (ör. 5.42)
   dignity?: string
   stationary?: boolean
+  /** Pencere içindeki en yakın duraklama: kesin an, yön (geri harekete / düz harekete), doğum anından gün farkı */
+  station?: { utc: string; kind: 'retro' | 'direct'; days: number }
 }
 
 export type AspectType =
@@ -230,6 +232,8 @@ export interface ChartResult {
   stars: StarContact[]
   lots: Lot[]
   isDay?: boolean // Güneş ufkun üstünde
+  /** Saat sürgüsü simülasyonu: kayıtlı saate eklenen dakika (kayıt değişmez) */
+  shiftMin?: number
   place?: Place // haritanın kurulduğu yer (taşınma ve dönüşlerde doğum yerinden farklı olabilir)
 }
 
@@ -278,6 +282,8 @@ export interface Settings {
   defaultHouseSystem: HouseSystem // yeni haritalar için
   defaultNodeType: 'true' | 'mean'
   asteroids: boolean // Ceres, Pallas, Juno, Vesta
+  /** Gezegen tablosundaki dignite etiketleri: modern (dış gezegenler Kova/Balık/Akrep yöneticisi) veya geleneksel (yalnız yedi gezegen) */
+  rulership: 'modern' | 'traditional'
   appearance: Appearance
   updateCheck: boolean // açılışta GitHub'da yeni sürüm denetimi
 }

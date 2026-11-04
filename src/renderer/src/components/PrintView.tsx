@@ -22,6 +22,12 @@ function Section({ title, who, children }: { title: string; who: string; childre
   )
 }
 
+const shiftedTime = (base: string, shift: number) => {
+  const [h, m] = base.split(':').map(Number)
+  const t = (((h * 60 + m + shift) % 1440) + 1440) % 1440
+  return `${String(Math.floor(t / 60)).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}`
+}
+
 function Meta({ view }: { view: ViewResult }) {
   const c = view.inner
   const i = c.input
@@ -30,6 +36,7 @@ function Meta({ view }: { view: ViewResult }) {
   const local = (iso: string) => new Date(iso).toLocaleString('tr-TR', { timeZone: (c.place ?? i.place).tz, dateStyle: 'long', timeStyle: 'short' })
   const rows: [string, string][] = [
     ['Doğum tarihi', `${fmtDateTr(i.date)} · ${i.timeUnknown ? 'saat bilinmiyor (12:00 varsayıldı)' : i.time} yerel saat`],
+    ...(natal?.shiftMin ? [['Simülasyon', `harita ${shiftedTime(i.timeUnknown ? '12:00' : i.time, natal.shiftMin)} için hesaplandı (${natal.shiftMin > 0 ? '+' : ''}${natal.shiftMin} dk); kayıtlı saat değişmedi`] as [string, string]] : []),
     ['Doğum yeri', placeLabel(i.place)],
     ...(c.place && (c.place.lat !== i.place.lat || c.place.lon !== i.place.lon) ? [['Harita yeri', `${placeLabel(c.place)} · ${Math.abs(c.place.lat).toFixed(4)}° ${c.place.lat >= 0 ? 'K' : 'G'} · ${Math.abs(c.place.lon).toFixed(4)}° ${c.place.lon >= 0 ? 'D' : 'B'}`] as [string, string]] : []),
     ['Koordinat', `${Math.abs(i.place.lat).toFixed(4)}° ${i.place.lat >= 0 ? 'K' : 'G'} · ${Math.abs(i.place.lon).toFixed(4)}° ${i.place.lon >= 0 ? 'D' : 'B'}${i.place.precision ? ` · ${i.place.precision}` : ''}`],

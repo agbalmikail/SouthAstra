@@ -98,6 +98,7 @@ export const DEFAULT_SETTINGS: Settings = {
   defaultHouseSystem: 'P',
   defaultNodeType: 'true',
   asteroids: false,
+  rulership: 'modern',
   appearance: { glyphScale: 1, showDegrees: true, showAspectLines: true, showHouseNumbers: true, coloredSigns: true, aspectLineWidth: 0.9 },
   updateCheck: true
 }
@@ -122,11 +123,15 @@ const DOMICILE: Record<string, number[]> = {
   sun: [4], moon: [3], mercury: [2, 5], venus: [1, 6], mars: [0, 7], jupiter: [8, 11], saturn: [9, 10],
   uranus: [10], neptune: [11], pluto: [7]
 }
+// Geleneksel: Akrep Mars'ın, Kova Satürn'ün, Balık Jüpiter'in (modernde Plüton, Uranüs, Neptün eklenir; eski yöneticiler de korunur)
+const TRAD_DOMICILE: Record<string, number[]> = { sun: [4], moon: [3], mercury: [2, 5], venus: [1, 6], mars: [0, 7], jupiter: [8, 11], saturn: [9, 10] }
 const EXALT: Record<string, number> = { sun: 0, moon: 1, mercury: 5, venus: 11, mars: 9, jupiter: 3, saturn: 6 }
 
-export function dignityOf(id: string, lon: number): string | undefined {
+/** Esas dignite etiketi. Geleneksel yöneticilikte dış gezegenlere burç yöneticiliği verilmez. */
+export function dignityOf(id: string, lon: number, rulership: 'modern' | 'traditional' = 'modern'): string | undefined {
   const s = signOf(lon)
-  const dom = DOMICILE[id]
+  if (rulership === 'traditional' && (id === 'uranus' || id === 'neptune' || id === 'pluto')) return undefined
+  const dom = rulership === 'traditional' ? TRAD_DOMICILE[id] : DOMICILE[id]
   if (!dom) return undefined
   if (dom.includes(s)) return 'Evinde'
   if (EXALT[id] === s) return 'Yücelimde'

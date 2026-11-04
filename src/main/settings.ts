@@ -37,6 +37,7 @@ function sanitize(s: Settings): Settings {
     defaultHouseSystem: HOUSE_SYSTEMS.some((h) => h.id === s.defaultHouseSystem) ? s.defaultHouseSystem : 'P',
     defaultNodeType: s.defaultNodeType === 'mean' ? 'mean' : 'true',
     asteroids: s.asteroids === true,
+    rulership: s.rulership === 'traditional' ? 'traditional' : 'modern',
     appearance: {
       glyphScale: num(s.appearance?.glyphScale, 1, 0.8, 1.4),
       showDegrees: s.appearance?.showDegrees !== false,

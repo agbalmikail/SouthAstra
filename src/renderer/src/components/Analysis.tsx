@@ -3,7 +3,7 @@ import type { ChartInput, ChartResult, HouseSystem, RectifyRow, TransitEvent } f
 import { HOUSE_SYSTEMS } from '@shared/types'
 import { ASPECT_BY_TYPE, ELEMENT_TR, MODALITY, moonPhase, norm360, pad2, SIGNS, signOf, TRAD_RULER } from '@shared/zodiac'
 import { fmtDecl, fmtOrb, lonParts } from '../format'
-import { Lon } from './Tables'
+import { Lon, stationText } from './Tables'
 
 const err = (e: unknown) => (e as Error).message.replace(/^Error invoking remote method '[^']+': (Error: )?/, '')
 
@@ -47,7 +47,8 @@ export function PlanetDetail({ chart, id, onClose }: { chart: ChartResult; id: s
       <dl className="kv">
         {row('Ekliptik boylam', <span className="num">{dms(p.lon)} <span className="muted">({p.lon.toFixed(6)}°)</span></span>)}
         {row('Ekliptik enlem', <span className="num">{dms(p.lat)}</span>)}
-        {row('Hız (boylam)', <span className="num">{p.speed.toFixed(6)}°/gün {p.retro ? '· geri' : '· ileri'}{p.stationary ? ' · duraklamada' : ''}</span>)}
+        {row('Hız (boylam)', <span className="num">{p.speed.toFixed(6)}°/gün {p.retro ? '· geri' : '· ileri'}</span>)}
+        {p.station && row('Duraklama', <span>{stationText(p.station)}</span>)}
         {p.latSpeed !== undefined && row('Hız (enlem)', <span className="num">{p.latSpeed.toFixed(6)}°/gün</span>)}
         {p.distance !== undefined && p.id !== 'northnode' && p.id !== 'southnode' && p.id !== 'lilith' && row('Uzaklık', <span className="num">{p.distance.toFixed(6)} AU{p.id === 'moon' ? ` · ${(p.distance * 149597870.7).toFixed(0)} km` : ''}</span>)}
         {p.ra !== undefined && row('Sağ açıklık (RA)', <span className="num">{hms(p.ra / 15)} <span className="muted">({p.ra.toFixed(4)}°)</span></span>)}

@@ -15,23 +15,23 @@ const VS = '︎'
 const BODIES: { id: string; name: string; glyph: string; se: number; station?: number }[] = [
   { id: 'sun', name: 'Güneş', glyph: '☉', se: C.SE_SUN },
   { id: 'moon', name: 'Ay', glyph: '☽', se: C.SE_MOON },
-  { id: 'mercury', name: 'Merkür', glyph: '☿', se: C.SE_MERCURY, station: 0.12 },
-  { id: 'venus', name: 'Venüs', glyph: '♀', se: C.SE_VENUS, station: 0.08 },
-  { id: 'mars', name: 'Mars', glyph: '♂', se: C.SE_MARS, station: 0.05 },
-  { id: 'jupiter', name: 'Jüpiter', glyph: '♃', se: C.SE_JUPITER, station: 0.015 },
-  { id: 'saturn', name: 'Satürn', glyph: '♄', se: C.SE_SATURN, station: 0.008 },
-  { id: 'uranus', name: 'Uranüs', glyph: '♅', se: C.SE_URANUS, station: 0.004 },
-  { id: 'neptune', name: 'Neptün', glyph: '♆', se: C.SE_NEPTUNE, station: 0.003 },
-  { id: 'pluto', name: 'Plüton', glyph: '♇', se: C.SE_PLUTO, station: 0.003 },
-  { id: 'chiron', name: 'Chiron', glyph: '⚷', se: C.SE_CHIRON, station: 0.005 },
+  { id: 'mercury', name: 'Merkür', glyph: '☿', se: C.SE_MERCURY, station: 1 },
+  { id: 'venus', name: 'Venüs', glyph: '♀', se: C.SE_VENUS, station: 2 },
+  { id: 'mars', name: 'Mars', glyph: '♂', se: C.SE_MARS, station: 3 },
+  { id: 'jupiter', name: 'Jüpiter', glyph: '♃', se: C.SE_JUPITER, station: 5 },
+  { id: 'saturn', name: 'Satürn', glyph: '♄', se: C.SE_SATURN, station: 6 },
+  { id: 'uranus', name: 'Uranüs', glyph: '♅', se: C.SE_URANUS, station: 8 },
+  { id: 'neptune', name: 'Neptün', glyph: '♆', se: C.SE_NEPTUNE, station: 9 },
+  { id: 'pluto', name: 'Plüton', glyph: '♇', se: C.SE_PLUTO, station: 10 },
+  { id: 'chiron', name: 'Chiron', glyph: '⚷', se: C.SE_CHIRON, station: 8 },
   { id: 'lilith', name: 'Lilith (ort.)', glyph: '⚸', se: C.SE_MEAN_APOG }
 ]
 /** Ana asteroitler (ayarlardan açılır) */
 const ASTEROIDS: typeof BODIES = [
-  { id: 'ceres', name: 'Ceres', glyph: '⚳', se: C.SE_CERES, station: 0.02 },
-  { id: 'pallas', name: 'Pallas', glyph: '⚴', se: C.SE_PALLAS, station: 0.02 },
-  { id: 'juno', name: 'Juno', glyph: '⚵', se: C.SE_JUNO, station: 0.02 },
-  { id: 'vesta', name: 'Vesta', glyph: '⚶', se: C.SE_VESTA, station: 0.02 }
+  { id: 'ceres', name: 'Ceres', glyph: '⚳', se: C.SE_CERES, station: 4 },
+  { id: 'pallas', name: 'Pallas', glyph: '⚴', se: C.SE_PALLAS, station: 4 },
+  { id: 'juno', name: 'Juno', glyph: '⚵', se: C.SE_JUNO, station: 4 },
+  { id: 'vesta', name: 'Vesta', glyph: '⚶', se: C.SE_VESTA, station: 4 }
 ]
 const ASTEROID_IDS = new Set(ASTEROIDS.map((a) => a.id))
 const BODY_BY_ID = Object.fromEntries([...BODIES, ...ASTEROIDS].map((b) => [b.id, b]))
@@ -73,6 +73,36 @@ const obliquityAt = (jd: number): number => sweph.calc_ut(jd, C.SE_ECL_NUT, 0).d
 
 // ——— Konumlar ———
 
+/**
+ * Duraklama: boylam hızının işaret değiştirdiği an. BODIES[].station gün cinsinden penceredir;
+ * doğum anına bu kadar gün yakın bir duraklama varsa gezegen "durağan" sayılır ve kesin an döner.
+ */
+function nearestStation(jd: number, se: number, flags: number, windowDays: number): PointPos['station'] {
+  const speed = (t: number) => sweph.calc_ut(t, se, flags).data[3]
+  const step = windowDays <= 2 ? 0.25 : 1
+  let best: PointPos['station']
+  for (const dir of [1, -1]) {
+    let t0 = jd
+    let v0 = speed(t0)
+    for (let k = step; k <= windowDays + step; k += step) {
+      const t1 = jd + dir * k
+      const v1 = speed(t1)
+      if (Math.sign(v0) !== Math.sign(v1)) {
+        let a = Math.min(t0, t1), b = Math.max(t0, t1), fa = speed(a)
+        for (let i = 0; i < 40; i++) { const m = (a + b) / 2; const fm = speed(m); if (Math.sign(fm) === Math.sign(fa)) { a = m; fa = fm } else b = m }
+        const ts = (a + b) / 2
+        const days = ts - jd
+        if (Math.abs(days) <= windowDays && (!best || Math.abs(days) < Math.abs(best.days))) {
+          best = { utc: isoFromJd(ts), kind: speed(ts + 0.01) < 0 ? 'retro' : 'direct', days }
+        }
+        break
+      }
+      t0 = t1; v0 = v1
+    }
+  }
+  return best
+}
+
 interface Geo { lat: number; lon: number }
 
 function computePoints(jd: number, nodeType: 'true' | 'mean', geo: Geo | null, warnings: string[]): PointPos[] {
@@ -89,8 +119,11 @@ function computePoints(jd: number, nodeType: 'true' | 'mean', geo: Geo | null, w
       id: b.id, name: b.name, glyph: b.glyph + VS,
       lon: r.data[0], lat: r.data[1], distance: r.data[2], speed: r.data[3], latSpeed: r.data[4], retro: r.data[3] < 0,
       ra: eq.data[0], declination: eq.data[1], house: 0,
-      stationary: b.station !== undefined && Math.abs(r.data[3]) < b.station,
-      dignity: dignityOf(b.id, r.data[0])
+      dignity: dignityOf(b.id, r.data[0], settings.rulership)
+    }
+    if (b.station !== undefined) {
+      p.station = nearestStation(jd, b.se, flags, b.station)
+      p.stationary = !!p.station
     }
     if (geo) {
       const az = sweph.azalt(jd, C.SE_EQU2HOR, [geo.lon, geo.lat, 0], 0, 0, [eq.data[0], eq.data[1], eq.data[2]])
@@ -348,18 +381,20 @@ export function natalChart(input: ChartInput, hsys?: HouseSystem, shiftMin = 0):
   if (input.timeUnknown) {
     warnings.unshift('Doğum saati bilinmiyor: 12:00 varsayıldı. Yükselen, MC ve evler bu yüzden gösterilmiyor. Ay gün içinde yaklaşık ±6–7° oynayabilir; diğer gezegenler ±1°\'nin altında kalır.')
   }
-  if (shiftMin) warnings.unshift(`Doğum saati ${shiftMin > 0 ? '+' : ''}${shiftMin} dakika kaydırılmış olarak gösteriliyor (kaydedilmedi).`)
-  return makeChart({
+  if (shiftMin) warnings.unshift(`Simülasyon: doğum saati ${shiftMin > 0 ? '+' : ''}${shiftMin} dakika kaydırılmış olarak hesaplandı. Kayıtlı saat değişmedi.`)
+  const ch = makeChart({
     input, jd: b.jd, place: input.place, hsys: hsys ?? input.houseSystem, kind: 'natal', label: 'Doğum haritası',
     offsetMinutes: b.t.offsetMinutes, offsetSource: b.t.source, warnings
   })
+  if (shiftMin) ch.shiftMin = shiftMin
+  return ch
 }
 
 function draconic(ch: ChartResult): ChartResult {
   const nn = ch.points.find((p) => p.id === 'northnode')
   if (!nn) return ch
   const s = nn.lon
-  const points = ch.points.map((p) => ({ ...p, lon: norm360(p.lon - s), dignity: dignityOf(p.id, norm360(p.lon - s)) }))
+  const points = ch.points.map((p) => ({ ...p, lon: norm360(p.lon - s), dignity: dignityOf(p.id, norm360(p.lon - s), settings.rulership) }))
   const sh = (x: number) => norm360(x - s)
   const angles = ch.hasHouses
     ? { ...ch.angles, asc: sh(ch.angles.asc), mc: sh(ch.angles.mc), dsc: sh(ch.angles.dsc), ic: sh(ch.angles.ic), vertex: sh(ch.angles.vertex) }
@@ -422,7 +457,7 @@ export function view(input: ChartInput, req: ViewRequest): ViewResult {
       const n = Math.max(1, Math.min(180, Math.round(req.harmonic ?? 5)))
       const hl = (x: number) => norm360(x * n)
       const points: PointPos[] = natal.points.filter((p) => p.id !== 'southnode' && p.id !== 'fortune').map((p) => ({
-        ...p, lon: hl(p.lon), house: 0, housePos: undefined, azimuth: undefined, altitude: undefined, ra: undefined, distance: undefined, declination: 0, dignity: undefined, stationary: false
+        ...p, lon: hl(p.lon), house: 0, housePos: undefined, azimuth: undefined, altitude: undefined, ra: undefined, distance: undefined, declination: 0, dignity: undefined, stationary: false, station: undefined
       }))
       if (natal.hasHouses) {
         points.push(
@@ -439,7 +474,7 @@ export function view(input: ChartInput, req: ViewRequest): ViewResult {
       const age = (target - natal.jdUt) / TROPICAL_YEAR
       const ps = computePoints(natal.jdUt + age, input.nodeType, null, [])
       const arc = norm360((ps.find((p) => p.id === 'sun')?.lon ?? 0) - (natal.points.find((p) => p.id === 'sun')?.lon ?? 0))
-      const points = natal.points.filter((p) => p.id !== 'fortune').map((p) => ({ ...p, lon: norm360(p.lon + arc), house: 0, housePos: undefined, azimuth: undefined, altitude: undefined, retro: false, speed: 0, dignity: dignityOf(p.id, norm360(p.lon + arc)) }))
+      const points = natal.points.filter((p) => p.id !== 'fortune').map((p) => ({ ...p, lon: norm360(p.lon + arc), house: 0, housePos: undefined, azimuth: undefined, altitude: undefined, retro: false, speed: 0, stationary: false, station: undefined, dignity: dignityOf(p.id, norm360(p.lon + arc), settings.rulership) }))
       const outer = makeChart({ input, jd: natal.jdUt + age, place: null, hsys, kind: 'solararc', label: 'Solar arc', points })
       if (natal.hasHouses) {
         outer.points.push(
@@ -479,7 +514,7 @@ export function view(input: ChartInput, req: ViewRequest): ViewResult {
         .filter((p) => pb[p.id] && p.id !== 'fortune' && p.id !== 'southnode')
         .map((p) => {
           const lon = midpoint(p.lon, pb[p.id].lon)
-          return { id: p.id, name: p.name, glyph: p.glyph, lon, lat: 0, speed: (p.speed + pb[p.id].speed) / 2, retro: false, house: 0, declination: (p.declination + pb[p.id].declination) / 2, dignity: dignityOf(p.id, lon) }
+          return { id: p.id, name: p.name, glyph: p.glyph, lon, lat: 0, speed: (p.speed + pb[p.id].speed) / 2, retro: false, house: 0, declination: (p.declination + pb[p.id].declination) / 2, dignity: dignityOf(p.id, lon, settings.rulership) }
         })
       const nn = points.find((p) => p.id === 'northnode')
       if (nn) points.push({ ...nn, id: 'southnode', name: 'G. Ay Düğümü', glyph: '☋' + VS, lon: norm360(nn.lon + 180) })

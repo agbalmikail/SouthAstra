@@ -556,3 +556,4 @@ body.resizing * { cursor: col-resize !important; }
 .tl-more { margin: 6px 0 4px; }
 table.data tr.tl-sub td { color: var(--muted); }
 .print-page table.data tr.tl-sub td { color: #646d7e; }
+.sim-badge { color: var(--accent); border: 1px solid var(--accent); border-radius: 4px; padding: 0 6px; font-size: 12px; white-space: nowrap; }

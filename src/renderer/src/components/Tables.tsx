@@ -1,4 +1,4 @@
-import type { Aspect, ChartResult } from '@shared/types'
+import type { Aspect, ChartResult, PointPos } from '@shared/types'
 import { ASPECT_BY_TYPE, pad2 } from '@shared/zodiac'
 import { fmtDecl, fmtOrb, lonParts } from '../format'
 import { NO_RETRO } from './Wheel'
@@ -18,7 +18,13 @@ interface HoverProps { hovered: string | null; onHover: (id: string | null) => v
 
 const DIGNITY_CLS: Record<string, string> = { Evinde: 'dg-good', Yücelimde: 'dg-good', Zararda: 'dg-bad', Düşüşte: 'dg-bad' }
 
-export const PLANET_LEGEND = 'Hız: ekliptik boylamda günlük hareket (°/gün); eksi değer geri harekettir (R). D: duraklama (gezegen yön değiştirmek üzere). Dekl.: deklinasyon (K kuzey, G güney). Evinde / Yücelimde / Zararda / Düşüşte: geleneksel esas dignite. Ay düğümü türü adında belirtilir (gerçek veya ortalama).'
+export function stationText(st: NonNullable<PointPos['station']>): string {
+  const d = Math.abs(st.days)
+  const when = d < 1 ? `${Math.round(d * 24)} saat` : `${d.toFixed(1).replace('.', ',')} gün`
+  return `${st.kind === 'retro' ? 'Geri harekete' : 'Düz harekete'} dönüş (duraklama) doğumdan ${when} ${st.days >= 0 ? 'sonra' : 'önce'}: ${new Date(st.utc).toISOString().slice(0, 16).replace('T', ' ')} UT`
+}
+
+export const PLANET_LEGEND = 'Hız: ekliptik boylamda günlük hareket (°/gün); eksi değer geri harekettir (R). DR / DD: duraklama, yani gezegen yön değiştiriyor (DR: geri harekete dönüyor, DD: düz harekete dönüyor). Kesin duraklama anı doğuma şu kadar gün yakınsa gösterilir: Merkür 1, Venüs 2, Mars 3, Jüpiter 5, Satürn 6, Uranüs ve Chiron 8, Neptün 9, Plüton 10, asteroitler 4. Düz harekete dönmeden önce gezegen hem R hem DD görünür. Dekl.: deklinasyon (K kuzey, G güney). Evinde / Yücelimde / Zararda / Düşüşte: geleneksel esas dignite. Ay düğümü türü adında belirtilir (gerçek veya ortalama).'
 
 export function PlanetTable({ chart, hovered, onHover, onSelect, prefix = '', compact = false }: { chart: ChartResult; prefix?: string; compact?: boolean } & HoverProps) {
   return (
@@ -33,7 +39,7 @@ export function PlanetTable({ chart, hovered, onHover, onSelect, prefix = '', co
             <td>
               {p.name}
               {p.retro && !NO_RETRO.has(p.id) && <span className="tag retro" title="Geri hareket (retro)">R</span>}
-              {p.stationary && <span className="tag stat" title="Duraklama: gezegen yön değiştirmek üzere">D</span>}
+              {p.station && <span className="tag stat" title={stationText(p.station)}>{p.station.kind === 'retro' ? 'DR' : 'DD'}</span>}
               {p.dignity && <span className={`tag ${DIGNITY_CLS[p.dignity]}`} title="Esas dignite">{p.dignity}</span>}
             </td>
             <td className="r"><Lon lon={p.lon} seconds /></td>

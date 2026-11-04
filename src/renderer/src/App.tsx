@@ -223,6 +223,12 @@ export default function App() {
     try { setLibrary(await window.southastra.setLibraryEntry(key, text)); setToast(text.trim() ? 'Yorum kütüphaneye kaydedildi' : 'Yorum silindi') } catch (e) { setError(errText(e)) }
   }
 
+  const shiftedClock = () => {
+    if (!input) return ''
+    const [h, m] = (input.timeUnknown ? '12:00' : input.time).split(':').map(Number)
+    const t = (((h * 60 + m + shift) % 1440) + 1440) % 1440
+    return `${String(Math.floor(t / 60)).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}`
+  }
   const applyShift = async () => {
     if (!input || !currentId) return
     const [h, m] = (input.timeUnknown ? '12:00' : input.time).split(':').map(Number)
@@ -230,6 +236,8 @@ export default function App() {
     const t = ((total % 1440) + 1440) % 1440
     const d = new Date(input.date + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() + Math.floor(total / 1440))
     const hhmm = `${String(Math.floor(t / 60)).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}`
+    const dayNote = d.toISOString().slice(0, 10) !== input.date ? ` Tarih de ${fmtDateTr(d.toISOString().slice(0, 10))} olur.` : ''
+    if (!window.confirm(`${input.name} için kayıtlı doğum saati ${input.timeUnknown ? 'bilinmiyor (12:00)' : input.time} → ${hhmm} olarak değiştirilsin mi?${dayNote}\n\nEski saat notlara yazılır; arşivin günlük yedeği de durur.`)) return
     const next = { ...input, date: d.toISOString().slice(0, 10), time: hhmm, timeUnknown: false, notes: [input.notes, `Doğum saati ${input.timeUnknown ? 'bilinmiyordu' : input.time}; ${hhmm} olarak düzeltildi (${new Date().toLocaleDateString('tr-TR')}).`].filter(Boolean).join('\n') }
     const saved = await window.southastra.saveChart({ ...next, id: currentId })
     await refresh(); select(saved); setToast('Yeni doğum saati kaydedildi')
@@ -434,6 +442,7 @@ export default function App() {
             {input && (
               <div className="sub muted">
                 {fmtDateTr(input.date)} · {input.timeUnknown ? <span className="warn-inline">saat bilinmiyor (12:00)</span> : input.time} · {placeLabel(input.place)}
+                {shift !== 0 && (mode === 'natal' || mode === 'draconic') && <> · <span className="sim-badge" title="Saat sürgüsüyle deneme yapılıyor. Kayıt yalnızca 'Bu saati kaydet' ile ve onayınızla değişir.">Simülasyon: {shiftedClock()} ({shift > 0 ? '+' : ''}{shift} dk) · kayıt değişmedi</span></>}
                 {momentText() && <> · <span className="hl-text">{mode === 'solarreturn' || mode === 'lunarreturn' ? 'dönüş' : 'tarih'}: {momentText()}</span></>}
               </div>
             )}

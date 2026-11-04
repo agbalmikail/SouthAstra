@@ -47,7 +47,14 @@ export default function SettingsModal({ initial, onClose, onSave, onAbout }: { i
                   <option value="mean">Ortalama düğüm</option>
                 </select>
               </label>
+              <label className="field"><span>Burç yöneticiliği</span>
+                <select id="s-rul" value={s.rulership} onChange={(e) => setS({ ...s, rulership: e.target.value as 'modern' | 'traditional' })}>
+                  <option value="modern">Modern (♅ Kova, ♆ Balık, ♇ Akrep)</option>
+                  <option value="traditional">Geleneksel (yalnız yedi gezegen)</option>
+                </select>
+              </label>
             </div>
+            <p className="hint">Burç yöneticiliği gezegen tablosundaki Evinde / Zararda etiketlerini belirler. Geleneksel analiz paneli, profeksiyon ve firdaria her zaman geleneksel yöneticileri kullanır.</p>
 
             <div className="cap">Karşılaştırmalı haritalar</div>
             <label className="field-row">Transit orbu <input id="s-torb" className="short" value={s.transitOrb} onChange={(e) => setS({ ...s, transitOrb: num(e.target.value) })} /><span>°</span></label>

@@ -200,6 +200,35 @@ console.log('\n— Taşınma ve dönüş yeri')
   ok(Math.abs(srHome.jdUt - srBer.jdUt) < 1e-9 && separation(srBer.angles.asc, hs.points[0]) < 1e-9 && separation(srBer.angles.asc, srHome.angles.asc) > 1, 'Güneş dönüşü Berlin\'de: dönüş anı aynı, evler Berlin\'e göre')
 }
 
+console.log('\n— Duraklama (kesin an) ve yöneticilik')
+{
+  // transit listesindeki duraklama anlarını al, o anın 2 gün öncesine/sonrasına harita kur
+  const tl = transitList(base, '2024-01-01T00:00:00Z', '2025-01-01T00:00:00Z', ['mercury', 'saturn'])
+  const st = tl.filter((e) => e.type === 'station-retro' || e.type === 'station-direct')
+  const merc = st.find((e) => e.transit === 'mercury')!
+  const at = (jd: number) => { const d = new Date(Math.round((jd - 2440587.5) * 86400000)); return natalChart({ ...base, date: d.toISOString().slice(0, 10), time: d.toISOString().slice(11, 16), timeMode: 'manual', manualOffset: 0 }) }
+  const near = at(merc.jd + 0.4).points.find((p) => p.id === 'mercury')!
+  const far = at(merc.jd + 5).points.find((p) => p.id === 'mercury')!
+  ok(!!near.station && Math.abs(Date.parse(near.station.utc) - Date.parse(merc.utc)) < 120000 && near.station.kind === (merc.type === 'station-retro' ? 'retro' : 'direct'), `Merkür duraklaması ${merc.utc.slice(0, 16)}: 0,4 gün sonra DR/DD görünüyor, kesin an transit listesiyle aynı (fark < 2 dk)`)
+  ok(!far.station, 'Merkür: duraklamadan 5 gün sonra durağan sayılmıyor (pencere 1 gün)')
+  const sat = st.find((e) => e.transit === 'saturn')!
+  const s5 = at(sat.jd - 5).points.find((p) => p.id === 'saturn')!
+  const s8 = at(sat.jd - 8).points.find((p) => p.id === 'saturn')!
+  ok(!!s5.station && s5.station.days > 4.9 && s5.station.days < 5.1 && !s8.station, 'Satürn: duraklamaya 5 gün kala durağan (gün farkı doğru), 8 gün kala değil (pencere 6 gün)')
+  // bağımsız: duraklama anında hız sıfır, öncesi ve sonrası zıt işaretli
+  const sp = (jd: number) => sweph.calc_ut(jd, sweph.constants.SE_MERCURY, sweph.constants.SEFLG_SWIEPH | sweph.constants.SEFLG_SPEED).data[3]
+  const jdS = Date.parse(near.station!.utc) / 86400000 + 2440587.5
+  ok(Math.abs(sp(jdS)) < 1e-3 && Math.sign(sp(jdS - 0.5)) !== Math.sign(sp(jdS + 0.5)), 'Duraklama anında Merkür hızı ~0, yarım gün önce/sonra zıt yönde')
+  const prev = { ...DEFAULT_SETTINGS }
+  useSettings({ ...DEFAULT_SETTINGS, rulership: 'traditional' })
+  const tr = natalChart({ ...base, date: '2000-01-01', time: '12:00', timeMode: 'manual', manualOffset: 0 })
+  useSettings({ ...DEFAULT_SETTINGS, rulership: 'modern' })
+  const md = natalChart({ ...base, date: '2000-01-01', time: '12:00', timeMode: 'manual', manualOffset: 0 })
+  useSettings(prev)
+  const u = (c: ChartResult) => c.points.find((p) => p.id === 'uranus')!.dignity
+  ok(u(md) === 'Evinde' && u(tr) === undefined, `Yöneticilik: 2000'de Uranüs Kova'da; modern 'Evinde', geleneksel etiket yok (${u(md)} / ${u(tr) ?? '—'})`)
+}
+
 console.log('\n— Zaman yöneticileri: profeksiyon ve firdaria')
 {
   const bms = Date.parse(natal.utc)
