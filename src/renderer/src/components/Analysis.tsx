@@ -4,6 +4,7 @@ import { HOUSE_SYSTEMS } from '@shared/types'
 import { ASPECT_BY_TYPE, ELEMENT_TR, MODALITY, moonPhase, norm360, pad2, SIGNS, signOf, TRAD_RULER } from '@shared/zodiac'
 import { fmtDecl, fmtOrb, lonParts } from '../format'
 import { Lon, stationText } from './Tables'
+import { rectifyDefaults, rectifyKey, usePanelParam } from '../panelParams'
 
 const err = (e: unknown) => (e as Error).message.replace(/^Error invoking remote method '[^']+': (Error: )?/, '')
 
@@ -213,17 +214,20 @@ export function Distribution({ chart }: { chart: ChartResult }) {
 
 export function RectifyPanel({ input, onPick }: { input: ChartInput; onPick: (time: string) => void }) {
   const t0 = input.time.slice(0, 5)
-  const shift = (t: string, m: number) => { const [h, mm] = t.split(':').map(Number); const x = (((h * 60 + mm + m) % 1440) + 1440) % 1440; return `${pad2(Math.floor(x / 60))}:${pad2(x % 60)}` }
-  const [from, setFrom] = useState(input.timeUnknown ? '00:00' : shift(t0, -60))
-  const [to, setTo] = useState(input.timeUnknown ? '23:59' : shift(t0, 60))
-  const [step, setStep] = useState(input.timeUnknown ? 30 : 4)
+  const [all, setAll] = usePanelParam('rectify')
+  const rk = rectifyKey(input.date, t0, input.timeUnknown)
+  const cur = all[rk] ?? rectifyDefaults(t0, input.timeUnknown)
+  const { from, to, step } = cur
+  const upd = (v: Partial<typeof cur>) => setAll({ ...all, [rk]: { ...cur, ...v } })
+  const setFrom = (v: string) => upd({ from: v })
+  const setTo = (v: string) => upd({ to: v })
+  const setStep = (v: number) => upd({ step: v })
   const [rows, setRows] = useState<RectifyRow[]>([])
   const [error, setError] = useState('')
   useEffect(() => {
     setError('')
     window.southastra.rectify(input, from, to, step).then(setRows).catch((e) => setError(err(e)))
   }, [input, from, to, step])
-  let prevAsc = -1
   return (
     <div>
       <p className="hint">Doğum saati belirsizse aralığı girin; yükselenin ve MC'nin burç değiştirdiği saatler vurgulanır. Bir satıra tıklayınca harita o saate kaydırılır.</p>
@@ -233,25 +237,33 @@ export function RectifyPanel({ input, onPick }: { input: ChartInput; onPick: (ti
         <label className="inline small">Adım <select id="r-step" className="compact" value={step} onChange={(e) => setStep(Number(e.target.value))}>{[1, 2, 4, 5, 10, 15, 30, 60].map((s) => <option key={s} value={s}>{s} dk</option>)}</select></label>
       </div>
       {error && <p className="error">{error}</p>}
-      <table className="data">
-        <thead><tr><th>Saat</th><th className="r">Yükselen</th><th className="r">MC</th><th className="r">Ay</th></tr></thead>
-        <tbody>
-          {rows.map((r) => {
-            const s = signOf(r.asc)
-            const change = prevAsc >= 0 && s !== prevAsc
-            prevAsc = s
-            return (
-              <tr key={r.time} className={['click', change ? 'hl' : '', r.time === t0 && !input.timeUnknown ? 'cur' : ''].join(' ')} onClick={() => onPick(r.time)}>
-                <td className="num">{r.time}{change ? ' ◂ burç değişti' : ''}</td>
-                <td className="r"><Lon lon={r.asc} /></td>
-                <td className="r"><Lon lon={r.mc} /></td>
-                <td className="r"><Lon lon={r.moon} /></td>
-              </tr>
-            )
-          })}
-        </tbody>
-      </table>
+      <RectifyTable rows={rows} current={input.timeUnknown ? undefined : t0} onPick={onPick} />
     </div>
+  )
+}
+
+/** Saat aralığı tablosu (panel ve PDF ortak) */
+export function RectifyTable({ rows, current, onPick }: { rows: RectifyRow[]; current?: string; onPick?: (time: string) => void }) {
+  let prevAsc = -1
+  return (
+    <table className="data">
+      <thead><tr><th>Saat</th><th className="r">Yükselen</th><th className="r">MC</th><th className="r">Ay</th></tr></thead>
+      <tbody>
+        {rows.map((r) => {
+          const s = signOf(r.asc)
+          const change = prevAsc >= 0 && s !== prevAsc
+          prevAsc = s
+          return (
+            <tr key={r.time} className={[onPick ? 'click' : '', change ? 'hl' : '', r.time === current ? 'cur' : ''].join(' ')} onClick={() => onPick?.(r.time)}>
+              <td className="num">{r.time}{change ? ' ◂ burç değişti' : ''}{r.time === current ? ' · kayıtlı saat' : ''}</td>
+              <td className="r"><Lon lon={r.asc} /></td>
+              <td className="r"><Lon lon={r.mc} /></td>
+              <td className="r"><Lon lon={r.moon} /></td>
+            </tr>
+          )
+        })}
+      </tbody>
+    </table>
   )
 }
 
@@ -261,22 +273,18 @@ const T_PLANETS = [
   { id: 'sun', g: '☉' }, { id: 'mercury', g: '☿' }, { id: 'venus', g: '♀' }, { id: 'mars', g: '♂' }, { id: 'jupiter', g: '♃' },
   { id: 'saturn', g: '♄' }, { id: 'uranus', g: '♅' }, { id: 'neptune', g: '♆' }, { id: 'pluto', g: '♇' }, { id: 'chiron', g: '⚷' }
 ]
-const readList = (): string[] => {
-  try { const v = JSON.parse(localStorage.getItem('transit-planets') ?? 'null'); if (Array.isArray(v)) return v } catch { /* yok say */ }
-  return ['mars', 'jupiter', 'saturn', 'uranus', 'neptune', 'pluto']
-}
 
 export function TransitListPanel({ input, natal, onPick }: { input: ChartInput; natal: ChartResult; onPick: (iso: string) => void }) {
-  const year = new Date().getFullYear()
-  const [from, setFrom] = useState(`${year}-01-01`)
-  const [to, setTo] = useState(`${year}-12-31`)
-  const [planets, setPlanets] = useState<string[]>(readList)
-  const [kinds, setKinds] = useState({ aspects: true, stations: true, ingress: false })
+  const [tp, setTp] = usePanelParam('transitList')
+  const { from, to, planets, kinds } = tp
+  const setFrom = (v: string) => setTp({ ...tp, from: v })
+  const setTo = (v: string) => setTp({ ...tp, to: v })
+  const setPlanets = (f: (l: string[]) => string[]) => setTp({ ...tp, planets: f(planets) })
+  const setKinds = (k: typeof kinds) => setTp({ ...tp, kinds: k })
   const [events, setEvents] = useState<TransitEvent[]>([])
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   useEffect(() => {
-    try { localStorage.setItem('transit-planets', JSON.stringify(planets)) } catch { /* yok say */ }
     if (!from || !to) return
     setBusy(true); setError('')
     window.southastra.transitList(input, `${from}T00:00:00Z`, `${to}T23:59:59Z`, planets)

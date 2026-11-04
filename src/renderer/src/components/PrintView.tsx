@@ -1,13 +1,14 @@
-import type { ChartResult, Library, Settings, TransitEvent, ViewResult } from '@shared/types'
+import type { ChartResult, EclipseEvent, Library, RectifyRow, Settings, TransitEvent, ViewResult } from '@shared/types'
 import { HOUSE_SYSTEMS, placeLabel, RODDEN } from '@shared/types'
 import { activeOrbs, ASPECT_BY_TYPE, ASPECTS, moonPhase, SIGNS } from '@shared/zodiac'
 import { aspectPatterns } from '@shared/patterns'
 import { chartFactors } from '@shared/factors'
 import Wheel from './Wheel'
 import { AspectGrid, AspectList, CrossList, HouseTable, PLANET_LEGEND, PlanetTable } from './Tables'
-import { Distribution, LotsTable, StarsTable } from './Analysis'
+import { Distribution, LotsTable, RectifyTable, StarsTable } from './Analysis'
+import { getPanelParams } from '../panelParams'
 import { TimeLordsPanel } from './TimeLords'
-import { MidpointsPanel, PatternsBlock, TraditionalPanel, type PdfSections } from './Extras'
+import { EclipsePanel, MidpointsPanel, PatternsBlock, TraditionalPanel, type PdfSections } from './Extras'
 import { fmtDateTr, fmtOffset } from '../format'
 import logoMark from '../assets/logo-mark.svg'
 
@@ -110,8 +111,9 @@ function Summary({ chart }: { chart: ChartResult }) {
   )
 }
 
-export default function PrintView({ view, sections, library, transits, modeName, settings }: {
-  view: ViewResult; sections: PdfSections; library: Library; transits?: TransitEvent[]; modeName: string; settings: Settings
+export default function PrintView({ view, sections, library, transits, eclipses, rectify, modeName, settings }: {
+  view: ViewResult; sections: PdfSections; library: Library; transits?: TransitEvent[]; eclipses?: EclipseEvent[]
+  rectify?: { rows: RectifyRow[]; from: string; to: string; step: number }; modeName: string; settings: Settings
 }) {
   const c = view.inner
   const i = c.input
@@ -122,6 +124,11 @@ export default function PrintView({ view, sections, library, transits, modeName,
   const natal = view.outer?.kind === 'natal' ? view.outer : c
   const nm = (id: string) => (id === 'asc' ? 'Yükselen' : id === 'mc' ? 'MC' : natal.points.find((p) => p.id === id)?.name ?? id)
   const gl = (id: string) => natal.points.find((p) => p.id === id)?.glyph ?? ''
+  const transitRangeText = () => {
+    const t = getPanelParams().transitList
+    const kinds = [t.kinds.aspects && 'açılar', t.kinds.stations && 'duraklamalar', t.kinds.ingress && 'burç geçişleri'].filter(Boolean).join(', ')
+    return `${t.from.split('-').reverse().join('.')} – ${t.to.split('-').reverse().join('.')} · ${t.planets.map((p) => gl(p)).join(' ')} · ${kinds || 'olay türü seçilmedi'}`
+  }
 
   return (
     <div className="print-page">
@@ -183,7 +190,7 @@ export default function PrintView({ view, sections, library, transits, modeName,
             <TraditionalPanel chart={c} />
           </Section>
           <Section title="Orta nokta temasları" who={who}>
-            <div className="p-cols2"><MidpointsPanel chart={c} initialOrb={1} /></div>
+            <div className="p-cols2"><MidpointsPanel chart={c} print /></div>
           </Section>
         </>
       )}
@@ -194,9 +201,22 @@ export default function PrintView({ view, sections, library, transits, modeName,
         </Section>
       )}
 
-      {sections.transits && transits && transits.length > 0 && (
+      {sections.eclipses && eclipses && (
+        <Section title="Tutulmalar" who={who}>
+          <EclipsePanel input={i} chart={c.kind === 'natal' ? c : view.outer ?? c} print preloaded={eclipses} />
+        </Section>
+      )}
+
+      {sections.rectify && rectify && (
+        <Section title="Doğum saati aralığı" who={who}>
+          <p className="hint">{rectify.from} – {rectify.to} yerel saat · {rectify.step} dk adım · yükselen ve MC'nin burç değiştirdiği satırlar vurgulu</p>
+          <div className="p-cols2"><RectifyTable rows={rectify.rows} current={i.timeUnknown ? undefined : i.time.slice(0, 5)} /></div>
+        </Section>
+      )}
+
+      {sections.transits && transits && (
         <Section title="Transit listesi" who={who}>
-          <p className="hint">{new Date(transits[0].utc).toLocaleDateString('tr-TR')} – {new Date(transits[transits.length - 1].utc).toLocaleDateString('tr-TR')} · tam açı anları, {i.place.tz} saatiyle</p>
+          <p className="hint">{transitRangeText()} · tam açı anları, {i.place.tz} saatiyle · {transits.length} olay</p>
           <table className="data p-transits">
             <thead><tr><th>Tarih</th><th>Transit</th><th>Olay</th></tr></thead>
             <tbody>

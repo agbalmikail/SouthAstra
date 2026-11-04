@@ -3,12 +3,12 @@ import type { ChartResult } from '@shared/types'
 import { SIGNS } from '@shared/zodiac'
 import { isDayChart } from '@shared/dignities'
 import { addYears, firdaria, profections, type NightNodes } from '@shared/timelords'
+import { usePanelParam } from '../panelParams'
 
 const GL: Record<string, string> = { sun: '☉', moon: '☽', mercury: '☿', venus: '♀', mars: '♂', jupiter: '♃', saturn: '♄', northnode: '☊', southnode: '☋' }
 const NAME: Record<string, string> = { sun: 'Güneş', moon: 'Ay', mercury: 'Merkür', venus: 'Venüs', mars: 'Mars', jupiter: 'Jüpiter', saturn: 'Satürn', northnode: 'Kuzey Düğüm', southnode: 'Güney Düğüm' }
 const g = (id: string) => (GL[id] ?? id) + '︎'
 const d = (x: Date) => x.toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric' })
-const LS = 'sa.firdaria.nightNodes'
 
 /** Yıllık profeksiyon ve firdaria; seçili tarih (varsayılan bugün) vurgulanır */
 export function TimeLordsPanel({ chart, at, print }: { chart: ChartResult; at?: Date; print?: boolean }) {
@@ -16,9 +16,10 @@ export function TimeLordsPanel({ chart, at, print }: { chart: ChartResult; at?: 
   const now = (at ?? new Date()).getTime()
   let ageNow = 0
   while (addYears(birth, ageNow + 1) <= now) ageNow++
-  const [span, setSpan] = useState(12)
-  const [nightNodes, setNN] = useState<NightNodes>(() => { try { return localStorage.getItem(LS) === 'afterMars' ? 'afterMars' : 'end' } catch { return 'end' } })
-  const setNightNodes = (v: NightNodes) => { setNN(v); try { localStorage.setItem(LS, v) } catch { /* yok */ } }
+  const [tl, setTl] = usePanelParam('timelords')
+  const { span, nightNodes } = tl
+  const setSpan = (v: number) => setTl({ ...tl, span: v })
+  const setNightNodes = (v: NightNodes) => setTl({ ...tl, nightNodes: v })
   const day = isDayChart(chart)
   const prof = useMemo(() => profections(chart, birth, Math.max(0, ageNow - Math.floor(span / 2)), Math.max(0, ageNow - Math.floor(span / 2)) + span), [chart, birth, ageNow, span])
   const fird = useMemo(() => { const all = firdaria(chart, birth, 2, nightNodes); return print ? all.filter((f) => +f.major.from < addYears(birth, 90)) : all }, [chart, birth, nightNodes, print])

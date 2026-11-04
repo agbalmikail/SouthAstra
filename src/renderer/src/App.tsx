@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import type { Ephemeris, AcgLine, ChartInput, ChartResult, CityHit, HouseSystem, Library, LifeEvent, MenuCommand, Place, Rodden, SavedChart, Session, Settings, TransitEvent, UpdateInfo, ViewMode, ViewResult } from '@shared/types'
+import type { EclipseEvent, RectifyRow, Ephemeris, AcgLine, ChartInput, ChartResult, CityHit, HouseSystem, Library, LifeEvent, MenuCommand, Place, Rodden, SavedChart, Session, Settings, TransitEvent, UpdateInfo, ViewMode, ViewResult } from '@shared/types'
 import { HOUSE_SYSTEMS, placeLabel, RODDEN, VIEW_MODES } from '@shared/types'
 import { DEFAULT_SETTINGS } from '@shared/zodiac'
 import { fold } from './search'
@@ -10,6 +10,7 @@ import PrintView from './components/PrintView'
 import EphemerisView, { EphemerisPrint } from './components/EphemerisView'
 import CommandPalette, { type Command } from './components/CommandPalette'
 import Onboarding from './components/Onboarding'
+import { getPanelParams, rectifyDefaults, rectifyKey } from './panelParams'
 import logoMarkSrc from './assets/logo-mark.svg'
 import { DateBar, ShiftBar } from './components/TimeBar'
 import { AspectGrid, AspectList, CrossList, HouseTable, PlanetTable } from './components/Tables'
@@ -39,7 +40,6 @@ const errText = (e: unknown) => (e as Error).message.replace(/^Error invoking re
 type Tab = { k: string; label: string }
 const T = (k: string, label: string): Tab => ({ k, label })
 const HARMONICS = [4, 5, 7, 8, 9, 11, 12, 16]
-const PDF_TRANSIT_PLANETS = ['sun', 'mars', 'jupiter', 'saturn', 'uranus', 'neptune', 'pluto']
 
 /** Görünüme göre panel sekmeleri: ana sekmeler görünür, diğerleri "Araçlar" menüsünde */
 function tabsFor(mode: ViewMode, a: string, b: string): { main: Tab[]; more: Tab[] } {
@@ -105,6 +105,8 @@ export default function App() {
   const [pdfSections, setPdfSections] = useState<PdfSections>({ ...DEFAULT_PDF, ...pref('pdfSections', {}) })
   const [printing, setPrinting] = useState(false)
   const [printTransits, setPrintTransits] = useState<TransitEvent[] | undefined>()
+  const [printEclipses, setPrintEclipses] = useState<EclipseEvent[] | undefined>()
+  const [printRectify, setPrintRectify] = useState<{ rows: RectifyRow[]; from: string; to: string; step: number } | undefined>()
   const [acgLines, setAcgLines] = useState<AcgLine[]>([])
   const [acgHidden, setAcgHidden] = useState<Set<string>>(new Set(pref<string[]>('acgHidden', ['chiron'])))
   const [acgHover, setAcgHover] = useState<string | null>(null)
@@ -287,7 +289,8 @@ export default function App() {
   const pdfAvailable: (keyof PdfSections)[] = [
     'chart', 'positions', 'aspects',
     ...(single && mode !== 'harmonic' ? ['analysis' as const] : []),
-    ...(mode === 'natal' ? ['timelords' as const] : []),
+    ...(mode === 'natal' ? ['timelords' as const, 'rectify' as const] : []),
+    ...(mode === 'natal' || mode === 'transit' ? ['eclipses' as const] : []),
     ...(mode === 'transit' ? ['transits' as const] : []),
     ...(natalLike ? ['interpretations' as const] : []),
     'notes'
@@ -299,14 +302,26 @@ export default function App() {
     setPdfSections(s); savePref('pdfSections', s)
     const sec = Object.fromEntries(Object.entries(s).map(([k, v]) => [k, v && pdfAvailable.includes(k as keyof PdfSections)])) as PdfSections
     setPdfSections(sec)
-    if (sec.transits) {
-      const from = new Date(dateMs)
-      const to = new Date(dateMs); to.setUTCFullYear(to.getUTCFullYear() + 1)
-      try {
-        const list = await window.southastra.transitList(input, from.toISOString(), to.toISOString(), PDF_TRANSIT_PLANETS)
-        setPrintTransits(list.filter((e) => e.natal || e.type !== 'ingress'))
-      } catch { setPrintTransits(undefined) }
-    } else setPrintTransits(undefined)
+    // PDF, panellerde seçili aralık ve filtrelerle hazırlanır
+    const pp = getPanelParams()
+    setPrintTransits(undefined); setPrintEclipses(undefined); setPrintRectify(undefined)
+    try {
+      if (sec.transits) {
+        const t = pp.transitList
+        const list = await window.southastra.transitList(input, `${t.from}T00:00:00Z`, `${t.to}T23:59:59Z`, t.planets)
+        setPrintTransits(list.filter((e) => (e.natal ? t.kinds.aspects : e.type === 'ingress' ? t.kinds.ingress : t.kinds.stations)))
+      }
+      if (sec.eclipses) {
+        const e = pp.eclipses
+        const list = await window.southastra.eclipses(input, `${e.from}T00:00:00Z`, `${e.to}T23:59:59Z`)
+        setPrintEclipses(list)
+      }
+      if (sec.rectify) {
+        const t0 = input.time.slice(0, 5)
+        const r = pp.rectify[rectifyKey(input.date, t0, input.timeUnknown)] ?? rectifyDefaults(t0, input.timeUnknown)
+        setPrintRectify({ ...r, rows: await window.southastra.rectify(input, r.from, r.to, r.step) })
+      }
+    } catch (e) { setError(errText(e)); return }
     setPrinting(true)
     await new Promise((r) => setTimeout(r, 400))
     try {
@@ -470,7 +485,7 @@ export default function App() {
 
   if (acgPrint && input) return <AcgPrint input={input} lines={acgLines} hidden={acgHidden} marker={acgMarker} utc={view?.inner.utc} logo={logoMarkSrc} />
   if (ephemPrint) return <EphemerisPrint data={ephemPrint.data} tz={ephemPrint.tz} title={ephemPrint.title} logo={logoMarkSrc} />
-  if (printing && shownView) return <PrintView view={shownView} sections={pdfSections} library={library} transits={printTransits} modeName={modeDef.name} settings={settings} />
+  if (printing && shownView) return <PrintView view={shownView} sections={pdfSections} library={library} transits={printTransits} eclipses={printEclipses} rectify={printRectify} modeName={modeDef.name} settings={settings} />
 
   const inner = shownView?.inner
   const outer = shownView?.outer

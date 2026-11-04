@@ -7,6 +7,7 @@ import { chartFactors, keyTitle, midpointHits, type Factor } from '@shared/facto
 import { fold } from '../search'
 import { fmtOrb } from '../format'
 import { Lon } from './Tables'
+import { usePanelParam } from '../panelParams'
 
 const err = (e: unknown) => (e as Error).message.replace(/^Error invoking remote method '[^']+': (Error: )?/, '')
 const today = () => new Date().toLocaleDateString('sv-SE')
@@ -158,8 +159,10 @@ export function SessionsPanel({ input, canSave, onChange }: { input: ChartInput;
 
 // ——— Orta noktalar ———
 
-export function MidpointsPanel({ chart, initialOrb = 1.5 }: { chart: ChartResult; initialOrb?: number }) {
-  const [orb, setOrb] = useState(initialOrb)
+export function MidpointsPanel({ chart, print }: { chart: ChartResult; print?: boolean }) {
+  const [mp, setMp] = usePanelParam('midpoints')
+  const orb = mp.orb
+  const setOrb = (o: number) => setMp({ orb: o })
   const hits = useMemo(() => midpointHits(chart, orb), [chart, orb])
   const g = (id: string) => (id === 'asc' ? 'AC' : id === 'mc' ? 'MC' : chart.points.find((p) => p.id === id)?.glyph ?? id)
   const cls = (id: string) => (id === 'asc' || id === 'mc' ? 'axis-txt' : 'sym')
@@ -168,10 +171,10 @@ export function MidpointsPanel({ chart, initialOrb = 1.5 }: { chart: ChartResult
   return (
     <div>
       <p className="hint">“Nokta = A/B”: nokta, A ile B'nin orta noktasına kavuşum, 45°, 90°, 135° veya 180° açıda (90° kadran). Ebertin ve Uranian astrolojisinde kullanılır.</p>
-      <div className="toolbar">
+      {print ? <p className="hint">Orb ±{String(orb).replace('.', ',')}° · {hits.length} temas</p> : <div className="toolbar">
         <label className="inline small">Orb <select id="mp-orb" className="compact" value={orb} onChange={(e) => setOrb(Number(e.target.value))}>{[0.5, 1, 1.5, 2].map((o) => <option key={o} value={o}>{o}°</option>)}</select></label>
         <span className="muted small">{hits.length} temas</span>
-      </div>
+      </div>}
       <table className="data">
         <tbody>
           {hits.map((h, i) => {
@@ -195,15 +198,18 @@ export function MidpointsPanel({ chart, initialOrb = 1.5 }: { chart: ChartResult
 
 // ——— Tutulmalar ———
 
-export function EclipsePanel({ input, chart }: { input: ChartInput; chart: ChartResult }) {
-  const y = new Date().getFullYear()
-  const [from, setFrom] = useState(`${y}-01-01`)
-  const [to, setTo] = useState(`${y + 2}-12-31`)
-  const [list, setList] = useState<EclipseEvent[]>([])
-  const [onlyContacts, setOnlyContacts] = useState(false)
+export function EclipsePanel({ input, chart, print, preloaded }: { input: ChartInput; chart: ChartResult; print?: boolean; preloaded?: EclipseEvent[] }) {
+  const [ep, setEp] = usePanelParam('eclipses')
+  const { from, to, onlyContacts } = ep
+  const setFrom = (v: string) => setEp({ ...ep, from: v })
+  const setTo = (v: string) => setEp({ ...ep, to: v })
+  const setOnlyContacts = (v: boolean) => setEp({ ...ep, onlyContacts: v })
+  const [fetched, setList] = useState<EclipseEvent[]>([])
+  const list = preloaded ?? fetched
   const [error, setError] = useState('')
   useEffect(() => {
     setError('')
+    if (preloaded) return
     if (from && to) window.southastra.eclipses(input, `${from}T00:00:00Z`, `${to}T23:59:59Z`).then(setList).catch((e) => setError(err(e)))
   }, [input, from, to])
   const n = (id: string) => (id === 'asc' ? 'Yükselen' : id === 'mc' ? 'MC' : chart.points.find((p) => p.id === id)?.name ?? id)
@@ -223,11 +229,11 @@ export function EclipsePanel({ input, chart }: { input: ChartInput; chart: Chart
       <div className="cap">Doğum öncesi tutulmalar</div>
       <table className="data"><tbody>{pre.map(row)}</tbody></table>
       <div className="cap">Tutulmalar ve natal temaslar (3° orb · kavuşum, karşıt, kare)</div>
-      <div className="toolbar wrap">
+      {print ? <p className="hint">{from.split('-').reverse().join('.')} – {to.split('-').reverse().join('.')}{onlyContacts ? ' · yalnız natal teması olanlar' : ''} · saatler {input.place.tz} saatiyle</p> : <div className="toolbar wrap">
         <label className="inline small">Başlangıç <input id="e-from" type="date" value={from} onChange={(e) => setFrom(e.target.value)} /></label>
         <label className="inline small">Bitiş <input id="e-to" type="date" value={to} onChange={(e) => setTo(e.target.value)} /></label>
         <label className="inline small"><input type="checkbox" checked={onlyContacts} onChange={(e) => setOnlyContacts(e.target.checked)} /> Sadece temas edenler</label>
-      </div>
+      </div>}
       {error && <p className="error">{error}</p>}
       <table className="data"><tbody>{next.map(row)}</tbody></table>
     </div>
@@ -236,14 +242,14 @@ export function EclipsePanel({ input, chart }: { input: ChartInput; chart: Chart
 
 // ——— PDF seçenekleri ———
 
-export type PdfSections = { chart: boolean; positions: boolean; aspects: boolean; analysis: boolean; timelords: boolean; transits: boolean; interpretations: boolean; notes: boolean }
-export const DEFAULT_PDF: PdfSections = { chart: true, positions: true, aspects: true, analysis: true, timelords: false, transits: true, interpretations: true, notes: false }
+export type PdfSections = { chart: boolean; positions: boolean; aspects: boolean; analysis: boolean; timelords: boolean; eclipses: boolean; rectify: boolean; transits: boolean; interpretations: boolean; notes: boolean }
+export const DEFAULT_PDF: PdfSections = { chart: true, positions: true, aspects: true, analysis: true, timelords: false, eclipses: false, rectify: false, transits: true, interpretations: true, notes: false }
 
 export function PdfDialog({ initial, available, onCancel, onExport }: { initial: PdfSections; available: (keyof PdfSections)[]; onCancel: () => void; onExport: (s: PdfSections) => void }) {
   const [s, setS] = useState(initial)
   const LABELS: Record<keyof PdfSections, string> = {
     chart: 'Harita çarkı ve doğum bilgileri', positions: 'Konumlar (gezegenler, evler)', aspects: 'Açılar',
-    analysis: 'Analiz (dağılım, orta noktalar, sabit yıldızlar)', timelords: 'Profeksiyon ve firdaria', transits: 'Transit listesi (12 ay)',
+    analysis: 'Analiz (dağılım, orta noktalar, sabit yıldızlar)', timelords: 'Profeksiyon ve firdaria (paneldeki ayarlarla)', eclipses: 'Tutulmalar (paneldeki tarih aralığıyla)', rectify: 'Doğum saati aralığı (paneldeki saatlerle)', transits: 'Transit listesi (paneldeki aralık, gezegenler ve olay türleriyle)',
     interpretations: 'Yorumlarım (kütüphaneden)', notes: 'Notlar ve seans notları (danışana verilecekse kapalı tutun)'
   }
   return (
