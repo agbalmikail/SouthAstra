@@ -12,6 +12,8 @@ import CommandPalette, { type Command } from './components/CommandPalette'
 import Onboarding from './components/Onboarding'
 import { LearnPanel } from './components/LearnPanel'
 import FeedbackSession from './components/FeedbackSession'
+import BlindTest from './components/BlindTest'
+import type { BlindTrial } from '@shared/blind'
 import type { FeedbackEntry } from '@shared/feedback'
 import { HighlightsPanel } from './components/HighlightsPanel'
 import { getPanelParams, rectifyDefaults, rectifyKey } from './panelParams'
@@ -105,6 +107,7 @@ export default function App() {
   const [ephemOpen, setEphemOpen] = useState(false)
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [feedbackOpen, setFeedbackOpen] = useState(false)
+  const [blindOpen, setBlindOpen] = useState(false)
   const [onboarding, setOnboarding] = useState(false)
   const [ephemPrint, setEphemPrint] = useState<{ data: Ephemeris; tz: string; title: string } | null>(null)
   const [aboutOpen, setAboutOpen] = useState(false)
@@ -246,6 +249,13 @@ export default function App() {
     if (!input || !currentId || !entries.length) return
     const saved = await window.southastra.saveChart({ ...input, feedback: [...(input.feedback ?? []), ...entries], id: currentId })
     setInput(saved); await refresh(); setToast('Geri bildirim kaydedildi')
+  }
+  const saveBlind = async (chartId: string, t: BlindTrial) => {
+    const c = charts.find((x) => x.id === chartId)
+    if (!c) return
+    const saved = await window.southastra.saveChart({ ...c, blindTrials: [...(c.blindTrials ?? []), t] })
+    if (chartId === currentId) setInput(saved)
+    await refresh(); setToast('Deneme kaydedildi')
   }
   const saveSessions = async (sessions: Session[]) => {
     if (!input || !currentId) return
@@ -425,6 +435,7 @@ export default function App() {
   const handleMenu = async (cmd: MenuCommand) => {
     if (cmd === 'copy-image' && view && mode !== 'acg') await copyChartImage()
     if (cmd === 'palette') setPaletteOpen(true)
+    if (cmd === 'blind') setBlindOpen(true)
     if (cmd === 'onboarding') setOnboarding(true)
     if (cmd === 'new') setForm('new')
     if (cmd === 'edit' && currentId) setForm('edit')
@@ -471,6 +482,7 @@ export default function App() {
     if (view && mode !== 'acg') out.push({ id: 'x:copy', group: 'Komutlar', label: 'Haritayı resim olarak kopyala', hint: kbd('C', { shift: true }), keywords: 'png görüntü pano', run: () => { void copyChartImage() } })
     cmd('ephemeris', 'Efemeris', kbd('E', { shift: true }), 'ay boşluk geçiş void')
     cmd('library', 'Yorum kütüphanesi', kbd('L'))
+    cmd('blind', 'Kör karşılaştırma', undefined, 'test deneme yorum ayırt')
     cmd('settings', 'Ayarlar', kbd(','), 'orb zodyak ev sistemi')
     cmd('find', 'Arşivde filtrele', kbd('F'))
     cmd('export', 'Arşivi dışa aktar', undefined, 'yedek')
@@ -533,7 +545,7 @@ export default function App() {
       case 'timelords': return <TimeLordsPanel chart={inner} at={new Date(dateMs)} />
       case 'events': return input ? <EventsPanel input={input} canSave={!!currentId} onChange={saveEvents} onOpen={openEvent} /> : null
       case 'midpoints': return <MidpointsPanel chart={inner} />
-      case 'interpret': return <InterpretPanel chart={inner} library={library} onSave={saveInterp} feedback={input?.feedback} onFeedback={currentId && mode === 'natal' ? () => setFeedbackOpen(true) : undefined} />
+      case 'interpret': return <InterpretPanel chart={inner} library={library} onSave={saveInterp} feedback={input?.feedback} onFeedback={currentId && mode === 'natal' ? () => setFeedbackOpen(true) : undefined} onBlind={() => setBlindOpen(true)} />
       case 'eclipses': return input ? <EclipsePanel input={input} chart={mode === 'transit' ? inner : inner} /> : null
       case 'sessions': return input ? <SessionsPanel input={input} canSave={!!currentId} onChange={saveSessions} /> : null
       case 'compare': return input ? <HouseCompare input={input} base={inner} hsys={hsysView ?? input.houseSystem} /> : null
@@ -772,6 +784,7 @@ export default function App() {
       {paletteOpen && <CommandPalette commands={paletteCommands} onClose={() => setPaletteOpen(false)} />}
       {ephemOpen && <EphemerisView tzChoices={ephemTzChoices} onClose={() => setEphemOpen(false)} onPdf={exportEphemPdf} />}
       {libraryOpen && <LibraryModal library={library} onSave={saveInterp} onClose={() => setLibraryOpen(false)} feedback={charts.flatMap((c) => c.feedback ?? [])} />}
+      {blindOpen && <BlindTest charts={charts} current={currentId ?? undefined} library={library} rulership={settings.rulership} onSave={saveBlind} onClose={() => setBlindOpen(false)} />}
       {feedbackOpen && inner && <FeedbackSession chart={inner} library={library} onSave={saveFeedback} onClose={() => setFeedbackOpen(false)} />}
       {pdfOpen && <PdfDialog initial={pdfSections} available={pdfAvailable} onCancel={() => setPdfOpen(false)} onExport={exportPdf} />}
       {toast && <div className="toast" role="status">{toast}</div>}

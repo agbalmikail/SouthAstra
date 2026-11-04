@@ -41,7 +41,7 @@ function FactorRow({ f, text, onSave, last }: { f: Factor; text?: string; onSave
   )
 }
 
-export function InterpretPanel({ chart, library, onSave, feedback, onFeedback }: { chart: ChartResult; library: Library; onSave: (key: string, text: string) => void; feedback?: FeedbackEntry[]; onFeedback?: () => void }) {
+export function InterpretPanel({ chart, library, onSave, feedback, onFeedback, onBlind }: { chart: ChartResult; library: Library; onSave: (key: string, text: string) => void; feedback?: FeedbackEntry[]; onFeedback?: () => void; onBlind?: () => void }) {
   const factors = useMemo(() => chartFactors(chart), [chart])
   const [onlyDone, setOnlyDone] = useState(false)
   const done = factors.filter((f) => library[f.key]).length
@@ -52,6 +52,7 @@ export function InterpretPanel({ chart, library, onSave, feedback, onFeedback }:
         <span className="small"><b className="num">{done}</b> / <span className="num">{factors.length}</span> etkenin yorumu var</span>
         <label className="inline small"><input type="checkbox" checked={onlyDone} onChange={(e) => setOnlyDone(e.target.checked)} /> Sadece yorumlu olanlar</label>
         {onFeedback && <button className="btn ghost small" disabled={done === 0} title={done === 0 ? 'Önce bu haritanın etkenleri için yorum yazın' : 'Danışana metinleri etken adları olmadan, kontrol metinleriyle karışık gösterir'} onClick={onFeedback}>Seans geri bildirimi al</button>}
+        {onBlind && <button className="btn ghost small" onClick={onBlind} title="Yorumlarınızın haritaları ayırt edip etmediğini kör denemeyle ölçün">Kör karşılaştırma</button>}
       </div>
       {GROUPS.map((g) => {
         const list = factors.filter((f) => f.group === g && (!onlyDone || library[f.key]))

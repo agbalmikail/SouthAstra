@@ -18,8 +18,11 @@ export interface SessionItem { key: string; control: boolean }
 
 /** Basit, tohumlu sözde rastgele (aynı tohum → aynı sıra; testler için) */
 export function rng(seed: number): () => number {
-  let s = seed >>> 0 || 1
-  return () => { s ^= s << 13; s >>>= 0; s ^= s >>> 17; s ^= s << 5; s >>>= 0; return s / 4294967296 }
+  // tohumu karıştır (küçük tohumlar da farklı diziler versin) ve ilk değerleri at
+  let s = Math.imul(seed >>> 0 || 1, 2654435761) >>> 0 || 1
+  const next = () => { s ^= s << 13; s >>>= 0; s ^= s >>> 17; s ^= s << 5; s >>>= 0; return s / 4294967296 }
+  for (let i = 0; i < 12; i++) next()
+  return next
 }
 export function shuffle<T>(arr: T[], rand: () => number): T[] {
   const a = [...arr]

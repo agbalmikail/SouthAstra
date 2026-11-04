@@ -29,6 +29,7 @@ export function buildMenu(): void {
         { label: 'Arşivde filtrele', accelerator: 'CmdOrCtrl+F', click: send('find') },
         { label: 'Yorum kütüphanesi', accelerator: 'CmdOrCtrl+L', click: send('library') },
         { label: 'Efemeris', accelerator: 'CmdOrCtrl+Shift+E', click: send('ephemeris') },
+        { label: 'Kör karşılaştırma…', click: send('blind') },
         { type: 'separator' },
         { label: 'PDF olarak kaydet…', accelerator: 'CmdOrCtrl+P', click: send('pdf') },
         { label: 'Çarkı resim olarak kopyala', accelerator: 'CmdOrCtrl+Shift+C', click: send('copy-image') },

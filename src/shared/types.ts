@@ -1,4 +1,5 @@
 import type { FeedbackEntry } from './feedback'
+import type { BlindTrial } from './blind'
 export type HouseSystem = 'P' | 'K' | 'R' | 'C' | 'E' | 'W' | 'O' | 'B' | 'T' | 'M' | 'X'
 
 export const HOUSE_SYSTEMS: { id: HouseSystem; name: string }[] = [
@@ -77,6 +78,7 @@ export interface ChartInput {
   notes?: string
   sessions?: Session[]
   feedback?: FeedbackEntry[] // seans geri bildirimi (Uyuyor / Kısmen / Uymuyor), kontrol metinleri dahil
+  blindTrials?: BlindTrial[] // kör karşılaştırma denemeleri (bu kişi katılımcıyken)
   events?: LifeEvent[]
   residence?: Place // danışanın yaşadığı yer: dönüş ve taşınma haritalarında varsayılan
 }
@@ -379,7 +381,7 @@ export interface SavedChart extends ChartInput {
   updatedAt: string
 }
 
-export type MenuCommand = 'new' | 'edit' | 'find' | 'pdf' | 'settings' | 'now' | 'export' | 'import' | 'library' | 'toggle-side' | 'toggle-panel' | 'about' | 'update-check' | 'ephemeris' | 'palette' | 'copy-image' | 'onboarding'
+export type MenuCommand = 'new' | 'edit' | 'find' | 'pdf' | 'settings' | 'now' | 'export' | 'import' | 'library' | 'toggle-side' | 'toggle-panel' | 'about' | 'update-check' | 'ephemeris' | 'palette' | 'copy-image' | 'onboarding' | 'blind'
 
 /** Kişisel yorum kütüphanesi: etken anahtarı → astrologun kendi metni */
 export type Library = Record<string, { text: string; updatedAt: string }>

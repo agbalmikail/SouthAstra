@@ -15,6 +15,7 @@ import { chartHighlights, ANGLE_ORB, TIGHT_ORB } from '../src/shared/highlights'
 import { transitExplain } from '../src/shared/learn'
 import { buildSession, feedbackStats, fitShare, looksGeneric, rng, type FeedbackEntry } from '../src/shared/feedback'
 import { chartFactors } from '../src/shared/factors'
+import { buildSheets, chanceP } from '../src/shared/blind'
 import { aspectPatterns } from '../src/shared/patterns'
 import type { ChartResult } from '../src/shared/types'
 import { toUtc } from '../src/main/time'
@@ -260,6 +261,29 @@ console.log('\n— Seans geri bildirimi ve kontrol metinleri')
   const fs = feedbackStats([E('a', 'fit', false), E('a', 'partial', false), E('a', 'nofit', false), E('g', 'fit', true), E('g', 'fit', true), E('g', 'partial', true), E('h', 'fit', true), E('h', 'nofit', true), E('h', 'nofit', true)])
   ok(fs.real.n === 3 && Math.abs(fitShare(fs.real) - 0.5) < 1e-9 && fs.control.n === 6, 'Sayım: uyuyor 1 · kısmen 0,5 · uymuyor 0; gerçek ve kontrol ayrı')
   ok(looksGeneric(fs.byKey.g) && !looksGeneric(fs.byKey.h) && !looksGeneric(fs.byKey.a), "'Fazla genel' uyarısı: kontrol olarak da çoğunlukla uyan metinde var, uymayanda ve az veride yok")
+}
+
+console.log('\n— Kör karşılaştırma: şans hesabı')
+{
+  const C2 = (n: number, k: number) => { let r = 1; for (let i = 1; i <= k; i++) r = (r * (n - k + i)) / i; return r }
+  const binomTail = (n: number, k: number, q: number) => { let s = 0; for (let x = k; x <= n; x++) s += C2(n, x) * q ** x * (1 - q) ** (n - x); return s }
+  const t20 = Array.from({ length: 20 }, (_, i) => ({ options: 3, correct: i < 11 }))
+  const r = chanceP(t20)
+  ok(Math.abs(r.p - binomTail(20, 11, 1 / 3)) < 1e-12 && Math.abs(r.expected - 20 / 3) < 1e-9, `3 seçenek, 20 denemede 11 isabet: p = ${r.p.toFixed(4)} (binom formülüyle aynı), beklenen ${r.expected.toFixed(2)}`)
+  // karışık seçenek sayıları: tüm 2^n sonucu sayarak
+  const mix = [{ options: 2, correct: true }, { options: 3, correct: true }, { options: 4, correct: false }, { options: 2, correct: true }, { options: 4, correct: true }]
+  let brute = 0
+  for (let m = 0; m < 1 << mix.length; m++) {
+    let pr = 1, h = 0
+    mix.forEach((t, i) => { const hit = (m >> i) & 1; pr *= hit ? 1 / t.options : 1 - 1 / t.options; h += hit })
+    if (h >= 4) brute += pr
+  }
+  ok(Math.abs(chanceP(mix).p - brute) < 1e-12, `Karışık seçenek sayılarında p, bütün olasılıkları sayarak aynı (${brute.toFixed(4)})`)
+  ok(chanceP([]).p === 1 && chanceP([{ options: 2, correct: false }]).p === 1, 'Deneme yoksa ya da isabet yoksa p = 1')
+  const sh = buildSheets([{ chartId: 'a', texts: ['1', '2', '3'] }, { chartId: 'b', texts: ['4', '5', '6'] }, { chartId: 'c', texts: ['7', '8', '9'] }], rng(3))
+  ok(sh.map((x) => x.label).join('') === 'ABC' && new Set(sh.map((x) => x.chartId)).size === 3 && sh.every((x) => x.texts.length === 3), 'Sayfalar A/B/C, her harita bir kez, metinler eksiksiz')
+  const order = new Set(Array.from({ length: 30 }, (_, i) => buildSheets([{ chartId: 'a', texts: [] }, { chartId: 'b', texts: [] }, { chartId: 'c', texts: [] }], rng(i + 1)).map((x) => x.chartId).join('')))
+  ok(order.size >= 5, `Katılımcının sayfasının yeri rastgele (30 denemede ${order.size} farklı sıra)`)
 }
 
 console.log('\n— Ay düğümü (bağımsız formül)')
