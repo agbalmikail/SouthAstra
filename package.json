@@ -1,7 +1,7 @@
 {
   "name": "southastra",
   "productName": "SouthAstra",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "Profesyonel astroloji programı — Swiss Ephemeris tabanlı",
   "license": "AGPL-3.0-or-later",
   "main": "./out/main/index.js",
