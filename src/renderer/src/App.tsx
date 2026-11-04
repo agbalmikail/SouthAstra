@@ -15,7 +15,7 @@ import { AspectGrid, AspectList, CrossList, HouseTable, PlanetTable } from './co
 import { TimeLordsPanel } from './components/TimeLords'
 import { Distribution, HouseCompare, LotsTable, PlanetDetail, RectifyPanel, StarsTable, TransitListPanel } from './components/Analysis'
 import { DEFAULT_PDF, EclipsePanel, EventsPanel, InterpretPanel, LibraryModal, MidpointsPanel, PatternsBlock, PdfDialog, SessionsPanel, TraditionalPanel, type PdfSections } from './components/Extras'
-import { AcgMap, AcgPanel } from './components/AcgMap'
+import { AcgMap, AcgPanel, AcgPrint } from './components/AcgMap'
 import ZoomPane from './components/ZoomPane'
 import AboutModal from './components/AboutModal'
 import PlacePicker from './components/PlacePicker'
@@ -107,6 +107,7 @@ export default function App() {
   const [acgHidden, setAcgHidden] = useState<Set<string>>(new Set(pref<string[]>('acgHidden', ['chiron'])))
   const [acgHover, setAcgHover] = useState<string | null>(null)
   const [acgMarker, setAcgMarker] = useState<CityHit | null>(null)
+  const [acgPrint, setAcgPrint] = useState(false)
   const [toast, setToast] = useState('')
   const [sideW, setSideW] = useState<number>(pref('sideW', 248))
   const [panelW, setPanelW] = useState<number>(pref('panelW', 460))
@@ -325,6 +326,21 @@ export default function App() {
     setEphemOpen(true)
   }, [theme])
 
+  const exportAcgPdf = async () => {
+    if (!input || !acgLines.length) return
+    setAcgPrint(true)
+    document.documentElement.dataset.theme = 'light'
+    document.documentElement.dataset.printing = '1'
+    await new Promise((r) => setTimeout(r, 500))
+    try {
+      const path = await window.southastra.exportPdf(`${input.name} - Astrokartografi`, `SouthAstra · ${input.name} · Astrokartografi · ${new Date().toLocaleDateString('tr-TR')}`)
+      if (path) setToast('PDF kaydedildi')
+    } catch (e) { setError(errText(e)) }
+    setAcgPrint(false)
+    document.documentElement.dataset.theme = theme
+    delete document.documentElement.dataset.printing
+  }
+
   // Menü ve kısayollar
   /** Çarkı panoya kopyala: seçim ve yakınlaştırma düğmeleri gizlenir, kare bölge yakalanır */
   const copyChartImage = async () => {
@@ -369,7 +385,7 @@ export default function App() {
     }
     if (cmd === 'toggle-side') setSideOpen((v) => !v)
     if (cmd === 'toggle-panel') setPanelOpen((v) => !v)
-    if (cmd === 'pdf' && view && mode !== 'acg') setPdfOpen(true)
+    if (cmd === 'pdf' && view) { if (mode === 'acg') await exportAcgPdf(); else setPdfOpen(true) }
     if (cmd === 'export') { const p = await window.southastra.exportCharts(); if (p) setToast('Arşiv dışa aktarıldı') }
     if (cmd === 'import') {
       try {
@@ -394,7 +410,7 @@ export default function App() {
     cmd('new', 'Yeni harita', kbd('N'))
     cmd('now', 'Şu anın haritası', kbd('T'))
     if (currentId) cmd('edit', 'Haritayı düzenle', kbd('E'))
-    if (view && mode !== 'acg') cmd('pdf', 'PDF olarak kaydet', kbd('P'))
+    if (view) cmd('pdf', 'PDF olarak kaydet', kbd('P'))
     if (view && mode !== 'acg') out.push({ id: 'x:copy', group: 'Komutlar', label: 'Haritayı resim olarak kopyala', hint: kbd('C', { shift: true }), keywords: 'png görüntü pano', run: () => { void copyChartImage() } })
     cmd('ephemeris', 'Efemeris', kbd('E', { shift: true }), 'ay boşluk geçiş void')
     cmd('library', 'Yorum kütüphanesi', kbd('L'))
@@ -434,6 +450,7 @@ export default function App() {
   const hp = hc?.points.find((p) => p.id === hid)
   const [sc, sid] = chartFor(selected)
 
+  if (acgPrint && input) return <AcgPrint input={input} lines={acgLines} hidden={acgHidden} marker={acgMarker} utc={view?.inner.utc} logo={logoMarkSrc} />
   if (ephemPrint) return <EphemerisPrint data={ephemPrint.data} tz={ephemPrint.tz} title={ephemPrint.title} logo={logoMarkSrc} />
   if (printing && shownView) return <PrintView view={shownView} sections={pdfSections} library={library} transits={printTransits} modeName={modeDef.name} settings={settings} />
 
@@ -571,7 +588,7 @@ export default function App() {
                 {HOUSE_SYSTEMS.map((h) => <option key={h.id} value={h.id}>{h.name}</option>)}
               </select>
             )}
-            <button className="btn ghost" onClick={() => setPdfOpen(true)} title={mode === 'acg' ? 'Astrokartografi için PDF henüz yok' : `PDF olarak kaydet (${kbd('P')})`} disabled={!view || mode === 'acg'}>PDF</button>
+            <button className="btn ghost" onClick={() => { if (mode === 'acg') void exportAcgPdf(); else setPdfOpen(true) }} title={`PDF olarak kaydet (${kbd('P')})`} disabled={!view || (mode === 'acg' && !acgLines.length)}>PDF</button>
             {currentId ? (
               <>
                 <button className="btn ghost" onClick={() => setForm('edit')} title={kbd('E')}>Düzenle</button>

@@ -140,3 +140,51 @@ export function AcgPanel({ input, lines, hidden, setHidden, hovered, onHover, ma
     </div>
   )
 }
+
+const lonTxt = (lon: number) => `${Math.abs(lon).toFixed(2).replace('.', ',')}° ${lon >= 0 ? 'D' : 'B'}`
+
+function DistTable({ lines, lat, lon }: { lines: AcgLine[]; lat: number; lon: number }) {
+  const d = distancesFor(lines, lat, lon).filter((x) => x.km <= 1200)
+  return (
+    <table className="data">
+      <thead><tr><th>Çizgi</th><th className="r">Uzaklık</th></tr></thead>
+      <tbody>
+        {d.map((x, i) => <tr key={i}><td><span className="sym" style={{ color: PLANET_COLOR[x.id] }}>{x.glyph}</span> {x.name} {x.kind}</td><td className="r num">{x.km < 10 ? '< 10' : Math.round(x.km).toLocaleString('tr-TR')} km</td></tr>)}
+        {!d.length && <tr><td colSpan={2} className="muted">1200 km içinde çizgi yok.</td></tr>}
+      </tbody>
+    </table>
+  )
+}
+
+/** PDF: yatay A4; 1. sayfa harita ve açıklama, 2. sayfa uzaklıklar ve MC/IC boylamları */
+export function AcgPrint({ input, lines, hidden, marker, utc, logo }: { input: ChartInput; lines: AcgLine[]; hidden: Set<string>; marker: CityHit | null; utc?: string; logo: string }) {
+  const shown = lines.filter((l) => !hidden.has(l.id))
+  return (
+    <div className="print-page acg-print">
+      <style>{'@page { size: A4 landscape; margin: 10mm 10mm 12mm; }'}</style>
+      <section className="p-sec">
+        <div className="p-h"><h2><img src={logo} alt="" className="logo-mark" /> Astrokartografi · {input.name}</h2><span>{input.date.split('-').reverse().join('.')} · {input.timeUnknown ? 'saat bilinmiyor' : input.time} · {placeLabel(input.place)}</span></div>
+        <AcgMap input={input} lines={lines} hidden={hidden} hovered={null} onHover={() => undefined} marker={marker} />
+        <div className="acg-legend">
+          {shown.map((l) => <span key={l.id}><i style={{ background: PLANET_COLOR[l.id] }} /> <span className="sym">{l.glyph}</span> {l.name}</span>)}
+        </div>
+        <p className="hint">Düz çizgi: MC (gezegen tepe noktasında) ve AC (doğuyor); kesikli çizgi: IC (alt noktada) ve DC (batıyor). Çizgiler doğum anında ({utc ? utc.replace('T', ' ').replace(/(\.\d+)?Z$/, ' UT') : ''}) gezegenin o coğrafi konumda köşede olduğu yerleri gösterir; ekliptik boylam yerine gezegenin gerçek konumu (sağ açıklık ve deklinasyon) kullanılır. Harita eşit dikdörtgen izdüşümdür.</p>
+      </section>
+      <section className="p-sec">
+        <div className="p-h"><h2>Çizgilere uzaklık</h2><span>{input.name}</span></div>
+        <div className="p-two">
+          <div><h3>Doğum yeri · {placeLabel(input.place)}</h3><DistTable lines={shown} lat={input.place.lat} lon={input.place.lon} /></div>
+          <div>
+            {marker && <><h3>{placeLabel(marker)}</h3><DistTable lines={shown} lat={marker.lat} lon={marker.lon} /></>}
+            <h3>MC ve IC çizgilerinin boylamları</h3>
+            <table className="data">
+              <thead><tr><th>Gezegen</th><th className="r">MC</th><th className="r">IC</th></tr></thead>
+              <tbody>{shown.map((l) => <tr key={l.id}><td><span className="sym" style={{ color: PLANET_COLOR[l.id] }}>{l.glyph}</span> {l.name}</td><td className="r num">{lonTxt(((l.mc + 540) % 360) - 180)}</td><td className="r num">{lonTxt(((l.ic + 540) % 360) - 180)}</td></tr>)}</tbody>
+            </table>
+          </div>
+        </div>
+        <p className="hint">Uzaklık: noktadan çizgiye en kısa yer yüzeyi uzaklığı (küresel Dünya, R = 6371 km). Yalnızca 1200 km içindeki çizgiler listelenir.</p>
+      </section>
+    </div>
+  )
+}
