@@ -11,6 +11,10 @@ extraResources:
     to: ephe
   - from: resources/cities.json.gz
     to: cities.json.gz
+  - from: LICENSE
+    to: LICENSE
+  - from: THIRD_PARTY_NOTICES.md
+    to: THIRD_PARTY_NOTICES.md
 asarUnpack:
   - node_modules/sweph/**/*
 mac:

@@ -4,6 +4,21 @@ Profesyonel astrologlar için masaüstü astroloji programı. Mac ve Windows'ta 
 
 Hesaplamalar, Astrodienst'in **Swiss Ephemeris** motoruyla yapılır (NASA JPL efemerislerine dayanır; astro.com ile aynı motor).
 
+## Ekran görüntüleri
+
+Görsellerdeki haritalar uydurma örneklerdir.
+
+| | |
+|---|---|
+| ![Doğum haritası](docs/ekran/natal.png) | ![Transitler ve transit listesi](docs/ekran/transit.png) |
+| **Doğum haritası** — çark, gezegen tablosu, hesaplama bilgileri | **Transitler** — çift çark ve tam açı anlarıyla transit listesi |
+| ![Sinastri](docs/ekran/sinastri.png) | ![Geleneksel analiz](docs/ekran/geleneksel.png) |
+| **Sinastri** — iki harita ve karşılıklı açılar | **Geleneksel analiz** — esas dignite tablosu, karşılıklı ağırlama, dispozitörler |
+| ![Doğum yeri seçimi](docs/ekran/dogum-yeri.png) | ![Astrokartografi](docs/ekran/astrokartografi.png) |
+| **Doğum yeri** — ülke / il / ilçe süzgeci, koordinat ve GeoNames kimliği | **Astrokartografi** — gezegen çizgileri ve şehir uzaklıkları |
+
+<p align="center"><img src="docs/ekran/pdf-rapor.png" width="420" alt="PDF raporu"><br><b>PDF raporu</b> — bölümlü, sayfa numaralı A4 çıktı</p>
+
 ## Özellikler
 
 **Haritalar**
@@ -80,6 +95,8 @@ Yer veritabanını yenilemek için GeoNames'ten `cities1000.txt`, `TR.txt`, `adm
 
 ## Lisans
 
+© 2026 SouthAstra katkıcıları.
+
 SouthAstra, **GNU Affero General Public License v3.0** (AGPL-3.0) ile lisanslanmıştır. Ayrıntılar için [LICENSE](LICENSE) dosyasına bakın.
 
 Kullanılan kaynaklar:
@@ -87,4 +104,6 @@ Kullanılan kaynaklar:
 - **Swiss Ephemeris** © Astrodienst AG, Zürih. AGPL-3.0 ile kullanılmaktadır. https://www.astro.com/swisseph/
 - **GeoNames** yer verisi, CC BY 4.0. https://www.geonames.org/
 - **Natural Earth** dünya haritası verisi, kamu malı. https://www.naturalearthdata.com/
-- **IBM Plex** ve **Noto Sans Symbols** yazı tipleri, SIL Open Font License
+- **IBM Plex** ve **Noto Sans Symbols** yazı tipleri, SIL Open Font License 1.1
+
+Bütün üçüncü taraf bileşenlerin lisans metinleri [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) dosyasındadır; uygulamada **Hakkında** penceresinden de görülebilir.

@@ -9,7 +9,8 @@
 // Örnek:    node scripts/build-cities.mjs ~/geonames TR,DE,AT,NL
 //
 // Ülkeye özel ayarlar (ilçe düzeyi, il/eyalet adlarının yerel yazılışı): scripts/countries.json
-import { readFileSync, writeFileSync } from 'node:fs'
+import { createReadStream, existsSync, readFileSync, writeFileSync } from 'node:fs'
+import { createInterface } from 'node:readline'
 import { join } from 'node:path'
 import { gzipSync } from 'node:zlib'
 
@@ -22,6 +23,8 @@ const lines = (f) => readFileSync(join(dir, f), 'utf8').split('\n').filter((l) =
 const admin1 = new Map(lines('admin1CodesASCII.txt').map((l) => { const c = l.split('\t'); return [c[0], c[1]] }))
 const admin2 = new Map(lines('admin2Codes.txt').map((l) => { const c = l.split('\t'); return [c[0], c[1]] }))
 const countries = new Map(lines('countryInfo.txt').map((l) => { const c = l.split('\t'); return [c[0], c[4]] }))
+// ülkenin ana dili (ör. DE → de, AT → de, FR → fr): yerel adı seçmek için
+const mainLang = new Map(lines('countryInfo.txt').map((l) => { const c = l.split('\t'); return [c[0], (c[15] ?? '').split(',')[0].split('-')[0]] }))
 
 // Ayrıntılı ülkelerde il/eyalet adını o ülkenin kendi dosyasından (yerel yazılışla) al
 const detailedFiles = new Map(detailed.map((cc) => [cc, lines(`${cc}.txt`).map((l) => l.split('\t'))]))
@@ -85,8 +88,8 @@ function add(c) {
   const alt = +pop >= 15000 && alts
     ? [...new Set(alts.split(',').filter((a) => /^[\p{Script=Latin}\s'’.-]+$/u.test(a) && a !== name && a !== ascii))].join('|')
     : ''
-  // [ad, ascii ad, ilçe/kreis, il/eyalet, ülke kodu, enlem, boylam, saat dilimi, nüfus, alternatif adlar, GeoNames kimliği, yer türü]
-  rows.push([nm, ascii, p2, p1, cc, +(+lat).toFixed(4), +(+lon).toFixed(4), tz, +pop || 0, alt, +id, fcode])
+  // [ad, ascii ad, ilçe/kreis, il/eyalet, ülke kodu, enlem, boylam, saat dilimi, nüfus, alternatif adlar, GeoNames kimliği, yer türü, yerel ad]
+  rows.push([nm, ascii, p2, p1, cc, +(+lat).toFixed(4), +(+lon).toFixed(4), tz, +pop || 0, alt, +id, fcode, ''])
 }
 
 for (const l of lines('cities1000.txt')) add(l.split('\t'))
@@ -96,8 +99,57 @@ for (const [cc, file] of detailedFiles) {
   for (const c of file) if (c[6] === 'P' || (c[6] === 'A' && c[7] === 'ADM2')) add(c)
   extra[cc] = rows.length - n
 }
+// ——— Türkçe ve yerel adlar (alternateNamesV2.txt varsa) ———
+// Nüfusu NAME_MIN_POP üzerindeki yabancı yerler: gösterilen ad = Türkçe ad, yoksa ülkenin dilindeki ad.
+// Farklıysa yerel ad ikinci ad olarak saklanır ("Münih" + "München"). Eski ad aramada kalır.
+const NAME_MIN_POP = 20000
+const altFile = join(dir, 'alternateNamesV2.txt')
+if (existsSync(altFile)) {
+  const want = new Map() // geonameid → satır
+  for (const r of rows) if (r[4] !== 'TR' && r[8] >= NAME_MIN_POP) want.set(r[10], r)
+  const best = new Map() // "id|dil" → { ad, puan }
+  const rl = createInterface({ input: createReadStream(altFile), crlfDelay: Infinity })
+  for await (const line of rl) {
+    const c = line.split('\t')
+    const id = +c[1]
+    const r = want.get(id)
+    if (!r) continue
+    const lang = c[2]
+    if (lang !== 'tr' && lang !== mainLang.get(r[4])) continue
+    if (c[6] === '1' || c[7] === '1') continue // halk ağzı veya tarihi ad
+    if (/^\d|https?:/.test(c[3])) continue
+    // açıklayıcı ekli adlar ("New York kenti", "... şehri", "... ili") yer adı değil
+    if (lang === 'tr' && /\s(kenti|şehri|ili|ilçesi|belediyesi|bölgesi)$/i.test(c[3])) continue
+    const score = (c[4] === '1' ? 4 : 0) + (c[5] === '1' ? -1 : 0) + (/^[\p{Script=Latin}\s'’.\-()]+$/u.test(c[3]) ? 1 : -5)
+    const k = `${id}|${lang === 'tr' ? 'tr' : 'yerel'}`
+    if (!best.has(k) || best.get(k).score < score) best.set(k, { name: c[3], score })
+  }
+  let changed = 0
+  for (const [id, r] of want) {
+    const tr = best.get(`${id}|tr`)
+    const local = best.get(`${id}|yerel`)
+    const orig = r[0]
+    const shown = tr && tr.score > -5 ? tr.name : local && local.score > -5 ? local.name : orig
+    // ikinci ad yalnızca Latin harfliyse (Москва gibi adlar astrolog için gürültü)
+    const latin = (x) => /^[\p{Script=Latin}\s'’.\-()]+$/u.test(x)
+    const second = local && latin(local.name) && local.name !== shown ? local.name : ''
+    if (shown !== orig) {
+      r[0] = shown
+      // asıl GeoNames adı aramada bulunmaya devam etsin
+      r[9] = [...new Set([orig, ...(r[9] ? r[9].split('|') : [])])].filter((x) => x !== shown).join('|')
+      changed++
+    }
+    r[12] = second
+  }
+  console.log(`Türkçe/yerel ad: ${changed} yerin gösterilen adı değişti`)
+  // yerel adı idari bölge çıkan kayıtlar (ör. "Düsseldorf District" → "Regierungsbezirk Düsseldorf") yerleşim değildir
+  const before = rows.length
+  for (let i = rows.length - 1; i >= 0; i--) if (/^Regierungsbezirk /.test(rows[i][0])) rows.splice(i, 1)
+  if (rows.length !== before) console.log(`${before - rows.length} idari bölge kaydı çıkarıldı`)
+} else console.log('alternateNamesV2.txt yok: Türkçe adlar atlandı')
+
 rows.sort((a, b) => b[8] - a[8])
 
-const data = { version: 4, detailed, countries: Object.fromEntries(countries), rows }
+const data = { version: 5, detailed, countries: Object.fromEntries(countries), rows }
 writeFileSync('resources/cities.json.gz', gzipSync(JSON.stringify(data), { level: 9 }))
 console.log(`${rows.length} yer yazıldı; ayrıntılı ülke ekleri: ${Object.entries(extra).map(([k, v]) => `${k} +${v}`).join(', ')}`)

@@ -4,7 +4,7 @@ import { gunzipSync } from 'node:zlib'
 import type { CityFilter, CityHit, CountryInfo } from '@shared/types'
 
 // [ad, ascii ad, ilçe/kreis, il/eyalet, ülke kodu, enlem, boylam, saat dilimi, nüfus, alternatif adlar, GeoNames kimliği, yer türü]
-type Row = [string, string, string, string, string, number, number, string, number, string, number, string]
+type Row = [string, string, string, string, string, number, number, string, number, string, number, string, string]
 
 /** GeoNames yer türü → koordinatın neyi temsil ettiği */
 export function precisionOf(fcode: string, pop = 0): string {
@@ -93,7 +93,7 @@ export const listRegions = (cc: string): { name: string; count: number }[] => re
 export const listDistricts = (cc: string, region: string): { name: string; count: number }[] => districtsByRegion.get(`${cc}|${region}`) ?? []
 
 const toHit = (r: Row): CityHit => ({
-  geonameId: r[10], name: r[0], district: r[2], region: r[3], countryCode: r[4], country: countryName(r[4], r[4]),
+  geonameId: r[10], name: r[0], localName: r[12] || undefined, district: r[2], region: r[3], countryCode: r[4], country: countryName(r[4], r[4]),
   lat: r[5], lon: r[6], tz: r[7], population: r[8], precision: precisionOf(r[11], r[8])
 })
 
@@ -185,7 +185,7 @@ export function nearest(lat: number, lon: number): (CityHit & { distanceKm: numb
   if (best < 0) return null
   const r = rows[best]
   return {
-    geonameId: r[10], name: r[0], district: r[2], region: r[3], countryCode: r[4], country: countryName(r[4], r[4]),
+    geonameId: r[10], name: r[0], localName: r[12] || undefined, district: r[2], region: r[3], countryCode: r[4], country: countryName(r[4], r[4]),
     lat: r[5], lon: r[6], tz: r[7], population: r[8], precision: precisionOf(r[11], r[8]), distanceKm: bestD
   }
 }

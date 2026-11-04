@@ -4,7 +4,7 @@ import { ASPECTS, AYANAMSAS, ORB_PROFILES } from '@shared/zodiac'
 
 const OPTIONAL_POINTS: [string, string][] = [['chiron', 'Chiron'], ['lilith', 'Lilith (ortalama)'], ['northnode', 'Kuzey Ay Düğümü'], ['southnode', 'Güney Ay Düğümü'], ['fortune', 'Şans Noktası'], ['uranus', 'Uranüs'], ['neptune', 'Neptün'], ['pluto', 'Plüton']]
 
-export default function SettingsModal({ initial, onClose, onSave }: { initial: Settings; onClose: () => void; onSave: (s: Settings) => void }) {
+export default function SettingsModal({ initial, onClose, onSave, onAbout }: { initial: Settings; onClose: () => void; onSave: (s: Settings) => void; onAbout?: () => void }) {
   const [s, setS] = useState<Settings>(initial)
   const profile = s.orbProfileId === 'custom' ? s.customOrbs : ORB_PROFILES.find((p) => p.id === s.orbProfileId) ?? ORB_PROFILES[0]
   const editable = s.orbProfileId === 'custom'
@@ -80,6 +80,7 @@ export default function SettingsModal({ initial, onClose, onSave }: { initial: S
         </div>
 
         <div className="actions">
+          {onAbout && <button className="link small" style={{ marginRight: 'auto' }} onClick={onAbout}>Hakkında ve lisanslar</button>}
           <button className="btn ghost" onClick={onClose}>Vazgeç</button>
           <button className="btn primary" onClick={() => onSave(s)}>Kaydet</button>
         </div>

@@ -119,7 +119,7 @@ export function AcgPanel({ input, lines, hidden, setHidden, hovered, onHover, ma
         <input id="acg-q" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Şehir adı yazın (taşınma, seyahat)…" />
         {hits.length > 0 && (
           <ul className="suggest">
-            {hits.map((c) => <li key={c.geonameId} onMouseDown={() => { setMarker(c); setQ(''); setHits([]) }}><div className="s-main"><b>{c.name}</b> <span className="muted">— {[c.district, c.region, c.country].filter((x) => x && x !== c.name).join(', ')}</span></div></li>)}
+            {hits.map((c) => <li key={c.geonameId} onMouseDown={() => { setMarker(c); setQ(''); setHits([]) }}><div className="s-main"><b>{c.name}</b>{c.localName && <span className="local-name"> ({c.localName})</span>} <span className="muted">— {[c.district, c.region, c.country].filter((x) => x && x !== c.name).join(', ')}</span></div></li>)}
           </ul>
         )}
       </div>

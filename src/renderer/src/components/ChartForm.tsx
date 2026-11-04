@@ -140,7 +140,7 @@ export default function ChartForm({ initial, onCancel, onSubmit }: Props) {
   }, [place, date, time, timeUnknown, timeMode, manualOffset, houseSystem, nodeType])
 
   const choose = (c: CityHit) => {
-    const chosen = { name: c.name, district: c.district, region: c.region, country: c.country, countryCode: c.countryCode, lat: c.lat, lon: c.lon, tz: c.tz, geonameId: c.geonameId, precision: c.precision }
+    const chosen = { name: c.name, localName: c.localName, district: c.district, region: c.region, country: c.country, countryCode: c.countryCode, lat: c.lat, lon: c.lon, tz: c.tz, geonameId: c.geonameId, precision: c.precision }
     setPlace(chosen); setPicked(chosen); setCoordMsg(null); setPaste('')
     setLat(String(c.lat))
     setLon(String(c.lon))
@@ -347,7 +347,7 @@ export default function ChartForm({ initial, onCancel, onSubmit }: Props) {
               {hits.map((c, i) => (
                 <li key={c.geonameId} className={i === active ? 'on' : ''} onMouseDown={() => choose(c)} onMouseEnter={() => setActive(i)}>
                   <div className="s-main">
-                    <b>{c.name}</b>
+                    <b>{c.name}</b>{c.localName && <span className="local-name"> ({c.localName})</span>}
                     <span className="muted"> — {[c.district, c.region, c.country].filter((x) => x && x !== c.name).join(', ')}</span>
                   </div>
                   <div className="s-meta num">
@@ -372,7 +372,7 @@ export default function ChartForm({ initial, onCancel, onSubmit }: Props) {
           )}
           {place ? (
             <div className="place-card">
-              <div><b>{placeLabel(place)}</b></div>
+              <div><b>{placeLabel(place)}</b>{place.localName && <span className="local-name"> · yerel adı {place.localName}</span>}</div>
               <div className="num small">{fmtCoord(place.lat, 'K', 'G')} · {fmtCoord(place.lon, 'D', 'B')} · {place.tz}</div>
               <div className="muted small">{place.precision}{place.geonameId ? ` · GeoNames ${place.geonameId}` : ''}</div>
               {tzNote && <div className="muted small">{tzNote}</div>}

@@ -16,6 +16,7 @@ export const HOUSE_SYSTEMS: { id: HouseSystem; name: string }[] = [
 
 export interface Place {
   name: string
+  localName?: string // yerel ad, gösterilen (Türkçe) addan farklıysa
   district?: string // ilçe / Kreis
   region: string // il / eyalet
   country: string
@@ -272,6 +273,7 @@ export interface Settings {
 export interface CityHit extends Place {
   geonameId: number
   population: number
+  localName?: string // yerel ad, Türkçe addan farklıysa (ör. Münih → München)
 }
 
 export interface SavedChart extends ChartInput {
@@ -280,7 +282,7 @@ export interface SavedChart extends ChartInput {
   updatedAt: string
 }
 
-export type MenuCommand = 'new' | 'edit' | 'find' | 'pdf' | 'settings' | 'now' | 'export' | 'import' | 'library' | 'toggle-side' | 'toggle-panel'
+export type MenuCommand = 'new' | 'edit' | 'find' | 'pdf' | 'settings' | 'now' | 'export' | 'import' | 'library' | 'toggle-side' | 'toggle-panel' | 'about'
 
 /** Kişisel yorum kütüphanesi: etken anahtarı → astrologun kendi metni */
 export type Library = Record<string, { text: string; updatedAt: string }>
@@ -311,4 +313,6 @@ export interface SouthAstraApi {
   exportPdf: (fileName: string, footer: string) => Promise<string | null>
   onMenu: (cb: (cmd: MenuCommand) => void) => () => void
   info: () => Promise<{ version: string; sweph: string; ephePath: string; platform: string; dataDir: string }>
+  notices: () => Promise<{ license: string; thirdParty: string }>
+  openExternal: (url: string) => Promise<void>
 }

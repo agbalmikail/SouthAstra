@@ -119,6 +119,12 @@ app.whenReady().then(() => {
     if (!process.env.SA_PDF) shell.showItemInFolder(target)
     return target
   })
+  const docDir = app.isPackaged ? process.resourcesPath : join(__dirname, '../..')
+  ipcMain.handle('app:notices', () => {
+    const read = (f: string) => { try { return readFileSync(join(docDir, f), 'utf8') } catch { return '' } }
+    return { license: read('LICENSE'), thirdParty: read('THIRD_PARTY_NOTICES.md') }
+  })
+  ipcMain.handle('app:open', (_e, url: string) => { if (/^https:\/\/[\w.-]+\//.test(url)) return shell.openExternal(url) })
   ipcMain.handle('app:info', () => ({ version: app.getVersion(), sweph: swephVersion(), ephePath: getEphePath(), platform: process.platform, dataDir }))
 
   createWindow()

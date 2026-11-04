@@ -13,6 +13,7 @@ import { Distribution, HouseCompare, PlanetDetail, RectifyPanel, StarsTable, Tra
 import { DEFAULT_PDF, EclipsePanel, EventsPanel, InterpretPanel, LibraryModal, MidpointsPanel, PatternsBlock, PdfDialog, SessionsPanel, TraditionalPanel, type PdfSections } from './components/Extras'
 import { AcgMap, AcgPanel } from './components/AcgMap'
 import ZoomPane from './components/ZoomPane'
+import AboutModal from './components/AboutModal'
 import { fmtDateTr, fmtDecl, fmtOffset, lonParts } from './format'
 import { kbd } from './platform'
 
@@ -79,6 +80,7 @@ export default function App() {
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [library, setLibrary] = useState<Library>({})
   const [libraryOpen, setLibraryOpen] = useState(false)
+  const [aboutOpen, setAboutOpen] = useState(false)
   const [pdfOpen, setPdfOpen] = useState(false)
   const [pdfSections, setPdfSections] = useState<PdfSections>({ ...DEFAULT_PDF, ...pref('pdfSections', {}) })
   const [printing, setPrinting] = useState(false)
@@ -268,6 +270,7 @@ export default function App() {
     if (cmd === 'now') { setCurrentId(null); setInput(nowInput(input?.place)); setMode('natal') }
     if (cmd === 'settings') setSettingsOpen(true)
     if (cmd === 'library') setLibraryOpen(true)
+    if (cmd === 'about') setAboutOpen(true)
     if (cmd === 'toggle-side') setSideOpen((v) => !v)
     if (cmd === 'toggle-panel') setPanelOpen((v) => !v)
     if (cmd === 'pdf' && view && mode !== 'acg') setPdfOpen(true)
@@ -520,7 +523,8 @@ export default function App() {
       </main>
 
       {form && <ChartForm initial={form === 'edit' ? input : null} onCancel={() => setForm(null)} onSubmit={submitForm} />}
-      {settingsOpen && <SettingsModal initial={settings} onClose={() => setSettingsOpen(false)} onSave={async (s) => { setSettings(await window.southastra.setSettings(s)); setSettingsOpen(false); setToast('Ayarlar kaydedildi') }} />}
+      {settingsOpen && <SettingsModal initial={settings} onAbout={() => { setSettingsOpen(false); setAboutOpen(true) }} onClose={() => setSettingsOpen(false)} onSave={async (s) => { setSettings(await window.southastra.setSettings(s)); setSettingsOpen(false); setToast('Ayarlar kaydedildi') }} />}
+      {aboutOpen && <AboutModal onClose={() => setAboutOpen(false)} />}
       {libraryOpen && <LibraryModal library={library} onSave={saveInterp} onClose={() => setLibraryOpen(false)} />}
       {pdfOpen && <PdfDialog initial={pdfSections} available={pdfAvailable} onCancel={() => setPdfOpen(false)} onExport={exportPdf} />}
       {toast && <div className="toast" role="status">{toast}</div>}

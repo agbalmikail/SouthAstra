@@ -30,7 +30,9 @@ const api: SouthAstraApi = {
     ipcRenderer.on('menu', h)
     return () => { ipcRenderer.removeListener('menu', h) }
   },
-  info: () => ipcRenderer.invoke('app:info')
+  info: () => ipcRenderer.invoke('app:info'),
+  notices: () => ipcRenderer.invoke('app:notices'),
+  openExternal: (url) => ipcRenderer.invoke('app:open', url)
 }
 
 contextBridge.exposeInMainWorld('southastra', api)
