@@ -81,3 +81,32 @@ export function meanNode(jdTT: number): number {
 }
 
 export const arcsec = (a: number, b: number) => Math.abs(((a - b + 540) % 360) - 180) * 3600
+
+// ——— Gerçek (oskülatör) Ay düğümü: Ay'ın yer merkezli konum ve hız vektöründen ———
+const rx = (a: number, v: number[]) => [v[0], Math.cos(a) * v[1] + Math.sin(a) * v[2], -Math.sin(a) * v[1] + Math.cos(a) * v[2]]
+const ry = (a: number, v: number[]) => [Math.cos(a) * v[0] - Math.sin(a) * v[2], v[1], Math.sin(a) * v[0] + Math.cos(a) * v[2]]
+const rz = (a: number, v: number[]) => [Math.cos(a) * v[0] + Math.sin(a) * v[1], -Math.sin(a) * v[0] + Math.cos(a) * v[1], v[2]]
+
+/**
+ * ICRF (J2000 ekvatoru) vektörünü günün gerçek ekinoksu ve ortalama ekliptiğine taşır.
+ * Presesyon IAU 1976 (Lieske 1977; Meeus 21.3: ζ, z, θ), eğim IAU 1980 (Meeus 22.2), boylamda nütasyon Δψ (Meeus 22).
+ */
+export function icrfToEclipticOfDate(v: number[], jdTT: number): number[] {
+  const T = (jdTT - 2451545) / 36525
+  const AS = R / 3600
+  const zeta = (2306.2181 * T + 0.30188 * T * T + 0.017998 * T ** 3) * AS
+  const z = (2306.2181 * T + 1.09468 * T * T + 0.018203 * T ** 3) * AS
+  const th = (2004.3109 * T - 0.42665 * T * T - 0.041833 * T ** 3) * AS
+  const eps0 = (84381.448 - 46.815 * T - 0.00059 * T * T + 0.001813 * T ** 3) * AS
+  return rz(-nutation(jdTT).dpsi * R, rx(eps0, rz(-z, ry(th, rz(-zeta, v)))))
+}
+
+/**
+ * Oskülatör yükselen düğüm: yörünge düzleminin normali h = r × v; düğüm, düzlemin ekliptiği kestiği yerde
+ * ve boylamı atan2(h_x, −h_y). r, v: NASA JPL Horizons'tan Ay'ın yer merkezli geometrik vektörleri (ICRF).
+ */
+export function trueNodeFromState(r: number[], v: number[], jdTT: number): number {
+  const h = [r[1] * v[2] - r[2] * v[1], r[2] * v[0] - r[0] * v[2], r[0] * v[1] - r[1] * v[0]]
+  const e = icrfToEclipticOfDate(h, jdTT)
+  return atan2d(e[0], -e[1])
+}

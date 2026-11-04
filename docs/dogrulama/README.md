@@ -10,10 +10,9 @@ SouthAstra'nın hesapları Swiss Ephemeris ile yapılır. Bu klasördeki rapor, 
 | Progresyonlar, transit kesinleşme anları | NASA JPL Horizons, SouthAstra'nın bulduğu anlarda | `tests/reference/jpl.json` |
 | Yıldız zamanı, ekliptik eğimi, nütasyon, ASC, MC, 7 ev sistemi | Meeus, *Astronomical Algorithms* (2. baskı) formülleri, Swiss Ephemeris kullanılmadan | `scripts/validate/independent.ts` |
 | Ortalama Ay düğümü | Meeus 47.7 | aynı |
+| Gerçek (oskülatör) Ay düğümü | NASA JPL Horizons'tan Ay'ın yer merkezli konum ve hız vektörü (ICRF); yörünge normali h = r × v, IAU 1976 presesyon + IAU 1980 nütasyonla günün ekliptiğine taşınır, düğüm = atan2(hₓ, −h_y). Sınır 2″: yörünge ekliptiğe 5° eğik olduğundan normaldeki küçük model farkları düğümde ~11 kat büyür | `tests/reference/jpl.json`, `scripts/validate/independent.ts` |
 | Açılar | NASA konumlarından yeniden hesap | aynı betik |
 | Tarihsel saat dilimleri | Python `zoneinfo` + işletim sistemi tzdata (SouthAstra luxon + ICU kullanır) | `tests/reference/tz.json` |
-
-Gerçek (oskülatör) Ay düğümü için bağımsız bir referans bulunamadı; raporda **doğrulanmadı** olarak yazılır.
 
 ## Çalıştırma
 

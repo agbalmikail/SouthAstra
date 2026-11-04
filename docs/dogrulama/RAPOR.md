@@ -1,14 +1,15 @@
 # SouthAstra · bağımsız astronomik doğrulama
 
-Oluşturuldu: 2026-11-04T13:57:32.412Z · Swiss Ephemeris 2.10.03 (sepl_18/semo_18; JPL DE431 tabanlı Swiss Ephemeris dosyaları) · Node ICU tzdata 2026a
+Oluşturuldu: 2026-11-04T14:19:30.472Z · Swiss Ephemeris 2.10.03 (sepl_18/semo_18; JPL DE431 tabanlı Swiss Ephemeris dosyaları) · Node ICU tzdata 2026a
 
 ## Referans: NASA JPL Horizons
 
 - **Horizons API**: NASA/JPL Horizons API 1.2
 - **Efemeris kaynakları (Horizons)**: {"Sun (10)":"DE441","Earth (399)":"DE441","Moon (301)":"DE441","Mercury (199)":"DE441","Venus (299)":"DE441","Mars (499)":"mar099","Jupiter (599)":"jup365_merged","Saturn (699)":"sat441l","Uranus (799)":"ura184_merged","Neptune (899)":"nep098_merged","Pluto (999)":"plu060_merged","2060 Chiron (1977 UB)":"JPL#171"}
 - **Alındı**: 2026-11-04T12:45:16+00:00
-- **Ayarlar**: Q31: gözlemci ekliptik boylam/enlem (görünür, günün ekliptiği ve ekinoksu); Q1: astrometrik RA/Dec (ICRF); CENTER 500@399 (yer merkezi) veya coord@399; TIME_TYPE TT/UT; EXTRA_PREC
-- **Sorgu sayısı**: 175
+- **Ayarlar**: VECTORS: Ay yer merkezli geometrik konum/hız (ICRF, düzeltmesiz); Q31: gözlemci ekliptik boylam/enlem (görünür, günün ekliptiği ve ekinoksu); Q1: astrometrik RA/Dec (ICRF); CENTER 500@399 (yer merkezi) veya coord@399; TIME_TYPE TT/UT; EXTRA_PREC
+- **Sorgu sayısı**: 178
+- **Eklendi**: 2026-11-04T14:19:29+00:00
 
 ## Eşitlenen ayarlar
 
@@ -51,7 +52,8 @@ Yerel 1959-03-15 10:00 (Europe/Istanbul) → UTC 1959-03-15 08:00:00 · JD(UT1) 
 ✓ Ev sistemi E (Eşit (Equal)): 12 başlangıcın en büyük farkı 0.09″ (sınır 5″)
 ✓ Ev sistemi W (Tam Burç (Whole Sign)): 12 başlangıcın en büyük farkı 0.00″ (sınır 5″)
 
-✓ Ortalama Ay düğümü: Meeus 194.171980° · SouthAstra 194.171997° · fark 0.06″ (sınır 3″). Gerçek (oskülatör) düğüm: bağımsız referans yok — DOĞRULANMADI.
+✓ Ortalama Ay düğümü: Meeus 194.171980° · SouthAstra 194.171997° · fark 0.06″ (sınır 3″).
+✓ Gerçek (oskülatör) Ay düğümü: NASA JPL Ay vektörlerinden (h = r × v, IAU 1976 presesyon + nütasyon) 193.167839° · SouthAstra 193.167837° · fark 0.01″ (sınır 2″). Ortalama düğümden farkı 1.00°; test ikisini açıkça ayırt eder.
 
 ✓ Açılar (10 gezegen, standart orb profili): JPL konumlarından 19 açı · SouthAstra 19 · eksik 0 · fazla 0 · en büyük orb farkı 0.13″
 
@@ -89,7 +91,8 @@ Yerel 1988-07-14 06:45 (Europe/Istanbul) → UTC 1988-07-14 03:45:00 · JD(UT1) 
 ✓ Ev sistemi E (Eşit (Equal)): 12 başlangıcın en büyük farkı 0.02″ (sınır 5″)
 ✓ Ev sistemi W (Tam Burç (Whole Sign)): 12 başlangıcın en büyük farkı 0.00″ (sınır 5″)
 
-✓ Ortalama Ay düğümü: Meeus 346.834480° · SouthAstra 346.834490° · fark 0.04″ (sınır 3″). Gerçek (oskülatör) düğüm: bağımsız referans yok — DOĞRULANMADI.
+✓ Ortalama Ay düğümü: Meeus 346.834480° · SouthAstra 346.834490° · fark 0.04″ (sınır 3″).
+✓ Gerçek (oskülatör) Ay düğümü: NASA JPL Ay vektörlerinden (h = r × v, IAU 1976 presesyon + nütasyon) 345.298343° · SouthAstra 345.298449° · fark 0.38″ (sınır 2″). Ortalama düğümden farkı 1.54°; test ikisini açıkça ayırt eder.
 
 ✓ Açılar (10 gezegen, standart orb profili): JPL konumlarından 19 açı · SouthAstra 19 · eksik 0 · fazla 0 · en büyük orb farkı 0.08″
 
@@ -129,7 +132,8 @@ Yerel 1990-09-15 08:30 (Europe/Berlin) → UTC 1990-09-15 06:30:00 · JD(UT1) 24
 ✓ Ev sistemi E (Eşit (Equal)): 12 başlangıcın en büyük farkı 0.03″ (sınır 5″)
 ✓ Ev sistemi W (Tam Burç (Whole Sign)): 12 başlangıcın en büyük farkı 0.00″ (sınır 5″)
 
-✓ Ortalama Ay düğümü: Meeus 304.838712° · SouthAstra 304.838721° · fark 0.03″ (sınır 3″). Gerçek (oskülatör) düğüm: bağımsız referans yok — DOĞRULANMADI.
+✓ Ortalama Ay düğümü: Meeus 304.838712° · SouthAstra 304.838721° · fark 0.03″ (sınır 3″).
+✓ Gerçek (oskülatör) Ay düğümü: NASA JPL Ay vektörlerinden (h = r × v, IAU 1976 presesyon + nütasyon) 306.539326° · SouthAstra 306.539463° · fark 0.49″ (sınır 2″). Ortalama düğümden farkı 1.70°; test ikisini açıkça ayırt eder.
 
 ✓ Açılar (10 gezegen, standart orb profili): JPL konumlarından 22 açı · SouthAstra 22 · eksik 0 · fazla 0 · en büyük orb farkı 0.10″
 
@@ -168,6 +172,6 @@ Bağımsız uygulama: Python 3.14.9 zoneinfo · tzdata 2026f · alındı 2026-11
 
 ## Özet
 
-- Geçen: **94** · Başarısız: **0** · Referansı olmadığı için doğrulanmayan kalem: **0**
+- Geçen: **97** · Başarısız: **0** · Referansı olmadığı için doğrulanmayan kalem: **0**
 
-Sınırlar: gezegenler 1″, Chiron 3″, toposentrik Ay 2″, köşeler ve evler 5″ (bağımsız nütasyon serisi kısaltılmış: ~0,1″), ortalama düğüm 3″, transit ve progresyon 1,5″.
+Sınırlar: gezegenler 1″, Chiron 3″, toposentrik Ay 2″, köşeler ve evler 5″ (bağımsız nütasyon serisi kısaltılmış: ~0,1″), ortalama düğüm 3″, gerçek düğüm 2″ (Ay yörüngesinin 5° eğikliği yüzünden yörünge yönündeki küçük model farkları düğümde ~11 kat büyür), transit ve progresyon 1,5″.

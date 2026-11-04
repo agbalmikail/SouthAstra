@@ -266,6 +266,14 @@
    "command": "2060;"
   },
   {
+   "key": "R1959|moon|vec",
+   "body": "moon",
+   "jd": 2436642.8337127008,
+   "scale": "TT",
+   "q": "vec",
+   "command": "301"
+  },
+  {
    "key": "R1959|moon|UT|31|topo",
    "body": "moon",
    "jd": 2436642.8333333335,
@@ -629,6 +637,14 @@
    "scale": "TT",
    "q": "1",
    "command": "2060;"
+  },
+  {
+   "key": "R1988|moon|vec",
+   "body": "moon",
+   "jd": 2447356.656900278,
+   "scale": "TT",
+   "q": "vec",
+   "command": "301"
   },
   {
    "key": "R1988|moon|UT|31|topo",
@@ -1314,6 +1330,14 @@
    "scale": "TT",
    "q": "1",
    "command": "2060;"
+  },
+  {
+   "key": "R1990|moon|vec",
+   "body": "moon",
+   "jd": 2448149.7714951853,
+   "scale": "TT",
+   "q": "vec",
+   "command": "301"
   },
   {
    "key": "R1990|moon|UT|31|topo",

@@ -129,7 +129,7 @@ app.whenReady().then(() => {
   })
   ipcMain.handle('pdf:export', async (e, fileName: string, footer: string) => {
     const win = BrowserWindow.fromWebContents(e.sender)!
-    const target = process.env.SA_PDF // test: kayıt penceresi olmadan yaz
+    const target = (process.env.SA_PDF?.endsWith('/') ? process.env.SA_PDF + `${safeName(fileName)}.pdf` : process.env.SA_PDF) // test: kayıt penceresi olmadan yaz (sonu / ise klasör)
       ?? (await dialog.showSaveDialog(win, { title: t('PDF olarak kaydet'), defaultPath: `${safeName(fileName)}.pdf`, filters: [{ name: 'PDF', extensions: ['pdf'] }] })).filePath
     if (!target) return null
     win.setBackgroundColor('#ffffff') // kenar boşlukları pencere rengiyle boyanmasın

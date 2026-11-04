@@ -311,5 +311,7 @@ registerEn({
   "Görüntü alınamadı.": "Could not capture the image.",
   "GitHub yanıt vermedi ({status})": "GitHub did not respond ({status})",
   "İnternete bağlanılamadı": "Could not connect to the internet",
-  "Bu dosya bir SouthAstra arşivi değil.": "This file is not a SouthAstra archive."
+  "Bu dosya bir SouthAstra arşivi değil.": "This file is not a SouthAstra archive.",
+  'NASA JPL ile karşılaştır': 'Compare with NASA JPL',
+  'nasa jpl horizons doğrulama karşılaştırma': 'nasa jpl horizons verification comparison',
 })

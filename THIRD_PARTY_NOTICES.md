@@ -15,6 +15,7 @@ Otomatik üretilir: `node scripts/licenses.mjs`.
 | [Natural Earth](https://www.naturalearthdata.com/) | naturalearthdata.com | Kamu malı | Astrokartografi haritasındaki kıyı çizgileri ve sınırlar (1:110m). |
 | [IANA saat dilimi veritabanı (tzdb)](https://www.iana.org/time-zones) | IANA | Kamu malı | Tarihsel saat dilimi ve yaz saati kuralları (Electron/Chromium ICU verisi üzerinden). |
 | [OpenStreetMap Nominatim (isteğe bağlı)](https://www.openstreetmap.org/copyright) | OpenStreetMap katkıcıları | ODbL 1.0 | Yalnızca kullanıcı "İnternette adres ara" seçeneğini kullandığında, çevrimiçi sorgu. Veri uygulamaya gömülü değildir. |
+| [NASA JPL Horizons (isteğe bağlı)](https://ssd.jpl.nasa.gov/horizons/) | NASA / Jet Propulsion Laboratory (Caltech) | ABD kamu kurumu verisi; [kullanım koşulları](https://ssd.jpl.nasa.gov/horizons/manual.html) | "NASA JPL ile karşılaştır" ve doğrulama betikleri; yalnızca Jülyen günü ve cisim numarası gönderilir |
 
 GeoNames verisi CC BY 4.0 lisansıyla kullanılmaktadır: © GeoNames.org katkıcıları, https://creativecommons.org/licenses/by/4.0/
 

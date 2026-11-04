@@ -16,8 +16,9 @@
    "2060 Chiron (1977 UB)": "JPL#171"
   },
   "Alındı": "2026-11-04T12:45:16+00:00",
-  "Ayarlar": "Q31: gözlemci ekliptik boylam/enlem (görünür, günün ekliptiği ve ekinoksu); Q1: astrometrik RA/Dec (ICRF); CENTER 500@399 (yer merkezi) veya coord@399; TIME_TYPE TT/UT; EXTRA_PREC",
-  "Sorgu sayısı": 175
+  "Ayarlar": "VECTORS: Ay yer merkezli geometrik konum/hız (ICRF, düzeltmesiz); Q31: gözlemci ekliptik boylam/enlem (görünür, günün ekliptiği ve ekinoksu); Q1: astrometrik RA/Dec (ICRF); CENTER 500@399 (yer merkezi) veya coord@399; TIME_TYPE TT/UT; EXTRA_PREC",
+  "Sorgu sayısı": 178,
+  "Eklendi": "2026-11-04T14:19:29+00:00"
  },
  "values": {
   "R1959|sun|TT|31": [
@@ -719,6 +720,30 @@
   "R1990|moon|UT|31|topo": [
    126.4093712,
    -0.4353147
+  ],
+  "R1959|moon|vec": [
+   205976.8009065654,
+   329271.7566591089,
+   113756.1976158922,
+   -0.8384753307950633,
+   0.4627964606952469,
+   0.1339263851813341
+  ],
+  "R1988|moon|vec": [
+   -167514.3952816133,
+   320931.8064116639,
+   169117.0143231716,
+   -0.9098199675825616,
+   -0.3301207971499567,
+   -0.2014221716346959
+  ],
+  "R1990|moon|vec": [
+   -222823.862553096,
+   279553.4187940577,
+   121530.8047863919,
+   -0.8558752044594192,
+   -0.5005017541084269,
+   -0.3188232766907051
   ]
  }
 }

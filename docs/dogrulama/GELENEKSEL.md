@@ -58,10 +58,17 @@ Test: gündüz ve gece haritasında yedi noktanın tamamı bu formüllerle bağ�
 - Abu Ma'shar: gezegen yılları Güneş 10, Venüs 8, Merkür 13, Ay 9, Satürn 11, Jüpiter 12, Mars 7, Kuzey Düğüm 3, Güney Düğüm 2 (toplam 75).
 - Gündüz sırası Güneş'ten, gece sırası Ay'dan Kalde sırasıyla; gece haritasında düğümler yedi gezegenden sonra (Abu Ma'shar) ya da Mars'tan sonra (Bonatti), seçilebilir.
 - Alt dönemler: her gezegen dönemi 7 eşit parça, dönemin yöneticisinden başlayıp Kalde sırasıyla; düğüm dönemlerinin alt dönemi yok.
-- Dönemler doğum gününde (takvim yıl dönümü) başlar; alt dönem sınırları tropikal yıl oranıyla bölünür.
+- Dönemler doğum gününde (takvim yıl dönümü) başlar: doğum yerinin, doğum anındaki saat farkıyla yerel takvimde aynı gün ve saat. Sonraki yıllardaki yaz saati ya da saat dilimi değişiklikleri doğum gününü kaydırmaz; tarihler bilgisayarın değil doğum yerinin takviminde gösterilir.
+- 29 Şubat doğumlu: artık olmayan yıllarda yıl dönümü 28 Şubat.
+- Alt dönem sınırları tropikal yıl (365,2422 gün) oranıyla bölünür.
 
 Test: gündüz, gece (Abu Ma'shar) ve gece (Bonatti) için bütün dönemlerin başlangıç yaşları elle hesaplanmış listelerle; Merkür döneminin 7 alt dönemi ve 13/7 yıllık süresi.
 
+Tarih testi (bağımsız): iki tur (150 yıl) boyunca bütün ana ve alt dönem sınırları, programın kodu kullanılmadan luxon takvim aritmetiğiyle yeniden hesaplanır (fark ≤ 1 ms). Dönemlerin boşluksuz ve çakışmasız olduğu, her ana dönemin doğum gününde başladığı da denetlenir. Vakalar:
+- İstanbul 15.01.1988 23:30: doğumda UTC+2, 2016'dan beri UTC+3. Eski UTC hesabıyla doğum günü bir gün kayardı.
+- 29.02.1992 doğumu.
+- Buenos Aires 31.12.1975 21:15 (eksi saat farkı, yıl sonu).
+
 ## Yıllık profeksiyon
 
-Yükselen burç her doğum gününde bir burç ilerler (tüm burç evleri); yılın yöneticisi o burcun geleneksel yöneticisi. Test: 0 ve 12 yaşta yükselen burç, 13 yaşta 2. ev; yıl başlangıcı doğum günü.
+Yükselen burç her doğum gününde bir burç ilerler (tüm burç evleri); yılın yöneticisi o burcun geleneksel yöneticisi. Test: 0 ve 12 yaşta yükselen burç, 13 yaşta 2. ev; 81 yılın başlangıcı bağımsız hesaplanan doğum günleriyle aynı (yukarıdaki üç vaka).

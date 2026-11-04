@@ -79,12 +79,10 @@ Görsellerdeki haritalar uydurma örneklerdir.
 
 Hesaplamalar Swiss Ephemeris'ten bağımsız kaynaklarla düzenli olarak karşılaştırılır. Sonuçlar GitHub'daki otomatik derlemede her sürümde yeniden çalışır.
 
-- **`npm run dogrula`** — [bağımsız doğrulama raporu](docs/dogrulama/RAPOR.md): NASA JPL Horizons (DE441) referansıyla gezegenler, Ay ve Chiron (görünür ve astrometrik, TT ve UT), toposentrik Ay, progresyonlar ve transit kesinleşme anları; Meeus formülleriyle (Swiss Ephemeris kullanılmadan) yıldız zamanı, ASC, MC ve 7 ev sistemi; ortalama düğüm; açılar; saat dilimleri ayrı bir tzdata uygulamasıyla. 1959, 1988, 1990'dan üç referans haritada 94 kontrolün tamamı geçer; gezegenlerde en büyük fark 0,2″. [Yöntem](docs/dogrulama/README.md)
-- **`npm run verify`** — 170'i aşkın test: saat dilimleri ve yaz saati, ev sistemleri, dönüşler, transitler, progresyonlar, sideral, tutulmalar, saat bilinmeyen haritaların Ay belirsizliği, saat duyarlılığı, geleneksel yöntemler ([kurallar ve elle türetilmiş örnekler](docs/dogrulama/GELENEKSEL.md): Lilly dignite puanları, karşılıklı ağırlama, Arap noktaları, SIMBAD ile sabit yıldızlar, firdaria).
+- **`npm run dogrula`** — [bağımsız doğrulama raporu](docs/dogrulama/RAPOR.md): NASA JPL Horizons (DE441) referansıyla gezegenler, Ay ve Chiron (görünür ve astrometrik, TT ve UT), toposentrik Ay, progresyonlar ve transit kesinleşme anları; Meeus formülleriyle (Swiss Ephemeris kullanılmadan) yıldız zamanı, ASC, MC ve 7 ev sistemi; ortalama düğüm (Meeus) ve gerçek düğüm (NASA'nın Ay konum/hız vektörlerinden); açılar; saat dilimleri ayrı bir tzdata uygulamasıyla. 1959, 1988, 1990'dan üç referans haritada 97 kontrolün tamamı geçer; gezegenlerde en büyük fark 0,2″, gerçek düğümde 0,5″. [Yöntem](docs/dogrulama/README.md)
+- **`npm run verify`** — 180'i aşkın test: saat dilimleri ve yaz saati, ev sistemleri, dönüşler, transitler, progresyonlar, sideral, tutulmalar, saat bilinmeyen haritaların Ay belirsizliği, saat duyarlılığı, geleneksel yöntemler ([kurallar ve elle türetilmiş örnekler](docs/dogrulama/GELENEKSEL.md): Lilly dignite puanları, karşılıklı ağırlama, Arap noktaları, SIMBAD ile sabit yıldızlar, firdaria ve profeksiyon tarihleri).
 - **`npm run denetim`** — örnek bir haritadaki her değer: 12 cismin konumu NASA JPL ile, hızlar sayısal türevle, 11 ev sisteminin bütün başlangıçları ders kitabı formülleriyle, bütün açılar.
 - **Uygulamada:** "NASA JPL ile karşılaştır" düğmesi bir haritanın kendi gezegenlerini Horizons'a sorar ve sonucu PDF'in teknik ekine tablo olarak ekler (yalnızca tarih ve saat gönderilir).
-
-Gerçek (oskülatör) Ay düğümü için bağımsız bir referans bulunamadı; doğrulanmış sayılmaz.
 
 Saat dilimi kayıtlarının geçmişi bazı ülkeler ve yıllar için tartışmalıdır. 1985 öncesi Türkiye bunlardan biridir. Program kullandığı ofseti her haritada gösterir, gerekirse elle düzeltilebilir.
 

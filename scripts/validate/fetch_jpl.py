@@ -8,14 +8,23 @@ import json, sys, time, urllib.parse, urllib.request, datetime, pathlib, re
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 DIR = ROOT / ('local' if '--local' in sys.argv else 'tests/reference')
 reqs = json.loads((DIR / 'requests.json').read_text())['requests']
-out = {}
-meta = {}
+old = json.loads((DIR / 'jpl.json').read_text()) if (DIR / 'jpl.json').exists() and '--all' not in sys.argv else {}
+out = dict(old.get('values', {}))
+meta = dict(old.get('meta', {}))
 groups = {}
 for r in reqs:
+    if r['key'] in out:
+        continue
     k = (r['command'], r['scale'], r['q'], tuple(r.get('site') or ()))
     groups.setdefault(k, []).append(r)
 
 def query(command, scale, q, site, jds):
+    if q == 'vec':
+        # Ay'ın yer merkezli geometrik konum/hız vektörü (ICRF), gerçek düğümün bağımsız hesabı için
+        p = {'format': 'json', 'COMMAND': f"'{command}'", 'OBJ_DATA': 'NO', 'MAKE_EPHEM': 'YES', 'EPHEM_TYPE': 'VECTORS',
+             'CENTER': "'500@399'", 'REF_PLANE': 'FRAME', 'REF_SYSTEM': 'ICRF', 'VEC_TABLE': '2', 'VEC_CORR': 'NONE',
+             'OUT_UNITS': 'KM-S', 'CSV_FORMAT': 'YES', 'TLIST_TYPE': 'JD', 'TIME_TYPE': scale, 'TLIST': ' '.join(f"'{j:.9f}'" for j in jds)}
+        return fetch(p)
     p = {'format': 'json', 'COMMAND': f"'{command}'", 'OBJ_DATA': 'NO', 'MAKE_EPHEM': 'YES', 'EPHEM_TYPE': 'OBSERVER',
          'TLIST_TYPE': 'JD', 'TIME_TYPE': scale, 'TLIST': ' '.join(f"'{j:.9f}'" for j in jds), 'QUANTITIES': f"'{q}'",
          'ANG_FORMAT': 'DEG', 'EXTRA_PREC': 'YES', 'CSV_FORMAT': 'YES', 'CAL_FORMAT': 'JD'}
@@ -23,6 +32,9 @@ def query(command, scale, q, site, jds):
         p['CENTER'] = "'coord@399'"; p['COORD_TYPE'] = 'GEODETIC'; p['SITE_COORD'] = f"'{site[0]},{site[1]},{site[2]}'"
     else:
         p['CENTER'] = "'500@399'"
+    return fetch(p)
+
+def fetch(p):
     url = 'https://ssd.jpl.nasa.gov/api/horizons.api?' + urllib.parse.urlencode(p)
     for attempt in range(4):
         try:
@@ -53,6 +65,9 @@ for (command, scale, q, site), rs in groups.items():
         for line in body:
             cols = [c.strip() for c in line.split(',')]
             jd = float(cols[0])
+            if q == 'vec':
+                rows.append((jd, [float(c) for c in cols[2:8]]))  # X, Y, Z, VX, VY, VZ (km, km/s)
+                continue
             nums = [float(c) for c in cols[1:] if re.fullmatch(r'-?\d+\.\d+', c)]
             rows.append((jd, nums[:2]))
         for r in chunk:
@@ -63,8 +78,8 @@ for (command, scale, q, site), rs in groups.items():
         time.sleep(0.4)
     print(f'{command:>10} {scale} Q{q}{" topo" if site else ""}: {len(rs)} değer')
 
-meta['Alındı'] = datetime.datetime.now(datetime.timezone.utc).isoformat(timespec='seconds')
-meta['Ayarlar'] = 'Q31: gözlemci ekliptik boylam/enlem (görünür, günün ekliptiği ve ekinoksu); Q1: astrometrik RA/Dec (ICRF); CENTER 500@399 (yer merkezi) veya coord@399; TIME_TYPE TT/UT; EXTRA_PREC'
+meta['Alındı' if not old else 'Eklendi'] = datetime.datetime.now(datetime.timezone.utc).isoformat(timespec='seconds')
+meta['Ayarlar'] = 'VECTORS: Ay yer merkezli geometrik konum/hız (ICRF, düzeltmesiz); Q31: gözlemci ekliptik boylam/enlem (görünür, günün ekliptiği ve ekinoksu); Q1: astrometrik RA/Dec (ICRF); CENTER 500@399 (yer merkezi) veya coord@399; TIME_TYPE TT/UT; EXTRA_PREC'
 meta['Sorgu sayısı'] = len(out)
 (DIR / 'jpl.json').write_text(json.dumps({'meta': meta, 'values': out}, indent=1, ensure_ascii=False))
 print('kaydedildi:', DIR / 'jpl.json', meta)

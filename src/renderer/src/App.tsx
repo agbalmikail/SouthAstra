@@ -504,6 +504,10 @@ export default function App() {
     cmd('now', t('Şu anın haritası'), kbd('T'))
     if (currentId) cmd('edit', t('Haritayı düzenle'), kbd('E'))
     if (view) cmd('pdf', t('PDF olarak kaydet'), kbd('P'))
+    if (currentId) out.push({ id: 'x:jpl', group: t('Komutlar'), label: t('NASA JPL ile karşılaştır'), hint: t('Hesaplama bilgileri'), keywords: t('nasa jpl horizons doğrulama karşılaştırma'), run: () => {
+      setMode('natal'); setShift(0); setPanelOpen(true)
+      setTimeout(() => { const d = document.querySelector<HTMLDetailsElement>('details.details'); if (d) d.open = true; document.querySelector('.jpl-box')?.scrollIntoView({ block: 'center', behavior: 'smooth' }) }, 150)
+    } })
     if (view && mode !== 'acg') out.push({ id: 'x:copy', group: t('Komutlar'), label: t('Haritayı resim olarak kopyala'), hint: kbd('C', { shift: true }), keywords: t('png görüntü pano'), run: () => { void copyChartImage() } })
     cmd('ephemeris', t('Efemeris'), kbd('E', { shift: true }), t('ay boşluk geçiş void'))
     cmd('library', t('Yorum kütüphanesi'), kbd('L'))

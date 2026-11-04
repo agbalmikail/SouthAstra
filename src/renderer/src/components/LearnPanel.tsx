@@ -67,7 +67,7 @@ export function LearnPanel({ chart, outer, cross, print }: { chart: ChartResult;
           {asp.map((a, i) => <AspectLearn key={i} a={a} la="" lb="" from={chart} to={chart} />)}
         </>
       )}
-      <p className="hint">{t('Kaynak:')} {learnSource()} {t('Bu açıklamalar programın hesapladığı konum ve açılara dayanır; yorum katmanı hesaplamadan ayrıdır. Kendi yorumlarınız “Yorum” sekmesindeki kütüphanede kalır.')}</p>
+      <p className="hint">{t('Kaynak:')} {learnSource()} {t('Bu açıklamalar programın hesapladığı konum ve açılara dayanır; yorum katmanı hesaplamadan ayrıdır.')}{print ? '' : ' ' + t('Kendi yorumlarınız “Yorum” sekmesindeki kütüphanede kalır.')}</p>
     </div>
   )
 }

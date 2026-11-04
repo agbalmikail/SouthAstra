@@ -11,7 +11,7 @@ import { initEphemeris, natalChart, transitList, useSettings, view } from '../..
 import { toUtc } from '../../src/main/time'
 import { ASPECTS, DEFAULT_SETTINGS, ORB_PROFILES, separation } from '../../src/shared/zodiac'
 import type { ChartInput, HouseSystem } from '../../src/shared/types'
-import { apparentGST, arcsec, houses, meanNode, trueObliquity } from './independent'
+import { apparentGST, arcsec, houses, meanNode, trueNodeFromState, trueObliquity } from './independent'
 
 const ROOT = process.cwd()
 const LOCAL = process.argv.includes('--local')
@@ -35,7 +35,7 @@ const CHARTS: RefChart[] = LOCAL ? (existsSync(join(DIR, 'validate-charts.json')
 const HZ: Record<string, string> = { sun: '10', moon: '301', mercury: '199', venus: '299', mars: '499', jupiter: '599', saturn: '699', uranus: '799', neptune: '899', pluto: '999', chiron: '2060;' }
 const SE: Record<string, number> = { sun: C.SE_SUN, moon: C.SE_MOON, mercury: C.SE_MERCURY, venus: C.SE_VENUS, mars: C.SE_MARS, jupiter: C.SE_JUPITER, saturn: C.SE_SATURN, uranus: C.SE_URANUS, neptune: C.SE_NEPTUNE, pluto: C.SE_PLUTO, chiron: C.SE_CHIRON }
 
-interface Req { key: string; body: string; command: string; jd: number; scale: 'TT' | 'UT'; q: '31' | '1'; site?: [number, number, number] }
+interface Req { key: string; body: string; command: string; jd: number; scale: 'TT' | 'UT'; q: '31' | '1' | 'vec'; site?: [number, number, number] }
 const reqs: Req[] = []
 const req = (r: Omit<Req, 'command'>) => { reqs.push({ ...r, command: HZ[r.body] }); return r.key }
 
@@ -50,6 +50,7 @@ for (const ch of CHARTS) {
     req({ key: `${ch.id}|${b}|UT|31`, body: b, jd: c.jdUt, scale: 'UT', q: '31' })
     req({ key: `${ch.id}|${b}|TT|1`, body: b, jd: c.jdTt, scale: 'TT', q: '1' })
   }
+  req({ key: `${ch.id}|moon|vec`, body: 'moon', jd: c.jdTt, scale: 'TT', q: 'vec' })
   req({ key: `${ch.id}|moon|UT|31|topo`, body: 'moon', jd: c.jdUt, scale: 'UT', q: '31', site: [ch.input.place.lon, ch.input.place.lat, 0] })
   if (ch.progressTo) {
     const v = view(ch.input, { mode: 'progressed', date: ch.progressTo })
@@ -85,7 +86,7 @@ const jplFile = join(DIR, 'jpl.json')
 const jpl: { meta?: Record<string, unknown>; values?: Record<string, number[]> } = existsSync(jplFile) ? JSON.parse(readFileSync(jplFile, 'utf8')) : {}
 const V = jpl.values ?? {}
 let pass = 0, fail = 0, missing = 0
-const maxd = { planets: 0, angles: 0, houses: 0, aspects: 0, progressions: 0, transits: 0, transitSec: 0, node: 0, tzCases: 0 }
+const maxd = { planets: 0, angles: 0, houses: 0, aspects: 0, progressions: 0, transits: 0, transitSec: 0, node: 0, trueNode: 0, tzCases: 0 }
 const mx = (k: keyof typeof maxd, v: number) => { if (Number.isFinite(v) && v > maxd[k]) maxd[k] = v }
 const lines: string[] = []
 const out = (s = '') => lines.push(s)
@@ -122,6 +123,8 @@ out()
 
 const T_POS = 1.0 // yay saniyesi: gezegenler
 const T_CHIRON = 3.0
+// Ay yörüngesi ekliptiğe ~5° eğik: yörünge normalindeki küçük model farkları düğüm boylamında ~1/sin(5°) ≈ 11 kat büyür
+const T_TRUENODE = 2.0
 for (const p of plans) {
   const ch = p.chart
   const c = natalChart(ch.input)
@@ -183,7 +186,16 @@ for (const p of plans) {
   const mn = natalChart({ ...ch.input, nodeType: 'mean' }).points.find((x) => x.id === 'northnode')!.lon
   const mnRef = meanNode(p.jdTt)
   mx('node', arcsec(mn, mnRef))
-  out(check(arcsec(mn, mnRef) <= 3, `Ortalama Ay düğümü: Meeus ${f6(mnRef)}° · SouthAstra ${f6(mn)}° · fark ${f2(arcsec(mn, mnRef))}″ (sınır 3″). Gerçek (oskülatör) düğüm: bağımsız referans yok — DOĞRULANMADI.`, `${ch.id} ortalama düğüm: beklenen ${f6(mnRef)}, hesaplanan ${f6(mn)}`))
+  out(check(arcsec(mn, mnRef) <= 3, `Ortalama Ay düğümü: Meeus ${f6(mnRef)}° · SouthAstra ${f6(mn)}° · fark ${f2(arcsec(mn, mnRef))}″ (sınır 3″).`, `${ch.id} ortalama düğüm: beklenen ${f6(mnRef)}, hesaplanan ${f6(mn)}`))
+  // Gerçek (oskülatör) düğüm: NASA JPL'nin Ay konum/hız vektörlerinden bağımsız hesap
+  const kVec = `${ch.id}|moon|vec`
+  if (has(kVec)) {
+    const tn = natalChart({ ...ch.input, nodeType: 'true' }).points.find((x) => x.id === 'northnode')!.lon
+    const tnRef = trueNodeFromState(V[kVec].slice(0, 3), V[kVec].slice(3, 6), p.jdTt)
+    const d = arcsec(tn, tnRef)
+    mx('trueNode', d)
+    out(check(d <= T_TRUENODE, `Gerçek (oskülatör) Ay düğümü: NASA JPL Ay vektörlerinden (h = r × v, IAU 1976 presesyon + nütasyon) ${f6(tnRef)}° · SouthAstra ${f6(tn)}° · fark ${f2(d)}″ (sınır ${T_TRUENODE}″). Ortalama düğümden farkı ${f2(arcsec(tn, mn) / 3600)}°; test ikisini açıkça ayırt eder.`, `${ch.id} gerçek düğüm: beklenen ${f6(tnRef)}, hesaplanan ${f6(tn)}, fark ${f2(d)}″; JD(TT) ${f6(p.jdTt)}`))
+  } else out('Gerçek (oskülatör) Ay düğümü: NASA vektör referansı yok — DOĞRULANMADI.')
   out()
 
   // Açılar: JPL konumlarından bağımsız yeniden hesap
@@ -255,7 +267,7 @@ out()
 out(`- Geçen: **${pass}** · Başarısız: **${fail}** · Referansı olmadığı için doğrulanmayan kalem: **${missing}**`)
 if (fails.length) { out(); out('### Başarısızlar (beklenen, hesaplanan, fark, parametreler)'); out(); for (const f of fails) out(`- ${f}`) }
 out()
-out('Sınırlar: gezegenler 1″, Chiron 3″, toposentrik Ay 2″, köşeler ve evler 5″ (bağımsız nütasyon serisi kısaltılmış: ~0,1″), ortalama düğüm 3″, transit ve progresyon 1,5″.')
+out('Sınırlar: gezegenler 1″, Chiron 3″, toposentrik Ay 2″, köşeler ve evler 5″ (bağımsız nütasyon serisi kısaltılmış: ~0,1″), ortalama düğüm 3″, gerçek düğüm 2″ (Ay yörüngesinin 5° eğikliği yüzünden yörünge yönündeki küçük model farkları düğümde ~11 kat büyür), transit ve progresyon 1,5″.')
 writeFileSync(REPORT, lines.join('\n') + '\n')
 // uygulamanın teknik eki için özet (resources/verification.json; git'e girmez, CI'da paketlemeden önce üretilir)
 if (!LOCAL) {

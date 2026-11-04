@@ -2,23 +2,26 @@ import { useMemo, useState } from 'react'
 import type { ChartResult } from '@shared/types'
 import { SIGNS } from '@shared/zodiac'
 import { isDayChart, sectUnknown } from '@shared/dignities'
-import { addYears, firdaria, profections, type NightNodes } from '@shared/timelords'
+import { addYears, birthLocal, firdaria, profections, type NightNodes } from '@shared/timelords'
 import { usePanelParam } from '../panelParams'
-import { t, loc } from '@shared/i18n'
+import { t, loc, getLang } from '@shared/i18n'
 
 const GL: Record<string, string> = { sun: '☉', moon: '☽', mercury: '☿', venus: '♀', mars: '♂', jupiter: '♃', saturn: '♄', northnode: '☊', southnode: '☋' }
 const NAME: Record<string, string> = { sun: 'Güneş', moon: 'Ay', mercury: 'Merkür', venus: 'Venüs', mars: 'Mars', jupiter: 'Jüpiter', saturn: 'Satürn', northnode: 'Kuzey Düğüm', southnode: 'Güney Düğüm' }
 const g = (id: string) => (GL[id] ?? id) + '︎'
 /** Çevrilmiş metinde **kalın** işaretini öğeye çevirir */
 const rich = (s: string) => s.split(/(\*\*[^*]+\*\*)/).map((x, i) => x.startsWith('**') ? <b key={i}>{x.slice(2, -2)}</b> : x)
-const d = (x: Date) => x.toLocaleDateString(loc(), { day: '2-digit', month: '2-digit', year: 'numeric' })
+// tarih doğum yerinin takviminde gösterilir (bilgisayarın saat diliminde değil)
+const fmtLocal = (x: Date, o: number) => birthLocal(x, o).toLocaleDateString(loc(), { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC' })
 
 /** Yıllık profeksiyon ve firdaria; seçili tarih (varsayılan bugün) vurgulanır */
 export function TimeLordsPanel({ chart, at, print }: { chart: ChartResult; at?: Date; print?: boolean }) {
   const birth = Date.parse(chart.utc)
+  const off = chart.offsetMinutes ?? 0
+  const d = (x: Date) => fmtLocal(x, off)
   const now = (at ?? new Date()).getTime()
   let ageNow = 0
-  while (addYears(birth, ageNow + 1) <= now) ageNow++
+  while (addYears(birth, ageNow + 1, off) <= now) ageNow++
   const [tl, setTl] = usePanelParam('timelords')
   const { span, nightNodes } = tl
   const setSpan = (v: number) => setTl({ ...tl, span: v })
@@ -27,7 +30,7 @@ export function TimeLordsPanel({ chart, at, print }: { chart: ChartResult; at?: 
   const [assume, setAssume] = usePanelParam('sectAssume')
   const day = unknown ? assume === 'day' : isDayChart(chart)
   const prof = useMemo(() => profections(chart, birth, Math.max(0, ageNow - Math.floor(span / 2)), Math.max(0, ageNow - Math.floor(span / 2)) + span), [chart, birth, ageNow, span])
-  const fird = useMemo(() => { const all = firdaria(chart, birth, 2, nightNodes, unknown ? day : undefined); return print ? all.filter((f) => +f.major.from < addYears(birth, 90)) : all }, [chart, birth, nightNodes, print, unknown, day])
+  const fird = useMemo(() => { const all = firdaria(chart, birth, 2, nightNodes, unknown ? day : undefined); return print ? all.filter((f) => +f.major.from < addYears(birth, 90, off)) : all }, [chart, birth, nightNodes, print, unknown, day])
   const curMajor = fird.find((f) => +f.major.from <= now && now < +f.major.to)
   const [open, setOpen] = useState<number | null>(null)
   const openIdx = open ?? (curMajor ? fird.indexOf(curMajor) : null)
@@ -105,7 +108,7 @@ export function TimeLordsPanel({ chart, at, print }: { chart: ChartResult; at?: 
                     <td style={{ paddingLeft: print ? 16 : 26 }}><span className="sym">{g(s.lord)}</span>/<span className="sym">{g(s.sub!)}</span> <span className="muted">{t(NAME[s.sub!])}</span></td>
                     <td className="num">{d(s.from)}</td>
                     <td className="num">{d(s.to)}</td>
-                    <td className="r num muted">{s.years.toFixed(2).replace('.', ',')}</td>
+                    <td className="r num muted">{getLang() === 'en' ? s.years.toFixed(2) : s.years.toFixed(2).replace('.', ',')}</td>
                   </tr>
                 )
               }) : [])

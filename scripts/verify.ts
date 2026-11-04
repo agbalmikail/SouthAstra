@@ -10,7 +10,8 @@ import { loadCities, searchCities } from '../src/main/cities'
 import { isNewer } from '../src/shared/version'
 import { dispositorChains, essentialDignities, faceRuler, mutualReceptions, sectUnknown, termRuler, tripRuler } from '../src/shared/dignities'
 import { midpointHits } from '../src/shared/factors'
-import { firdaria, profections } from '../src/shared/timelords'
+import { birthLocal, firdaria, profections } from '../src/shared/timelords'
+import { DateTime, FixedOffsetZone } from 'luxon'
 import { chartHighlights, ANGLE_ORB, TIGHT_ORB } from '../src/shared/highlights'
 import { transitExplain } from '../src/shared/learn'
 import { buildSession, feedbackStats, fitShare, looksGeneric, rng, type FeedbackEntry } from '../src/shared/feedback'
@@ -678,6 +679,55 @@ console.log('\n— Zaman yöneticileri: profeksiyon ve firdaria')
   ok(fn === 'moon,saturn,jupiter,mars,sun,venus,mercury,northnode,southnode' && fb === 'moon,saturn,jupiter,mars,northnode,southnode,sun,venus,mercury', 'Firdaria: gece sırası (Abu Ma\'shar: düğümler sonda; Bonatti: Mars\'tan sonra)')
   ok(fd.slice(0, 7).every((x) => x.subs.length === 7 && x.subs[0].sub === x.major.lord && Math.abs(+x.subs[6].to - +x.major.to) < 1000), 'Firdaria: her gezegen dönemi 7 alt dönem; ilk alt dönem dönemin kendi yöneticisi')
   ok(fd[0].subs.map((x) => x.sub).join(',') === (natal.isDay ? 'sun,venus,mercury,moon,saturn,jupiter,mars' : 'moon,saturn,jupiter,mars,sun,venus,mercury'), 'Firdaria: alt dönemler Kalde sırasıyla ilerliyor')
+}
+
+console.log('\n— Firdaria ve profeksiyon tarihleri (bağımsız: luxon takvim aritmetiği)')
+{
+  // Beklenen tarihler programın kodundan değil, luxon'un takvim aritmetiğinden: doğum anı, doğumdaki saat farkıyla sabit
+  // bir saat diliminde alınır ve tam yıllar eklenir. Kesirli yıllar (alt dönemler) tropikal yıl × gün olarak eklenir.
+  const TY = 365.2422 * 864e5
+  const check = (label: string, inp: ChartInput) => {
+    const c = natalChart(inp)
+    const z = FixedOffsetZone.instance(c.offsetMinutes)
+    const [Y, M, D] = inp.date.split('-').map(Number), [h, m] = inp.time.split(':').map(Number)
+    const b = DateTime.fromObject({ year: Y, month: M, day: D, hour: h, minute: m }, { zone: z })
+    const exp = (yrs: number) => b.plus({ years: Math.floor(yrs) }).toMillis() + (yrs - Math.floor(yrs)) * TY
+    const fd = firdaria(c, Date.parse(c.utc), 2)
+    let worst = 0, contiguous = true, dates = true
+    let prevEnd = Date.parse(c.utc), acc = 0
+    for (const f of fd) {
+      worst = Math.max(worst, Math.abs(+f.major.from - exp(acc)), Math.abs(+f.major.to - exp(acc + f.major.years)))
+      if (Math.abs(+f.major.from - prevEnd) > 0) contiguous = false
+      // ana dönem doğum yerinin takviminde doğum gününde başlar
+      const loc = DateTime.fromMillis(+f.major.from, { zone: z })
+      const bd = b.plus({ years: acc })
+      if (loc.month !== bd.month || loc.day !== bd.day) dates = false
+      let sp = +f.major.from
+      f.subs.forEach((x, k) => {
+        worst = Math.max(worst, Math.abs(+x.from - exp(acc + (k * f.major.years) / 7)))
+        if (+x.from !== sp) contiguous = false
+        sp = +x.to
+      })
+      if (f.subs.length && sp !== +f.major.to) contiguous = false
+      prevEnd = +f.major.to; acc += f.major.years
+    }
+    ok(worst < 1 && contiguous && dates, `${label}: 18 ana dönem ve alt dönemler bağımsız hesapla aynı (en büyük fark ${worst.toFixed(0)} ms); boşluksuz ve çakışmasız; her ana dönem doğum gününde`)
+    const pr = profections(c, Date.parse(c.utc), 0, 80)
+    ok(pr.every((p) => +p.from === b.plus({ years: p.age }).toMillis()), `${label}: 81 profeksiyon yılı doğum gününde başlıyor`)
+    return { c, b, z, fd, pr }
+  }
+  const base2 = { ...base, place: { ...base.place, name: 'İstanbul', lat: 41.01, lon: 28.97, tz: 'Europe/Istanbul' }, timeMode: 'zone' as const }
+  // 1) Kış doğumu gece yarısına yakın: Türkiye 1988'de UTC+2, 2016'dan beri UTC+3. Yıl dönümü bir gün kaymamalı.
+  const w = check('İstanbul 15.01.1988 23:30 (UTC+2; bugün UTC+3)', { ...base2, date: '1988-01-15', time: '23:30' })
+  const p40 = w.pr[40]
+  const shown = birthLocal(p40.from, w.c.offsetMinutes)
+  ok(shown.getUTCDate() === 15 && shown.getUTCMonth() === 0 && shown.getUTCFullYear() === 2028, `40. yaş profeksiyonu 15.01.2028 olarak gösteriliyor (${shown.toISOString().slice(0, 10)}); UTC'ye göre hesaplansaydı İstanbul saatiyle 16.01 görünürdü`)
+  // 2) 29 Şubat doğumu: artık olmayan yıllarda 28 Şubat, artık yıllarda 29 Şubat
+  const f = check('29.02.1992 10:00', { ...base2, date: '1992-02-29', time: '10:00' })
+  const dd = (x: Date) => birthLocal(x, f.c.offsetMinutes).toISOString().slice(5, 10)
+  ok(dd(f.pr[1].from) === '02-28' && dd(f.pr[4].from) === '02-29' && dd(f.pr[8].from) === '02-29' && dd(f.pr[9].from) === '02-28', `29 Şubat doğumu: 1, 4, 8, 9 yaş başlangıçları ${[1, 4, 8, 9].map((a) => dd(f.pr[a].from)).join(', ')} (beklenen 02-28, 02-29, 02-29, 02-28)`)
+  // 3) Güney yarımküre, eksi saat farkı
+  check('Buenos Aires 31.12.1975 21:15 (UTC−3)', { ...base, place: { ...base.place, name: 'Buenos Aires', lat: -34.6, lon: -58.38, tz: 'America/Argentina/Buenos_Aires' }, timeMode: 'zone', date: '1975-12-31', time: '21:15' })
 }
 
 console.log('\n— Sideral zodyak')
