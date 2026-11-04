@@ -1,0 +1,29 @@
+appId: com.southastra.app
+productName: SouthAstra
+directories:
+  buildResources: build
+  output: dist
+files:
+  - out/**/*
+  - package.json
+extraResources:
+  - from: resources/ephe
+    to: ephe
+  - from: resources/cities.json.gz
+    to: cities.json.gz
+asarUnpack:
+  - node_modules/sweph/**/*
+mac:
+  target:
+    - target: dmg
+      arch: [arm64, x64]
+  category: public.app-category.education
+  identity: null
+win:
+  target:
+    - target: nsis
+      arch: [x64]
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+publish: null

@@ -1,0 +1,6 @@
+# Windows ile Mac arasında satır sonu farkı sorun çıkarmasın
+* text=auto eol=lf
+*.se1 binary
+*.gz binary
+*.png binary
+*.woff2 binary

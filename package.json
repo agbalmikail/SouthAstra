@@ -1,0 +1,41 @@
+{
+  "name": "southastra",
+  "productName": "SouthAstra",
+  "version": "0.3.0",
+  "description": "Profesyonel astroloji programı — Swiss Ephemeris tabanlı",
+  "license": "AGPL-3.0-or-later",
+  "main": "./out/main/index.js",
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "build": "electron-vite build",
+    "start": "electron-vite preview",
+    "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",
+    "verify": "tsx --tsconfig tsconfig.node.json scripts/verify.ts",
+    "cities": "node scripts/build-cities.mjs",
+    "dist:mac": "electron-vite build && electron-builder --mac",
+    "dist:win": "electron-vite build && electron-builder --win"
+  },
+  "dependencies": {
+    "@fontsource/ibm-plex-mono": "^5.3.0",
+    "@fontsource/ibm-plex-sans": "^5.3.0",
+    "@fontsource/noto-sans-symbols": "^5.3.0",
+    "luxon": "^3.7.2",
+    "sweph": "^2.10.3-8"
+  },
+  "devDependencies": {
+    "@types/luxon": "^3.7.6",
+    "@types/node": "^26.6.6",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^5.2.0",
+    "electron": "^45.2.2",
+    "electron-builder": "^26.18.0",
+    "electron-vite": "^6.0.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vite": "^7.3.7"
+  },
+  "author": "SouthAstra"
+}

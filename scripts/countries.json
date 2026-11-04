@@ -1,0 +1,36 @@
+{
+  "_açıklama": "Ülkeye özel yer verisi ayarları. districtLevel: 'ilçe' olarak gösterilecek GeoNames idari düzeyi (2 veya 3). admin1: il/eyalet adlarının yerel resmî yazılışı (anahtar: GeoNames admin1 kodu). Yeni bir ülke eklerken burada ayarı yoksa 2. düzey kullanılır. admin2Fix: GeoNames'teki yanlış yazılmış ilçe adlarının düzeltmesi. skipAdmin2: bugün geçerli olmayan (tarihi) idari bölgeler.",
+  "TR": {
+    "districtLevel": 2,
+    "admin2Fix": {
+      "Şemdinni": "Şemdinli"
+    },
+    "skipAdmin2": [
+      "Doski Aşireti Bölgesi"
+    ]
+  },
+  "DE": {
+    "districtLevel": 3,
+    "admin1": {
+      "01": "Baden-Württemberg",
+      "02": "Bayern",
+      "03": "Bremen",
+      "04": "Hamburg",
+      "05": "Hessen",
+      "06": "Niedersachsen",
+      "07": "Nordrhein-Westfalen",
+      "08": "Rheinland-Pfalz",
+      "09": "Saarland",
+      "10": "Schleswig-Holstein",
+      "11": "Brandenburg",
+      "12": "Mecklenburg-Vorpommern",
+      "13": "Sachsen",
+      "14": "Sachsen-Anhalt",
+      "15": "Thüringen",
+      "16": "Berlin"
+    }
+  },
+  "AT": {
+    "districtLevel": 2
+  }
+}
