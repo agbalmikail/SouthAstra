@@ -71,3 +71,26 @@ export const TRANSIT_LEARN =
   'Transit: bugünkü (ya da seçilen tarihteki) gökyüzündeki bir gezegenin doğum haritasındaki bir noktayla yaptığı açı. Kesinleşme tarihi açının tam olduğu andır; etkinlik dönemi ise gezegenin seçilen orb içinde kaldığı süredir. Yavaş gezegenlerin (Jüpiter–Plüton) transitleri aylarca sürebilir ve retrograd hareket nedeniyle aynı açı birkaç kez kesinleşebilir.'
 
 export const learnPoint = (id: string) => PLANET_LEARN[id === 'southnode' ? 'northnode' : id]
+
+/** Tek bir transit olayının düz dille açıklaması (hesaplanmış veriden; tahmin içermez) */
+export function transitExplain(e: { transit: string; natal?: string; type: string; house?: number; pass?: { n: number; of: number }; window?: { start: string; end: string; orb: number } }, fmt: (iso: string) => string): string[] {
+  const T = learnPoint(e.transit)
+  const lines: string[] = []
+  if (!e.natal) {
+    if (e.type === 'ingress') lines.push(`${T?.title ?? e.transit} yeni bir burca geçiyor. Burç geçişleri gökyüzündeki genel değişimlerdir; herkes için aynı tarihte olur, doğum haritasına özel değildir.`)
+    else lines.push(`${T?.title ?? e.transit} bu tarihte yön değiştiriyor (duraklama). Dünya'dan bakıldığında gezegen birkaç gün neredeyse duruyor gibi görünür; bu da gökyüzündeki genel bir olaydır.`)
+    if (T) lines.push(`${T.title}: ${T.text}`)
+    return lines
+  }
+  const N = learnPoint(e.natal)
+  lines.push(`Gökyüzündeki ${T?.title ?? e.transit}, doğum haritanızdaki ${N?.title ?? e.natal} ile ${ASPECT_LEARN[e.type as AspectType]?.split(':')[0]?.toLowerCase() ?? ''} açısı yapıyor.`)
+  if (T) lines.push(`${T.title}: ${T.text}`)
+  if (N && e.natal !== e.transit) lines.push(`Doğum haritasındaki ${N.title}: ${N.text}`)
+  else if (N) lines.push(`Gezegen kendi doğum konumuyla açı yapıyor ("dönüş" ve "döngü" transitleri; örneğin Satürn döngüsü yaklaşık 29,5 yıldır).`)
+  const a = ASPECT_LEARN[e.type as AspectType]
+  if (a) lines.push(`Açı: ${a}`)
+  if (e.house) lines.push(`${T?.title ?? 'Gezegen'} bu sırada doğum haritanızın ${e.house}. evinden geçiyor; bu ev geleneksel olarak ${HOUSE_LEARN[e.house - 1].split(' · ')[1].replace(/\.$/, '')} ile ilişkilendirilir.`)
+  if (e.window) lines.push(`Etkinlik dönemi: ${fmt(e.window.start)} – ${fmt(e.window.end)} (gezegen ±${e.window.orb}° orb içinde).${e.pass && e.pass.of > 1 ? ` Gezegen geri ve ileri hareket ettiği için bu açı ${e.pass.of} kez tam oluyor; bu, ${e.pass.n}. kez.` : ''}`)
+  lines.push('Bu bir olay tahmini değil; astrolojik sembollerin geleneksel anlamlarının birleşimidir.')
+  return lines
+}

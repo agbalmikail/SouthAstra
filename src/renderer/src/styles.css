@@ -679,3 +679,13 @@ table.grid td.uncertain, td.uncertain { opacity: 0.55; }
 .print-page .hl-item { border-bottom-color: #e3e6ec; padding: 3px 0 4px; }
 .print-page .hl-meaning, .print-page .hl-intro { font-size: 8.8px; }
 .print-page .hl-rule { font-size: 8px; color: #646d7e; }
+
+.explain-btn { width: 18px; height: 18px; border-radius: 50%; border: 1px solid var(--line-strong); background: transparent; color: var(--muted); font-size: 11px; line-height: 1; cursor: pointer; padding: 0; }
+.explain-btn:hover { color: var(--accent); border-color: var(--accent); }
+tr.explain-row td { white-space: normal; background: var(--surface-2); padding: 8px 10px; }
+tr.explain-row p { margin: 2px 0; line-height: 1.5; font-size: 12.5px; }
+tr.explain-row p.ex-lead { font-weight: 600; }
+/* Transit listesi panele sığsın: olay sütunu kayar */
+table.data.tlist { width: 100%; table-layout: auto; }
+table.data.tlist td:last-child { white-space: normal; }
+table.data.tlist td:last-child .tag { white-space: nowrap; }

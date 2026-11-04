@@ -12,6 +12,7 @@ import { essentialDignities, faceRuler, sectUnknown, termRuler, tripRuler } from
 import { midpointHits } from '../src/shared/factors'
 import { firdaria, profections } from '../src/shared/timelords'
 import { chartHighlights, ANGLE_ORB, TIGHT_ORB } from '../src/shared/highlights'
+import { transitExplain } from '../src/shared/learn'
 import { aspectPatterns } from '../src/shared/patterns'
 import type { ChartResult } from '../src/shared/types'
 import { toUtc } from '../src/main/time'
@@ -224,6 +225,15 @@ console.log('\n— Öne çıkanlar (kural tabanlı özet)')
   const ux = chartHighlights(natalChart({ ...base, date: '1975-11-02', time: '12:00', timeUnknown: true }))
   ok(!ux.some((h) => h.group === 'Köşeler' || h.id.startsWith('ruler-')) && ux.some((h) => h.id === 'big3' && !h.title.includes('Yükselen')), 'Saat bilinmiyorsa köşe, harita yöneticisi ve yükselen maddesi üretilmiyor')
   ok(hs.every((h) => h.title && h.rule), `Her maddede başlık ve kural var (${hs.length} madde)`)
+}
+
+console.log('\n— Transit açıklaması (düz dil)')
+{
+  const ev = transitList(base, '2024-01-01T00:00:00Z', '2025-12-31T00:00:00Z', ['saturn']).find((e) => e.natal && e.pass && e.pass.of > 1)!
+  const lines = transitExplain(ev, (iso) => iso.slice(0, 10))
+  ok(lines.some((l) => l.includes(`${ev.house}. evinden`)) && lines.some((l) => l.includes(`${ev.pass!.of} kez`)) && lines.some((l) => l.includes(ev.window!.start.slice(0, 10))) && lines.some((l) => l.includes('tahmini değil')), `Satürn transiti açıklaması: ev (${ev.house}), seri (${ev.pass!.n}/${ev.pass!.of}), dönem ve 'tahmin değil' notu metinde`)
+  const st = transitExplain({ transit: 'mercury', type: 'station-retro' }, (x) => x)
+  ok(st[0].includes('yön değiştiriyor') && !st.some((l) => l.includes('evinden')), 'Duraklama açıklaması: genel gökyüzü olayı olarak, eve bağlanmadan')
 }
 
 console.log('\n— Ay düğümü (bağımsız formül)')

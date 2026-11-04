@@ -5,6 +5,7 @@ import { ASPECT_BY_TYPE, ELEMENT_TR, MODALITY, moonPhase, norm360, pad2, SIGNS, 
 import { fmtDecl, fmtOrb, lonParts } from '../format'
 import { Lon, stationText } from './Tables'
 import { rectifyDefaults, rectifyKey, usePanelParam, type PanelParams } from '../panelParams'
+import { transitExplain } from '@shared/learn'
 import { durationClass, DURATION_NAME, importance, RANK_RULE, windowDays } from '@shared/transitRank'
 
 const err = (e: unknown) => (e as Error).message.replace(/^Error invoking remote method '[^']+': (Error: )?/, '')
@@ -289,6 +290,7 @@ export function TransitListPanel({ input, natal, onPick }: { input: ChartInput; 
   const setPlanets = (f: (l: string[]) => string[]) => setTp({ ...tp, planets: f(planets) })
   const setKinds = (k: typeof kinds) => setTp({ ...tp, kinds: k })
   const [events, setEvents] = useState<TransitEvent[]>([])
+  const [openRow, setOpenRow] = useState<number | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   useEffect(() => {
@@ -330,7 +332,7 @@ export function TransitListPanel({ input, natal, onPick }: { input: ChartInput; 
       </div>
       {error && <p className="error">{error}</p>}
       <p className="hint">{busy ? 'Hesaplanıyor…' : `${shown.length} olay · saatler doğum yerinin saat dilimine göre · tam açı anı · parantezde transit gezegenin natal evi · dönem: orba giriş–çıkış (transit orbu ${events.find((e) => e.window)?.window?.orb ?? '—'}°)`}{sort === 'rank' && <> · <span title={RANK_RULE} className="link small">önem kuralı</span></>}</p>
-      <table className="data">
+      <table className="data tlist">
         <tbody>
           {shown.map((e, i) => {
             const month = sort === 'rank' ? '' : new Date(e.utc).toLocaleString('tr-TR', { timeZone: input.place.tz, month: 'long', year: 'numeric' })
@@ -339,18 +341,20 @@ export function TransitListPanel({ input, natal, onPick }: { input: ChartInput; 
             const def = e.natal ? ASPECT_BY_TYPE[e.type as keyof typeof ASPECT_BY_TYPE] : undefined
             return [
               head && <tr key={'m' + i} className="month-row"><td colSpan={3}>{month}</td></tr>,
-              <tr key={i} className="click" onClick={() => onPick(e.utc)}>
+              <tr key={i} className={`click${openRow === i ? ' hl' : ''}`} onClick={() => onPick(e.utc)}>
                 <td className="num small nowrap">{fmtDate(e.utc)}</td>
                 <td className="nowrap">
                   <span className="sym">{g(e.transit)}</span>{e.house ? <span className="muted small">({e.house})</span> : null}{e.retro && <span className="tag retro">R</span>}{' '}
                   {def ? <><span className={`asp-g ${e.type}`}>{def.glyph}</span> <span className={g(e.natal!).length > 2 ? 'axis-txt' : 'sym'}>{g(e.natal!)}</span></> : null}
                 </td>
                 <td className="small">
+                  <button className="explain-btn" title="Bu ne anlama geliyor?" onClick={(ev) => { ev.stopPropagation(); setOpenRow(openRow === i ? null : i) }}>?</button>{' '}
                   {e.pass && e.pass.of > 1 && <span className="tag stat" title="Retrograd hareket nedeniyle aynı açının tekrarı">{e.pass.n}/{e.pass.of}</span>}{' '}
                   {e.window && <span className={`tag dur-${durationClass(e)}`} title={`Etkinlik dönemi (orb ${e.window.orb}°): ${fmtDay(e.window.start)} – ${fmtDay(e.window.end)} · ${Math.round(windowDays(e))} gün`}>{DURATION_NAME[durationClass(e)!]}</span>}{' '}
                   {def ? `${def.name} natal ${n(e.natal!)}` : e.type === 'station-retro' ? `Geri dönüyor · ${SIGNS[e.sign ?? 0].name}` : e.type === 'station-direct' ? `İleri dönüyor · ${SIGNS[e.sign ?? 0].name}` : `${SIGNS[e.sign ?? 0].name} burcuna geçiş`}
                 </td>
-              </tr>
+              </tr>,
+              openRow === i && <tr key={'x' + i} className="explain-row"><td colSpan={3}>{transitExplain(e, fmtDay).map((l, k) => <p key={k} className={k === 0 ? 'ex-lead' : ''}>{l}</p>)}</td></tr>
             ]
           })}
         </tbody>
