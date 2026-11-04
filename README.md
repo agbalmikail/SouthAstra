@@ -73,6 +73,8 @@ Görsellerdeki haritalar uydurma örneklerdir.
 - Esas dignite tablolarını geleneksel kaynaklarla sınar: Mısır sınırlarında gezegen toplamları (Satürn 57, Jüpiter 79, Mars 66, Venüs 82, Merkür 76), 36 Kalde dekanı, Lilly üçlük yöneticileri.
 - Gerçek Ay düğümü hızını sayısal türevle, Vega'yı Hipparcos koordinatından bağımsız hesapla, orta noktaları ikinci bir yöntemle (birim vektör) doğrular.
 
+`npm run denetim` ise örnek bir haritadaki **her değeri tek tek** bağımsız kaynakla karşılaştırır: 12 cismin boylam, enlem, sağ açıklık ve deklinasyonu NASA JPL ile; hızlar ve retro işaretleri sayısal türevle; **11 ev sisteminin bütün başlangıçları** ders kitabı formülleriyle yazılmış ayrı hesaplarla; her gezegenin evi ve bütün açılar yeniden hesaplanarak.
+
 Saat dilimi kayıtlarının geçmişi bazı ülkeler ve yıllar için tartışmalıdır. 1985 öncesi Türkiye bunlardan biridir. Program kullandığı ofseti her haritada gösterir, gerekirse elle düzeltilebilir.
 
 ## Kurulum (kullanıcılar için)
@@ -88,6 +90,8 @@ Hazır kurulum dosyaları GitHub'daki **[Releases](https://github.com/agbalmikai
 npm install
 npm run dev        # geliştirme modunda aç
 npm run verify     # doğruluk testleri
+npm run denetim    # örnek haritada her değerin bağımsız denetimi
+npm run icon       # build/icon.svg → build/icon.png
 npm run dist:mac   # Mac kurulum dosyası (dist/)
 npm run dist:win   # Windows kurulum dosyası (dist/)
 ```

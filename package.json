@@ -13,7 +13,9 @@
     "verify": "tsx --tsconfig tsconfig.node.json scripts/verify.ts",
     "cities": "node scripts/build-cities.mjs",
     "dist:mac": "electron-vite build && electron-builder --mac",
-    "dist:win": "electron-vite build && electron-builder --win"
+    "dist:win": "electron-vite build && electron-builder --win",
+    "denetim": "tsx --tsconfig tsconfig.node.json scripts/audit.ts",
+    "icon": "node scripts/build-icon.mjs"
   },
   "dependencies": {
     "@fontsource/ibm-plex-mono": "^5.3.0",
@@ -23,6 +25,7 @@
     "sweph": "^2.10.3-8"
   },
   "devDependencies": {
+    "@resvg/resvg-js": "^2.6.2",
     "@types/luxon": "^3.7.6",
     "@types/node": "^26.6.6",
     "@types/react": "^19.3.0",
