@@ -108,6 +108,10 @@ export default function App() {
   const [acgHover, setAcgHover] = useState<string | null>(null)
   const [acgMarker, setAcgMarker] = useState<CityHit | null>(null)
   const [acgPrint, setAcgPrint] = useState(false)
+  // Yan yana: ikinci çark ('' kapalı, 'self' bu kişinin natali, aksi halde arşivdeki haritanın kimliği)
+  const [compareId, setCompareId] = useState('')
+  const [compareView, setCompareView] = useState<ViewResult | null>(null)
+  const [compareHover, setCompareHover] = useState<string | null>(null)
   const [toast, setToast] = useState('')
   const [sideW, setSideW] = useState<number>(pref('sideW', 248))
   const [panelW, setPanelW] = useState<number>(pref('panelW', 460))
@@ -174,6 +178,15 @@ export default function App() {
       place: modeDef.needsPlace ? altPlace ?? undefined : undefined
     }).then(setView).catch((e) => { setView(null); setError(errText(e)) })
   }, [input, mode, hsysView, dateMs, partner, shift, settings, modeDef, harmonic, altPlace])
+
+  useEffect(() => {
+    if (!compareId || !input || mode === 'acg') { setCompareView(null); return }
+    const other = compareId === 'self' ? input : charts.find((c) => c.id === compareId)
+    if (!other) { setCompareId(''); return }
+    window.southastra.view(other, { mode: 'natal', houseSystem: hsysView ?? other.houseSystem })
+      .then((v) => setCompareView({ ...v, subtitle: compareId === 'self' ? 'Natal' : v.subtitle }))
+      .catch((e) => { setCompareView(null); setError(errText(e)) })
+  }, [compareId, input, charts, hsysView, settings, mode])
 
   useEffect(() => {
     if (mode === 'acg' && input) window.southastra.acg(input).then(setAcgLines).catch((e) => setError(errText(e)))
@@ -583,6 +596,13 @@ export default function App() {
                 {charts.filter((c) => c.id !== currentId).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
             )}
+            {mode !== 'acg' && input && (
+              <select id="view-compare" className="compact" value={compareId} onChange={(e) => setCompareId(e.target.value)} title="İkinci haritayı yanında göster">
+                <option value="">Tek çark</option>
+                {mode !== 'natal' && <option value="self">Yanında: {input.name} natal</option>}
+                {charts.filter((c) => c.id !== currentId).map((c) => <option key={c.id} value={c.id}>Yanında: {c.name}</option>)}
+              </select>
+            )}
             {mode !== 'acg' && mode !== 'harmonic' && (
               <select id="view-hsys" className="compact" value={hsysView ?? input?.houseSystem ?? 'P'} onChange={(e) => setHsysView(e.target.value as HouseSystem)} title="Ev sistemi">
                 {HOUSE_SYSTEMS.map((h) => <option key={h.id} value={h.id}>{h.name}</option>)}
@@ -625,6 +645,18 @@ export default function App() {
               <ZoomPane resetKey={mode}>
                 {mode === 'acg' && input
                   ? <AcgMap input={input} lines={acgLines} hidden={acgHidden} hovered={acgHover} onHover={setAcgHover} marker={acgMarker} />
+                  : compareView ? (
+                    <div className="side-by-side">
+                      <figure>
+                        <figcaption><b>{shownView.title}</b> <span className="muted">{mode === 'natal' ? 'Natal' : modeDef.name}</span></figcaption>
+                        <Wheel inner={inner} outer={outer} cross={shownView.cross} hovered={hovered} selected={selected} onHover={setHovered} onSelect={(id) => setSelected(selected === id ? null : id)} showMinor={showMinor} appearance={settings.appearance} />
+                      </figure>
+                      <figure>
+                        <figcaption><b>{compareView.title}</b> <span className="muted">Natal · {fmtDateTr(compareView.inner.input.date)} {compareView.inner.input.timeUnknown ? '' : compareView.inner.input.time}</span></figcaption>
+                        <Wheel inner={compareView.inner} cross={[]} hovered={compareHover} onHover={setCompareHover} showMinor={showMinor} appearance={settings.appearance} />
+                      </figure>
+                    </div>
+                  )
                   : <Wheel inner={inner} outer={outer} cross={shownView.cross} hovered={hovered} selected={selected} onHover={setHovered} onSelect={(id) => setSelected(selected === id ? null : id)} showMinor={showMinor} appearance={settings.appearance} />}
               </ZoomPane>
               {modeDef.needsDate && input && <DateBar ms={dateMs} tz={input.place.tz} onChange={setDateMs} label={mode === 'solarreturn' ? 'Bu tarihten sonraki ilk Güneş dönüşü' : mode === 'lunarreturn' ? 'Bu tarihten sonraki ilk Ay dönüşü' : 'Tarih'} />}
