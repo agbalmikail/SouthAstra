@@ -56,8 +56,14 @@ export function deleteChart(id: string): void {
   flush()
 }
 
-export function exportTo(path: string): void {
-  writeFileSync(path, JSON.stringify({ format: 'southastra-archive', version: 1, exportedAt: new Date().toISOString(), charts }, null, 2))
+/** Tam yedek: haritalar + yorum kütüphanesi + ayarlar */
+export function exportTo(path: string, extra: { library: unknown; settings: unknown }): void {
+  writeFileSync(path, JSON.stringify({ format: 'southastra-archive', version: 2, exportedAt: new Date().toISOString(), charts, library: extra.library, settings: extra.settings }, null, 2))
+}
+
+export function readArchive(path: string): { library?: unknown } {
+  const d = JSON.parse(readFileSync(path, 'utf8'))
+  return Array.isArray(d) ? {} : { library: d?.library }
 }
 
 /** SouthAstra arşiv dosyasını içe aktarır; aynı isim + tarih + saat + yer varsa atlar */

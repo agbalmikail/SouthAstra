@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import type { AspectType, Settings } from '@shared/types'
-import { ASPECTS, AYANAMSAS, ORB_PROFILES } from '@shared/zodiac'
+import { ASPECTS, AYANAMSAS, DEFAULT_SETTINGS, ORB_PROFILES } from '@shared/zodiac'
+import { HOUSE_SYSTEMS } from '@shared/types'
+import type { HouseSystem } from '@shared/types'
 
 const OPTIONAL_POINTS: [string, string][] = [['chiron', 'Chiron'], ['lilith', 'Lilith (ortalama)'], ['northnode', 'Kuzey Ay Düğümü'], ['southnode', 'Güney Ay Düğümü'], ['fortune', 'Şans Noktası'], ['uranus', 'Uranüs'], ['neptune', 'Neptün'], ['pluto', 'Plüton']]
 
@@ -14,6 +16,7 @@ export default function SettingsModal({ initial, onClose, onSave, onAbout }: { i
     <div className="modal-back" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose() }}>
       <div className="modal wide" onKeyDown={(e) => { if (e.key === 'Escape') onClose() }}>
         <h2>Ayarlar</h2>
+        <p className="hint" style={{ marginTop: -6 }}>Ayarlar bilgisayarınızda saklanır ve uygulama kapansa da korunur; arşivi dışa aktardığınızda yedeğe de dahil edilir.</p>
 
         <div className="settings-grid">
           <section>
@@ -30,6 +33,21 @@ export default function SettingsModal({ initial, onClose, onSave, onAbout }: { i
                 </select>
               </label>
             )}
+
+            <div className="cap">Yeni haritalar için varsayılanlar</div>
+            <div className="row2">
+              <label className="field"><span>Ev sistemi</span>
+                <select id="s-hsys" value={s.defaultHouseSystem} onChange={(e) => setS({ ...s, defaultHouseSystem: e.target.value as HouseSystem })}>
+                  {HOUSE_SYSTEMS.map((h) => <option key={h.id} value={h.id}>{h.name}</option>)}
+                </select>
+              </label>
+              <label className="field"><span>Ay düğümü</span>
+                <select id="s-node" value={s.defaultNodeType} onChange={(e) => setS({ ...s, defaultNodeType: e.target.value as 'true' | 'mean' })}>
+                  <option value="true">Gerçek düğüm</option>
+                  <option value="mean">Ortalama düğüm</option>
+                </select>
+              </label>
+            </div>
 
             <div className="cap">Karşılaştırmalı haritalar</div>
             <label className="field-row">Transit orbu <input id="s-torb" className="short" value={s.transitOrb} onChange={(e) => setS({ ...s, transitOrb: num(e.target.value) })} />°</label>
@@ -81,6 +99,7 @@ export default function SettingsModal({ initial, onClose, onSave, onAbout }: { i
 
         <div className="actions">
           {onAbout && <button className="link small" style={{ marginRight: 'auto' }} onClick={onAbout}>Hakkında ve lisanslar</button>}
+          <button className="btn ghost" onClick={() => setS({ ...DEFAULT_SETTINGS, customOrbs: s.customOrbs })} title="Özel orb değerleriniz korunur">Varsayılanlara dön</button>
           <button className="btn ghost" onClick={onClose}>Vazgeç</button>
           <button className="btn primary" onClick={() => onSave(s)}>Kaydet</button>
         </div>

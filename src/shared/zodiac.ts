@@ -94,7 +94,9 @@ export const DEFAULT_SETTINGS: Settings = {
   progressionOrb: 1,
   showParallels: true,
   fixedStarOrb: 1,
-  hiddenPoints: []
+  hiddenPoints: [],
+  defaultHouseSystem: 'P',
+  defaultNodeType: 'true'
 }
 
 export function activeOrbs(s: Settings): OrbProfile {

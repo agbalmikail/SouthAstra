@@ -1,6 +1,7 @@
 // Kullanıcı ayarları (zodyak, orb profili…): kullanıcı klasöründe settings.json
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import type { Settings } from '@shared/types'
+import { HOUSE_SYSTEMS } from '@shared/types'
 import { DEFAULT_SETTINGS } from '@shared/zodiac'
 
 let file = ''
@@ -32,7 +33,9 @@ function sanitize(s: Settings): Settings {
     progressionOrb: num(s.progressionOrb, 1, 0.1, 3),
     showParallels: s.showParallels !== false,
     fixedStarOrb: num(s.fixedStarOrb, 1, 0.1, 3),
-    hiddenPoints: Array.isArray(s.hiddenPoints) ? s.hiddenPoints.filter((x) => typeof x === 'string') : []
+    hiddenPoints: Array.isArray(s.hiddenPoints) ? s.hiddenPoints.filter((x) => typeof x === 'string') : [],
+    defaultHouseSystem: HOUSE_SYSTEMS.some((h) => h.id === s.defaultHouseSystem) ? s.defaultHouseSystem : 'P',
+    defaultNodeType: s.defaultNodeType === 'mean' ? 'mean' : 'true'
   }
 }
 

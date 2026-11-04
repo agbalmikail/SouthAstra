@@ -268,6 +268,8 @@ export interface Settings {
   showParallels: boolean
   fixedStarOrb: number
   hiddenPoints: string[] // çarkta ve tablolarda gösterilmeyecek noktalar
+  defaultHouseSystem: HouseSystem // yeni haritalar için
+  defaultNodeType: 'true' | 'mean'
 }
 
 export interface CityHit extends Place {
@@ -307,7 +309,7 @@ export interface SouthAstraApi {
   saveChart: (c: Omit<SavedChart, 'id' | 'createdAt' | 'updatedAt'> & { id?: string }) => Promise<SavedChart>
   deleteChart: (id: string) => Promise<void>
   exportCharts: () => Promise<string | null>
-  importCharts: () => Promise<{ added: number; skipped: number } | null>
+  importCharts: () => Promise<{ added: number; skipped: number; notes: number } | null>
   getSettings: () => Promise<Settings>
   setSettings: (s: Settings) => Promise<Settings>
   exportPdf: (fileName: string, footer: string) => Promise<string | null>

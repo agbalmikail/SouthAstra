@@ -68,7 +68,8 @@ Görsellerdeki haritalar uydurma örneklerdir.
 - Güneş/Ay dönüşü anında konum farkı 0,001 yay saniyesinin altında; transit listesindeki her tam açı anı yeniden hesaplanarak doğrulanır.
 - Sideral (Lahiri) ayanamsa, progresyon (ikincil/tersiyer/minör), solar arc, harmonik, kompozit ve Şans Noktası formüllerini sınar.
 - 2026 tutulmalarını NASA kataloğuyla (tarih, saat, tür) karşılaştırır; astrokartografi çizgilerinde gezegenin gerçekten ufukta/meridyende olduğunu doğrular.
-- Esas dignite puanlarını ve açı kalıplarını bilinen örneklerle sınar.
+- Esas dignite tablolarını geleneksel kaynaklarla sınar: Mısır sınırlarında gezegen toplamları (Satürn 57, Jüpiter 79, Mars 66, Venüs 82, Merkür 76), 36 Kalde dekanı, Lilly üçlük yöneticileri.
+- Gerçek Ay düğümü hızını sayısal türevle, Vega'yı Hipparcos koordinatından bağımsız hesapla, orta noktaları ikinci bir yöntemle (birim vektör) doğrular.
 
 Saat dilimi kayıtlarının geçmişi bazı ülkeler ve yıllar için tartışmalıdır. 1985 öncesi Türkiye bunlardan biridir. Program kullandığı ofseti her haritada gösterir, gerekirse elle düzeltilebilir.
 

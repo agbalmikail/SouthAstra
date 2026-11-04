@@ -6,6 +6,7 @@ import { parseCoords } from '../coords'
 
 interface Props {
   initial: ChartInput | null
+  defaults?: { houseSystem: HouseSystem; nodeType: 'true' | 'mean' }
   onCancel: () => void
   onSubmit: (input: ChartInput) => void
 }
@@ -28,7 +29,7 @@ const writePref = (k: string, v: string) => {
   try { localStorage.setItem(k, v) } catch { /* yok say */ }
 }
 
-export default function ChartForm({ initial, onCancel, onSubmit }: Props) {
+export default function ChartForm({ initial, defaults, onCancel, onSubmit }: Props) {
   const [step, setStep] = useState<'edit' | 'confirm'>('edit')
   const [name, setName] = useState(initial?.name ?? '')
   const [date, setDate] = useState(initial?.date ?? '')
@@ -56,8 +57,8 @@ export default function ChartForm({ initial, onCancel, onSubmit }: Props) {
   const [addrState, setAddrState] = useState<'' | 'busy' | 'done' | string>('')
   const [timeMode, setTimeMode] = useState<TimeMode>(initial?.timeMode ?? 'zone')
   const [manualOffset, setManualOffset] = useState(String(initial?.manualOffset ?? 3))
-  const [houseSystem, setHouseSystem] = useState<HouseSystem>(initial?.houseSystem ?? 'P')
-  const [nodeType, setNodeType] = useState<'true' | 'mean'>(initial?.nodeType ?? 'true')
+  const [houseSystem, setHouseSystem] = useState<HouseSystem>(initial?.houseSystem ?? defaults?.houseSystem ?? 'P')
+  const [nodeType, setNodeType] = useState<'true' | 'mean'>(initial?.nodeType ?? defaults?.nodeType ?? 'true')
   const [notes, setNotes] = useState(initial?.notes ?? '')
   const [rodden, setRodden] = useState<Rodden | ''>(initial?.rodden ?? '')
   const [tags, setTags] = useState((initial?.tags ?? []).join(', '))

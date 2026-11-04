@@ -278,7 +278,7 @@ export default function App() {
     if (cmd === 'import') {
       try {
         const r = await window.southastra.importCharts()
-        if (r) { await refresh(); setToast(`${r.added} harita eklendi${r.skipped ? `, ${r.skipped} tanesi zaten vardı` : ''}`) }
+        if (r) { await refresh(); setLibrary(await window.southastra.getLibrary()); setToast(`${r.added} harita eklendi${r.skipped ? `, ${r.skipped} tanesi zaten vardı` : ''}${r.notes ? ` · ${r.notes} yorum eklendi` : ''}`) }
       } catch (e) { setError(errText(e)) }
     }
   }), [currentId, input, view, mode])
@@ -309,7 +309,7 @@ export default function App() {
   const hp = hc?.points.find((p) => p.id === hid)
   const [sc, sid] = chartFor(selected)
 
-  if (printing && shownView) return <PrintView view={shownView} sections={pdfSections} library={library} transits={printTransits} modeName={modeDef.name} />
+  if (printing && shownView) return <PrintView view={shownView} sections={pdfSections} library={library} transits={printTransits} modeName={modeDef.name} settings={settings} />
 
   const inner = shownView?.inner
   const outer = shownView?.outer
@@ -325,7 +325,7 @@ export default function App() {
       case 'grid': return <AspectGrid chart={inner} showMinor={showMinor} hovered={hovered} onHover={setHovered} />
       case 'houses': return <HouseTable chart={inner} />
       case 'cross': return outer ? <CrossList outer={outer} inner={inner} cross={view.cross} showMinor={showMinor} hovered={hovered} onHover={setHovered} /> : null
-      case 'analysis': return <><PatternsBlock chart={inner} /><Distribution chart={inner} /><div className="cap">Sabit yıldız kavuşumları</div><StarsTable chart={inner} /></>
+      case 'analysis': return <><PatternsBlock chart={inner} /><Distribution chart={inner} /><div className="cap">Sabit yıldız kavuşumları</div><StarsTable chart={inner} orb={settings.fixedStarOrb} /></>
       case 'traditional': return <TraditionalPanel chart={inner} />
       case 'events': return input ? <EventsPanel input={input} canSave={!!currentId} onChange={saveEvents} onOpen={openEvent} /> : null
       case 'midpoints': return <MidpointsPanel chart={inner} />
@@ -522,7 +522,7 @@ export default function App() {
         )}
       </main>
 
-      {form && <ChartForm initial={form === 'edit' ? input : null} onCancel={() => setForm(null)} onSubmit={submitForm} />}
+      {form && <ChartForm initial={form === 'edit' ? input : null} defaults={{ houseSystem: settings.defaultHouseSystem, nodeType: settings.defaultNodeType }} onCancel={() => setForm(null)} onSubmit={submitForm} />}
       {settingsOpen && <SettingsModal initial={settings} onAbout={() => { setSettingsOpen(false); setAboutOpen(true) }} onClose={() => setSettingsOpen(false)} onSave={async (s) => { setSettings(await window.southastra.setSettings(s)); setSettingsOpen(false); setToast('Ayarlar kaydedildi') }} />}
       {aboutOpen && <AboutModal onClose={() => setAboutOpen(false)} />}
       {libraryOpen && <LibraryModal library={library} onSave={saveInterp} onClose={() => setLibraryOpen(false)} />}

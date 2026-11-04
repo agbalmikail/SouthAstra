@@ -279,7 +279,7 @@ export function TraditionalPanel({ chart }: { chart: ChartResult }) {
   const cell = (ruler: string | undefined, self: string) => ruler ? <span className={ruler === self ? 'sym self' : 'sym'} title={name(ruler)}>{glyphOf(ruler)}</span> : <span className="muted">—</span>
   return (
     <div>
-      <p className="hint">{isDayChart(chart) ? 'Gündüz haritası' : 'Gece haritası'} · Ptolemaios esas digniteleri, Mısır sınırları, Kalde dekanları, Lilly üçlük yöneticileri ve puanlaması. Vurgulu işaret: gezegen kendi dignitesinde.</p>
+      <p className="hint">{isDayChart(chart) ? 'Gündüz haritası (Güneş ufkun üstünde)' : 'Gece haritası (Güneş ufkun altında)'}. Vurgulu işaret: gezegen o satırda kendi dignitesinde.</p>
       <table className="data dign">
         <thead><tr><th>Gezegen</th><th className="c">Ev</th><th className="c">Yüc.</th><th className="c">Üçlük</th><th className="c">Sınır</th><th className="c">Dekan</th><th className="r">Puan</th></tr></thead>
         <tbody>
@@ -299,6 +299,7 @@ export function TraditionalPanel({ chart }: { chart: ChartResult }) {
       <ul className="mini-list dign-notes">
         {rows.map((r) => <li key={r.id}><span className="sym">{glyphOf(r.id)}</span> {r.has.join(' · ')}</li>)}
       </ul>
+      <p className="hint dign-rules"><b>Kurallar:</b> William Lilly, <i>Christian Astrology</i> (1647) puanlaması. Ev (burç yöneticisi) +5, yücelim +4, üçlük +3 (Lilly'nin üçlük yöneticileri; gündüz/gece haritasına göre), sınır +2 (Mısır sınırları), dekan +1 (Kalde sırası). Zarar −5, düşüş −4; hiçbir olumlu esas dignitesi olmayan gezegen peregrine −5. Yalnızca yedi geleneksel gezegen puanlanır; araz (accidental) dignite ve karşılıklı ağırlama puana dahil değildir. Dispozitör zinciri geleneksel burç yöneticileriyle izlenir.</p>
       <div className="cap">Karşılıklı ağırlama</div>
       {mr.length ? (
         <ul className="mini-list">{mr.map((m, i) => <li key={i}><span className="sym">{glyphOf(m.a)}</span> {name(m.a)} ⇄ <span className="sym">{glyphOf(m.b)}</span> {name(m.b)} <span className="muted">({m.kind})</span></li>)}</ul>

@@ -2,9 +2,9 @@ import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron'
 import { join } from 'node:path'
 import { readFileSync, writeFileSync } from 'node:fs'
 import { acg, eclipses, getEphePath, initEphemeris, rectify, swephVersion, transitList, useSettings, view } from './engine'
-import { getLibrary, initLibrary, setLibraryEntry } from './library'
+import { getLibrary, initLibrary, mergeLibrary, setLibraryEntry } from './library'
 import { browsePlaces, listCountries, listDistricts, listRegions, loadCities, nearest, searchCities } from './cities'
-import { deleteChart, exportTo, importFrom, initStore, listCharts, saveChart } from './store'
+import { deleteChart, exportTo, importFrom, initStore, listCharts, readArchive, saveChart } from './store'
 import { getSettings, initSettings, setSettings } from './settings'
 import { buildMenu } from './menu'
 import { toUtc } from './time'
@@ -87,16 +87,18 @@ app.whenReady().then(() => {
   ipcMain.handle('charts:delete', (_e, id: string) => deleteChart(id))
   ipcMain.handle('charts:export', async (e) => {
     const win = BrowserWindow.fromWebContents(e.sender)!
-    const r = await dialog.showSaveDialog(win, { title: 'Arşivi dışa aktar', defaultPath: `SouthAstra-arsiv-${new Date().toISOString().slice(0, 10)}.json`, filters: [{ name: 'SouthAstra arşivi', extensions: ['json'] }] })
+    const r = await dialog.showSaveDialog(win, { title: 'Arşivi dışa aktar (haritalar, yorumlar, ayarlar)', defaultPath: `SouthAstra-arsiv-${new Date().toISOString().slice(0, 10)}.json`, filters: [{ name: 'SouthAstra arşivi', extensions: ['json'] }] })
     if (r.canceled || !r.filePath) return null
-    exportTo(r.filePath)
+    exportTo(r.filePath, { library: getLibrary(), settings: getSettings() })
     return r.filePath
   })
   ipcMain.handle('charts:import', async (e) => {
     const win = BrowserWindow.fromWebContents(e.sender)!
     const r = await dialog.showOpenDialog(win, { title: 'Arşiv içe aktar', properties: ['openFile'], filters: [{ name: 'SouthAstra arşivi', extensions: ['json'] }] })
     if (r.canceled || !r.filePaths[0]) return null
-    return importFrom(r.filePaths[0])
+    const res = importFrom(r.filePaths[0])
+    const notes = mergeLibrary(readArchive(r.filePaths[0]).library as Record<string, { text: string; updatedAt: string }>)
+    return { ...res, notes }
   })
   ipcMain.handle('settings:get', () => getSettings())
   ipcMain.handle('settings:set', (_e, s) => { const v = setSettings(s); useSettings(v); return v })

@@ -7,7 +7,8 @@ import { join } from 'node:path'
 import { acg, eclipses, initEphemeris, natalChart, rectify, transitList, useSettings, view } from '../src/main/engine'
 import { DEFAULT_SETTINGS } from '../src/shared/zodiac'
 import { loadCities, searchCities } from '../src/main/cities'
-import { essentialDignities, faceRuler, termRuler } from '../src/shared/dignities'
+import { essentialDignities, faceRuler, termRuler, tripRuler } from '../src/shared/dignities'
+import { midpointHits } from '../src/shared/factors'
 import { aspectPatterns } from '../src/shared/patterns'
 import type { ChartResult } from '../src/shared/types'
 import { toUtc } from '../src/main/time'
@@ -200,6 +201,15 @@ console.log('\n— Geleneksel: esas dignite (Lilly puanlaması) ve açı kalıpl
   ok(moon.score === -9, `Ay 10° Akrep: ${moon.has.join(', ')} = ${moon.score} (beklenen −9: düşüş + peregrine)`)
   const mars = d.find((x) => x.id === 'mars')!
   ok(mars.has[0] === 'Yücelim +4' && termRuler(295) === 'saturn' && faceRuler(295) === 'sun', `Mars 25° Oğlak: yücelimde; sınır Satürn, dekan Güneş`)
+  // Mısır sınırları: her gezegenin toplam derecesi geleneksel "küçük yıllar"a eşittir
+  const tot: Record<string, number> = {}
+  for (let d = 0; d < 360; d++) { const r = termRuler(d + 0.5); tot[r] = (tot[r] ?? 0) + 1 }
+  ok(tot.saturn === 57 && tot.jupiter === 79 && tot.mars === 66 && tot.venus === 82 && tot.mercury === 76, `Mısır sınırları toplamları: Satürn ${tot.saturn}, Jüpiter ${tot.jupiter}, Mars ${tot.mars}, Venüs ${tot.venus}, Merkür ${tot.mercury} (beklenen 57/79/66/82/76)`)
+  // Kalde dekanları: Lilly'nin tablosuyla birebir (36 dekan)
+  const FACES = 'mars sun venus mercury moon saturn jupiter mars sun venus mercury moon saturn jupiter mars sun venus mercury moon saturn jupiter mars sun venus mercury moon saturn jupiter mars sun venus mercury moon saturn jupiter mars'.split(' ')
+  ok(FACES.every((f, i) => faceRuler(i * 10 + 5) === f), '36 dekan yöneticisi Lilly tablosuyla aynı (Koç: Mars, Güneş, Venüs … Balık: Satürn, Jüpiter, Mars)')
+  const TRIP: [number, string, string][] = [[0, 'sun', 'jupiter'], [1, 'venus', 'moon'], [2, 'saturn', 'mercury'], [3, 'mars', 'mars']]
+  ok(TRIP.every(([s, d, n]) => [s, s + 4, s + 8].every((x) => tripRuler(x * 30 + 1, true) === d && tripRuler(x * 30 + 1, false) === n)), 'Üçlük yöneticileri (Lilly): Ateş Güneş/Jüpiter, Toprak Venüs/Ay, Hava Satürn/Merkür, Su Mars')
   ok(termRuler(0) === 'jupiter' && termRuler(29.9) === 'saturn' && termRuler(359.9) === 'saturn' && faceRuler(359) === 'mars', 'Sınır ve dekan tabloları uç değerlerde doğru (Koç başı Jüpiter, Balık sonu Satürn/Mars)')
   const A = (a: string, b: string, type: ChartResult['aspects'][number]['type']) => ({ a, b, type, angle: 0, orb: 1, applying: false })
   const gt = aspectPatterns(fake({ sun: 10, moon: 130, mars: 250, venus: 70 }, 10, [A('sun', 'moon', 'trine'), A('moon', 'mars', 'trine'), A('sun', 'mars', 'trine'), A('venus', 'sun', 'sextile'), A('venus', 'moon', 'sextile'), A('venus', 'mars', 'opposition')]))
@@ -228,6 +238,41 @@ console.log('\n— Yer araması (sıralama)')
   ok(top('koln')[0] === 'Köln', '"koln" → Köln')
   ok(top('berlin kreuzberg')[0] === 'Kreuzberg', '"berlin kreuzberg" → Kreuzberg')
   ok(top('Kurfürstendamm Berlin').length === 0, 'Sokak adı içeren aramada çevrimdışı sonuç yok (arayüz sokak adını atıp yeniden dener)')
+}
+
+console.log('\n— Bağımsız ikinci kontroller')
+{
+  // Gerçek düğüm hızı: Swiss Ephemeris hızı ↔ ±1 saatlik sayısal türev
+  const jd = natal.jdUt
+  const sp = sweph.calc_ut(jd, C.SE_TRUE_NODE, C.SEFLG_SWIEPH | C.SEFLG_SPEED).data[3]
+  const num = (sweph.calc_ut(jd + 1 / 24, C.SE_TRUE_NODE, C.SEFLG_SWIEPH).data[0] - sweph.calc_ut(jd - 1 / 24, C.SE_TRUE_NODE, C.SEFLG_SWIEPH).data[0]) * 12
+  ok(Math.abs(sp - num) < 0.0005, `Gerçek düğüm hızı: ${sp.toFixed(4)}°/gün, sayısal türev ${num.toFixed(4)}°/gün`)
+  // Vega: Hipparcos J2000 koordinatından bağımsız ekliptik boylam + genel presesyon
+  const ra = 279.23473479 * Math.PI / 180, de = 38.78368896 * Math.PI / 180, e0 = 23.4392911 * Math.PI / 180
+  const l2000 = Math.atan2(Math.sin(ra) * Math.cos(e0) + Math.tan(de) * Math.sin(e0), Math.cos(ra)) * 180 / Math.PI
+  const lv = (l2000 + 50.29 * ((jd - 2451545) / 365.25) / 3600 + 360) % 360
+  const sv = sweph.fixstar2_ut('Vega', jd, C.SEFLG_SWIEPH).data[0]
+  // Bağımsız hesapta nütasyon (±17") ve yıllık sapınç yok; Vega'nın ekliptik enlemi ~62° olduğundan
+  // sapınç boylamda ~1/cos(β) ≈ 2 kat büyür (≈ ±43"). Bu yüzden sınır 1,5'.
+  ok(separation(lv, sv) * 60 < 1.5, `Vega: bağımsız ${lv.toFixed(3)}°, Swiss Ephemeris ${sv.toFixed(3)}° (fark ${(separation(lv, sv) * 60).toFixed(2)}'; nütasyon ve sapınç bağımsız hesapta yok)`)
+  // Orta noktalar: birim vektör yöntemiyle bağımsız hesap; bütün temaslar aynı olmalı
+  const hits = midpointHits(natal, 1.5)
+  const ids = ['sun', 'moon', 'mercury', 'venus', 'mars', 'jupiter', 'saturn', 'uranus', 'neptune', 'pluto', 'northnode']
+  const L: Record<string, number> = Object.fromEntries(ids.map((id) => [id, pid(natal, id)]))
+  L.asc = natal.angles.asc; L.mc = natal.angles.mc
+  const keys = Object.keys(L)
+  const mine = new Set<string>()
+  for (let i = 0; i < keys.length; i++) for (let j = i + 1; j < keys.length; j++) {
+    const a = L[keys[i]] * Math.PI / 180, b = L[keys[j]] * Math.PI / 180
+    const mid = (Math.atan2(Math.sin(a) + Math.sin(b), Math.cos(a) + Math.cos(b)) * 180 / Math.PI + 360) % 360
+    for (const p of keys) {
+      if (p === keys[i] || p === keys[j]) continue
+      const d = separation(L[p], mid)
+      if ([0, 45, 90, 135, 180].some((x) => Math.abs(d - x) <= 1.5)) mine.add(`${p}=${keys[i]}/${keys[j]}`)
+    }
+  }
+  const theirs = new Set(hits.map((h) => `${h.point}=${h.a}/${h.b}`))
+  ok(mine.size === theirs.size && [...mine].every((x) => theirs.has(x)), `Orta noktalar: ${theirs.size} temasın hepsi bağımsız vektör yöntemiyle aynı`)
 }
 
 console.log('\n— Ek noktalar')

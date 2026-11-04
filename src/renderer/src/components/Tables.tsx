@@ -18,11 +18,13 @@ interface HoverProps { hovered: string | null; onHover: (id: string | null) => v
 
 const DIGNITY_CLS: Record<string, string> = { Evinde: 'dg-good', Yücelimde: 'dg-good', Zararda: 'dg-bad', Düşüşte: 'dg-bad' }
 
+export const PLANET_LEGEND = 'Hız: ekliptik boylamda günlük hareket (°/gün); eksi değer geri harekettir (R). D: duraklama (gezegen yön değiştirmek üzere). Dekl.: deklinasyon (K kuzey, G güney). Evinde / Yücelimde / Zararda / Düşüşte: geleneksel esas dignite. Ay düğümü türü adında belirtilir (gerçek veya ortalama).'
+
 export function PlanetTable({ chart, hovered, onHover, onSelect, prefix = '', compact = false }: { chart: ChartResult; prefix?: string; compact?: boolean } & HoverProps) {
   return (
     <table className="data">
       <thead>
-        <tr><th></th><th>Nokta</th><th className="r">Boylam</th><th className="r">Ev</th>{!compact && <><th className="r">Hız</th><th className="r">Dekl.</th></>}</tr>
+        <tr><th></th><th>Nokta</th><th className="r">Boylam</th><th className="r">Ev</th>{!compact && <><th className="r" title="Ekliptik boylamda günlük hareket">Hız °/gün</th><th className="r" title="Deklinasyon: K kuzey, G güney">Dekl.</th></>}</tr>
       </thead>
       <tbody>
         {chart.points.map((p) => (
@@ -81,7 +83,7 @@ export function HouseTable({ chart }: { chart: ChartResult }) {
 
 const ORDER = ['sun', 'moon', 'mercury', 'venus', 'mars', 'jupiter', 'saturn', 'uranus', 'neptune', 'pluto', 'chiron', 'northnode', 'asc', 'mc']
 
-export function AspectGrid({ chart, showMinor, hovered, onHover }: { chart: ChartResult; showMinor: boolean } & HoverProps) {
+export function AspectGrid({ chart, showMinor, hovered, onHover, legend }: { chart: ChartResult; showMinor: boolean; legend?: React.ReactNode } & HoverProps) {
   const glyphOf = (id: string) => (id === 'asc' ? 'AC' : id === 'mc' ? 'MC' : chart.points.find((p) => p.id === id)?.glyph ?? '?')
   const ids = ORDER.filter((id) => (id === 'asc' || id === 'mc') ? chart.hasHouses : chart.points.some((p) => p.id === id))
   const find = (a: string, b: string) => chart.aspects.find((x) => x.type !== 'parallel' && x.type !== 'contraparallel' && ((x.a === a && x.b === b) || (x.a === b && x.b === a)))
@@ -109,7 +111,7 @@ export function AspectGrid({ chart, showMinor, hovered, onHover }: { chart: Char
           ))}
         </tbody>
       </table>
-      <p className="hint">A: yaklaşan, S: ayrılan. Hücrenin üstüne gelince açının adı ve tam orbu görünür.</p>
+      {legend ?? <p className="hint">A: yaklaşan, S: ayrılan. Hücrenin üstüne gelince açının adı ve tam orbu görünür.</p>}
     </div>
   )
 }

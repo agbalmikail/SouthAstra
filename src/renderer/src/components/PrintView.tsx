@@ -1,10 +1,10 @@
-import type { ChartResult, Library, TransitEvent, ViewResult } from '@shared/types'
+import type { ChartResult, Library, Settings, TransitEvent, ViewResult } from '@shared/types'
 import { HOUSE_SYSTEMS, placeLabel, RODDEN } from '@shared/types'
-import { ASPECT_BY_TYPE, moonPhase, SIGNS } from '@shared/zodiac'
+import { activeOrbs, ASPECT_BY_TYPE, ASPECTS, moonPhase, SIGNS } from '@shared/zodiac'
 import { aspectPatterns } from '@shared/patterns'
 import { chartFactors } from '@shared/factors'
 import Wheel from './Wheel'
-import { AspectGrid, AspectList, CrossList, HouseTable, PlanetTable } from './Tables'
+import { AspectGrid, AspectList, CrossList, HouseTable, PLANET_LEGEND, PlanetTable } from './Tables'
 import { Distribution, StarsTable } from './Analysis'
 import { MidpointsPanel, PatternsBlock, TraditionalPanel, type PdfSections } from './Extras'
 import { fmtDateTr, fmtOffset } from '../format'
@@ -34,9 +34,24 @@ function Meta({ view }: { view: ViewResult }) {
     ...(moment ? [[c.kind === 'solarreturn' || c.kind === 'lunarreturn' ? 'Dönüş anı' : 'Harita tarihi', `${local(moment)} (${i.place.tz})`] as [string, string]] : []),
     ['Ev sistemi', c.hasHouses ? c.houseSystemUsed : (HOUSE_SYSTEMS.find((h) => h.id === c.houseSystem)?.name ?? '') + ' · evler gösterilmiyor'],
     ['Zodyak', `${c.zodiac} · geosantrik · görünür konum`],
+    ['Ay düğümü', i.nodeType === 'mean' ? 'Ortalama düğüm' : 'Gerçek (oskülatör) düğüm'],
     ...(i.rodden ? [['Veri güvenilirliği', `Rodden ${i.rodden} — ${RODDEN.find((r) => r.id === i.rodden)?.desc}`] as [string, string]] : [])
   ]
   return <dl className="p-meta">{rows.map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}</dl>
+}
+
+/** Açı tablosu açıklaması: hücre içeriği ve kullanılan orb sınırları */
+function OrbLegend({ settings, cross }: { settings: Settings; cross?: 'transit' | 'progression' | 'natal' }) {
+  const prof = activeOrbs(settings)
+  const orbs = ASPECTS.map((a) => `${a.name} ${a.angle}° ±${prof.orbs[a.type] ?? '—'}°`).join(' · ')
+  return (
+    <div className="p-orbs">
+      <p><b>Okuma:</b> Hücrede açının işareti, altında durum ve orb (derece°dakika) yer alır. <b>A</b> = yaklaşan (açı henüz tamlaşmadı, gezegenler birbirine yaklaşıyor), <b>S</b> = ayrılan (açı tamlaştı, gezegenler uzaklaşıyor). Paralel ve kontraparaleller deklinasyona göredir (orb 1°).</p>
+      {cross === 'transit' || cross === 'progression'
+        ? <p><b>Orb sınırı:</b> {cross === 'transit' ? `transitlerde majör açılar için ±${settings.transitOrb}°` : `progresyon ve solar arc için majör açılar ±${settings.progressionOrb}°`}.</p>
+        : <p><b>Orb sınırları ({prof.name} profili):</b> {orbs}. Güneş veya Ay içeren açılara +{prof.luminaryBonus}° eklenir.</p>}
+    </div>
+  )
 }
 
 function Legend() {
@@ -85,8 +100,8 @@ function Summary({ chart }: { chart: ChartResult }) {
   )
 }
 
-export default function PrintView({ view, sections, library, transits, modeName }: {
-  view: ViewResult; sections: PdfSections; library: Library; transits?: TransitEvent[]; modeName: string
+export default function PrintView({ view, sections, library, transits, modeName, settings }: {
+  view: ViewResult; sections: PdfSections; library: Library; transits?: TransitEvent[]; modeName: string; settings: Settings
 }) {
   const c = view.inner
   const i = c.input
@@ -121,35 +136,46 @@ export default function PrintView({ view, sections, library, transits, modeName 
         <Section title="Konumlar" who={who}>
           <h3>{c.label}</h3>
           <PlanetTable chart={c} hovered={null} onHover={noop} />
+          <p className="p-legend-text">{PLANET_LEGEND}</p>
           {view.outer && (<><h3>{view.outer.label}</h3><PlanetTable chart={view.outer} hovered={null} onHover={noop} /></>)}
           {c.hasHouses && (<><h3>Ev başlangıçları · {c.houseSystemUsed}</h3><HouseTable chart={c} /></>)}
         </Section>
       )}
 
-      {sections.aspects && (
-        <Section title={single ? 'Açılar' : 'Karşılıklı açılar'} who={who}>
-          {single ? (
-            <>
-              <AspectGrid chart={c} showMinor hovered={null} onHover={noop} />
-              <h3>Açı listesi (orba göre)</h3>
-              <div className="p-cols2"><AspectList chart={c} showMinor hovered={null} onHover={noop} /></div>
-            </>
-          ) : <CrossList outer={view.outer!} inner={c} cross={view.cross} showMinor hovered={null} onHover={noop} />}
+      {sections.aspects && single && (
+        <>
+          <Section title="Açı tablosu" who={who}>
+            <AspectGrid chart={c} showMinor hovered={null} onHover={noop} legend={<OrbLegend settings={settings} />} />
+          </Section>
+          <Section title="Açı listesi" who={who}>
+            <p className="hint">Bütün açılar orba göre sıralı (en sıkı açı en üstte).</p>
+            <div className="p-cols2"><AspectList chart={c} showMinor hovered={null} onHover={noop} /></div>
+          </Section>
+        </>
+      )}
+      {sections.aspects && !single && (
+        <Section title="Karşılıklı açılar" who={who}>
+          <CrossList outer={view.outer!} inner={c} cross={view.cross} showMinor hovered={null} onHover={noop} />
+          <OrbLegend settings={settings} cross={view.outer!.kind === 'transit' || c.kind === 'solarreturn' || c.kind === 'lunarreturn' ? 'transit' : view.outer!.kind === 'natal' ? 'natal' : 'progression'} />
         </Section>
       )}
 
       {sections.analysis && single && c.kind !== 'harmonic' && (
-        <Section title="Analiz" who={who}>
-          <PatternsBlock chart={c} />
-          <div className="p-two">
-            <div><Distribution chart={c} /></div>
-            <div><h3>Sabit yıldız kavuşumları</h3><StarsTable chart={c} /></div>
-          </div>
-          <h3>Orta nokta temasları (1° orb)</h3>
-          <div className="p-cols2"><MidpointsPanel chart={c} initialOrb={1} /></div>
-          <h3>Esas dignite (geleneksel)</h3>
-          <TraditionalPanel chart={c} />
-        </Section>
+        <>
+          <Section title="Analiz" who={who}>
+            <PatternsBlock chart={c} />
+            <div className="p-two">
+              <div><Distribution chart={c} /></div>
+              <div><h3>Sabit yıldız kavuşumları</h3><StarsTable chart={c} orb={settings.fixedStarOrb} /></div>
+            </div>
+          </Section>
+          <Section title="Geleneksel analiz" who={who}>
+            <TraditionalPanel chart={c} />
+          </Section>
+          <Section title="Orta nokta temasları" who={who}>
+            <div className="p-cols2"><MidpointsPanel chart={c} initialOrb={1} /></div>
+          </Section>
+        </>
       )}
 
       {sections.transits && transits && transits.length > 0 && (

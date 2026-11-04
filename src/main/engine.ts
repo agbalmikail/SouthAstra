@@ -70,7 +70,7 @@ interface Geo { lat: number; lon: number }
 function computePoints(jd: number, nodeType: 'true' | 'mean', geo: Geo | null, warnings: string[]): PointPos[] {
   const flags = C.SEFLG_SWIEPH | C.SEFLG_SPEED | zf()
   let usedMoshier = false
-  const all = [...BODIES, { id: 'northnode', name: nodeType === 'mean' ? 'K. Ay Düğümü (ort.)' : 'K. Ay Düğümü', glyph: '☊', se: nodeType === 'mean' ? C.SE_MEAN_NODE : C.SE_TRUE_NODE, station: undefined }]
+  const all = [...BODIES, { id: 'northnode', name: nodeType === 'mean' ? 'K. Ay Düğümü (ortalama)' : 'K. Ay Düğümü (gerçek)', glyph: '☊', se: nodeType === 'mean' ? C.SE_MEAN_NODE : C.SE_TRUE_NODE, station: undefined }]
   const out: PointPos[] = []
   for (const b of all) {
     const r = sweph.calc_ut(jd, b.se, flags)
@@ -92,7 +92,7 @@ function computePoints(jd: number, nodeType: 'true' | 'mean', geo: Geo | null, w
     out.push(p)
   }
   const nn = out.find((p) => p.id === 'northnode')
-  if (nn) out.push({ ...nn, id: 'southnode', name: 'G. Ay Düğümü', glyph: '☋' + VS, lon: norm360(nn.lon + 180), lat: -nn.lat, declination: -nn.declination, ra: norm360((nn.ra ?? 0) + 180), azimuth: undefined, altitude: undefined })
+  if (nn) out.push({ ...nn, id: 'southnode', name: nodeType === 'mean' ? 'G. Ay Düğümü (ortalama)' : 'G. Ay Düğümü (gerçek)', glyph: '☋' + VS, lon: norm360(nn.lon + 180), lat: -nn.lat, declination: -nn.declination, ra: norm360((nn.ra ?? 0) + 180), azimuth: undefined, altitude: undefined })
   if (usedMoshier) warnings.push('Efemeris dosyaları bulunamadı; daha düşük hassasiyetli Moshier yöntemi kullanıldı.')
   return out
 }

@@ -397,7 +397,7 @@ table.data .c { text-align: center; }
 .p-meta dt { color: #646d7e; }
 .p-meta dd { margin: 0; }
 .p-wheel { display: flex; justify-content: center; margin: 4px 0; }
-.p-wheel .wheel { width: 150mm; max-width: 150mm; max-height: none; }
+.p-wheel .wheel { width: 168mm; max-width: 168mm; max-height: none; }
 .p-legend { display: flex; justify-content: center; gap: 14px; font-size: 9px; color: #1d2330; margin-top: 2px; }
 .p-notes { margin-top: 8px; font-size: 8.5px; color: #646d7e; border-top: 1px solid #dfe3e9; padding-top: 5px; }
 .p-notes p { margin: 1px 0; }
@@ -498,3 +498,22 @@ body.resizing * { cursor: col-resize !important; }
 .license-text { max-height: 40vh; overflow: auto; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; font-family: var(--mono); font-size: 11px; white-space: pre-wrap; margin: 0; }
 
 .local-name { color: var(--muted); font-weight: 400; }
+
+/* PDF: açıklamalar ve bölünmeyen bloklar */
+.print-page .p-legend-text, .print-page .p-orbs p { font-size: 8.5px; color: #646d7e; line-height: 1.45; margin: 4px 0 0; }
+.print-page .p-orbs { margin-top: 6px; break-inside: avoid; }
+.print-page .asp-grid td, .print-page .asp-grid th { width: 30px; height: 30px; min-width: 30px; }
+.print-page .asp-grid .asp-g { font-size: 12px; }
+.print-page .asp-grid .asp-orb { font-size: 7px; }
+.print-page .dist, .print-page .mini-list li, .print-page .p-two > div, .print-page .dign-rules { break-inside: avoid; }
+.print-page .dign-rules { margin-top: 8px; }
+.print-page .p-summary { margin-top: 6px; }
+.print-page .p-cols2 table.data td { padding: 1.6px 4px; font-size: 8.5px; }
+.print-page .p-cols2 table.data th { padding: 3px 4px 2px; }
+.print-page .p-cols2 .sym { font-size: 9.5px; }
+.print-page .grid-wrap { display: flex; flex-direction: column; align-items: center; }
+.print-page .asp-grid td, .print-page .asp-grid th { width: 38px; height: 38px; min-width: 38px; }
+.print-page .asp-grid .asp-g { font-size: 15px; }
+.print-page .asp-grid .asp-orb { font-size: 8px; }
+.print-page .asp-grid th.diag .sym { font-size: 15px; }
+.print-page .grid-wrap .p-orbs { align-self: stretch; margin-top: 12px; }

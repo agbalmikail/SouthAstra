@@ -131,10 +131,12 @@ export function HouseCompare({ input, base, hsys }: { input: ChartInput; base: C
 
 // ——— Sabit yıldızlar ———
 
-export function StarsTable({ chart }: { chart: ChartResult }) {
+export function StarsTable({ chart, orb }: { chart: ChartResult; orb?: number }) {
   const name = (id: string) => (id === 'asc' ? 'Yükselen' : id === 'mc' ? 'MC' : chart.points.find((p) => p.id === id)?.name ?? id)
-  if (!chart.stars.length) return <p className="empty-note">Ayarlardaki orb içinde sabit yıldız kavuşumu yok.</p>
+  const note = <p className="hint">Yıldız konumları Swiss Ephemeris sabit yıldız kataloğundan (sefstars.txt, Hipparcos tabanlı); harita anına göre öz hareket ve presesyon uygulanmış, görünür geosantrik ekliptik boylam ({chart.zodiac.toLowerCase()}). Yalnızca kavuşum (boylam farkı) değerlendirilir{orb ? `, orb ±${orb}°` : ''}; enlem farkı dikkate alınmaz. 28 klasik yıldız.</p>
+  if (!chart.stars.length) return <><p className="empty-note">Orb içinde sabit yıldız kavuşumu yok.</p>{note}</>
   return (
+    <>
     <table className="data">
       <thead><tr><th>Yıldız</th><th className="r">Konum</th><th>Kavuşum</th><th className="r">Orb</th></tr></thead>
       <tbody>
@@ -143,6 +145,8 @@ export function StarsTable({ chart }: { chart: ChartResult }) {
         ))}
       </tbody>
     </table>
+    {note}
+    </>
   )
 }
 
