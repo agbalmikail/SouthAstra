@@ -13,6 +13,8 @@ import { midpointHits } from '../src/shared/factors'
 import { firdaria, profections } from '../src/shared/timelords'
 import { chartHighlights, ANGLE_ORB, TIGHT_ORB } from '../src/shared/highlights'
 import { transitExplain } from '../src/shared/learn'
+import { buildSession, feedbackStats, fitShare, looksGeneric, rng, type FeedbackEntry } from '../src/shared/feedback'
+import { chartFactors } from '../src/shared/factors'
 import { aspectPatterns } from '../src/shared/patterns'
 import type { ChartResult } from '../src/shared/types'
 import { toUtc } from '../src/main/time'
@@ -234,6 +236,30 @@ console.log('\n— Transit açıklaması (düz dil)')
   ok(lines.some((l) => l.includes(`${ev.house}. evinden`)) && lines.some((l) => l.includes(`${ev.pass!.of} kez`)) && lines.some((l) => l.includes(ev.window!.start.slice(0, 10))) && lines.some((l) => l.includes('tahmini değil')), `Satürn transiti açıklaması: ev (${ev.house}), seri (${ev.pass!.n}/${ev.pass!.of}), dönem ve 'tahmin değil' notu metinde`)
   const st = transitExplain({ transit: 'mercury', type: 'station-retro' }, (x) => x)
   ok(st[0].includes('yön değiştiriyor') && !st.some((l) => l.includes('evinden')), 'Duraklama açıklaması: genel gökyüzü olayı olarak, eve bağlanmadan')
+}
+
+console.log('\n— Seans geri bildirimi ve kontrol metinleri')
+{
+  const chartKeys = chartFactors(natal).map((f) => f.key)
+  const otherKeys = chartFactors(natalChart({ ...base, date: '1975-11-02', time: '09:00' })).map((f) => f.key).filter((k) => !chartKeys.includes(k))
+  const lib = [...chartKeys.slice(0, 16), ...otherKeys.slice(0, 10)]
+  let fine = true
+  for (let seed = 1; seed <= 50; seed++) {
+    const s = buildSession(chartKeys, lib, rng(seed))
+    const real = s.filter((x) => !x.control), ctl = s.filter((x) => x.control)
+    if (!real.every((x) => chartKeys.includes(x.key) && lib.includes(x.key))) fine = false
+    if (!ctl.every((x) => !chartKeys.includes(x.key) && lib.includes(x.key))) fine = false
+    if (new Set(s.map((x) => x.key)).size !== s.length) fine = false
+    if (real.length !== Math.min(12, lib.filter((k) => chartKeys.includes(k)).length) || ctl.length !== Math.max(1, Math.round(real.length * 0.25))) fine = false
+  }
+  ok(fine, '50 rastgele oturum: gerçek metinler yalnız haritadaki etkenlerden, kontroller yalnız haritada olmayanlardan; tekrar yok; kontrol sayısı gerçeklerin %25\'i')
+  const s1 = buildSession(chartKeys, lib, rng(7)).map((x) => x.key).join()
+  ok(s1 === buildSession(chartKeys, lib, rng(7)).map((x) => x.key).join() && s1 !== buildSession(chartKeys, lib, rng(8)).map((x) => x.key).join(), 'Sıra rastgele ve tohumla tekrarlanabilir')
+  ok(buildSession(chartKeys, otherKeys, rng(1)).length === 0, 'Haritanın hiçbir etkeni için yorum yoksa oturum boş (yalnız kontrol gösterilmez)')
+  const E = (key: string, rating: 'fit' | 'partial' | 'nofit', control: boolean): FeedbackEntry => ({ key, rating, control, date: '', session: 'x' })
+  const fs = feedbackStats([E('a', 'fit', false), E('a', 'partial', false), E('a', 'nofit', false), E('g', 'fit', true), E('g', 'fit', true), E('g', 'partial', true), E('h', 'fit', true), E('h', 'nofit', true), E('h', 'nofit', true)])
+  ok(fs.real.n === 3 && Math.abs(fitShare(fs.real) - 0.5) < 1e-9 && fs.control.n === 6, 'Sayım: uyuyor 1 · kısmen 0,5 · uymuyor 0; gerçek ve kontrol ayrı')
+  ok(looksGeneric(fs.byKey.g) && !looksGeneric(fs.byKey.h) && !looksGeneric(fs.byKey.a), "'Fazla genel' uyarısı: kontrol olarak da çoğunlukla uyan metinde var, uymayanda ve az veride yok")
 }
 
 console.log('\n— Ay düğümü (bağımsız formül)')

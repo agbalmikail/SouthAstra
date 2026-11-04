@@ -11,6 +11,8 @@ import EphemerisView, { EphemerisPrint } from './components/EphemerisView'
 import CommandPalette, { type Command } from './components/CommandPalette'
 import Onboarding from './components/Onboarding'
 import { LearnPanel } from './components/LearnPanel'
+import FeedbackSession from './components/FeedbackSession'
+import type { FeedbackEntry } from '@shared/feedback'
 import { HighlightsPanel } from './components/HighlightsPanel'
 import { getPanelParams, rectifyDefaults, rectifyKey } from './panelParams'
 import logoMarkSrc from './assets/logo-mark.svg'
@@ -102,6 +104,7 @@ export default function App() {
   const [libraryOpen, setLibraryOpen] = useState(false)
   const [ephemOpen, setEphemOpen] = useState(false)
   const [paletteOpen, setPaletteOpen] = useState(false)
+  const [feedbackOpen, setFeedbackOpen] = useState(false)
   const [onboarding, setOnboarding] = useState(false)
   const [ephemPrint, setEphemPrint] = useState<{ data: Ephemeris; tz: string; title: string } | null>(null)
   const [aboutOpen, setAboutOpen] = useState(false)
@@ -239,6 +242,11 @@ export default function App() {
     setToast('Harita arşive kaydedildi')
   }
 
+  const saveFeedback = async (entries: FeedbackEntry[]) => {
+    if (!input || !currentId || !entries.length) return
+    const saved = await window.southastra.saveChart({ ...input, feedback: [...(input.feedback ?? []), ...entries], id: currentId })
+    setInput(saved); await refresh(); setToast('Geri bildirim kaydedildi')
+  }
   const saveSessions = async (sessions: Session[]) => {
     if (!input || !currentId) return
     const saved = await window.southastra.saveChart({ ...input, sessions, id: currentId })
@@ -525,7 +533,7 @@ export default function App() {
       case 'timelords': return <TimeLordsPanel chart={inner} at={new Date(dateMs)} />
       case 'events': return input ? <EventsPanel input={input} canSave={!!currentId} onChange={saveEvents} onOpen={openEvent} /> : null
       case 'midpoints': return <MidpointsPanel chart={inner} />
-      case 'interpret': return <InterpretPanel chart={inner} library={library} onSave={saveInterp} />
+      case 'interpret': return <InterpretPanel chart={inner} library={library} onSave={saveInterp} feedback={input?.feedback} onFeedback={currentId && mode === 'natal' ? () => setFeedbackOpen(true) : undefined} />
       case 'eclipses': return input ? <EclipsePanel input={input} chart={mode === 'transit' ? inner : inner} /> : null
       case 'sessions': return input ? <SessionsPanel input={input} canSave={!!currentId} onChange={saveSessions} /> : null
       case 'compare': return input ? <HouseCompare input={input} base={inner} hsys={hsysView ?? input.houseSystem} /> : null
@@ -763,7 +771,8 @@ export default function App() {
       {onboarding && <Onboarding settings={settings} onSaveSettings={async (s) => { setSettings(await window.southastra.setSettings(s)) }} onNewChart={() => setForm('new')} onNowChart={() => { void menuRef.current('now') }} onClose={() => { setOnboarding(false); savePref('onboarded', true) }} />}
       {paletteOpen && <CommandPalette commands={paletteCommands} onClose={() => setPaletteOpen(false)} />}
       {ephemOpen && <EphemerisView tzChoices={ephemTzChoices} onClose={() => setEphemOpen(false)} onPdf={exportEphemPdf} />}
-      {libraryOpen && <LibraryModal library={library} onSave={saveInterp} onClose={() => setLibraryOpen(false)} />}
+      {libraryOpen && <LibraryModal library={library} onSave={saveInterp} onClose={() => setLibraryOpen(false)} feedback={charts.flatMap((c) => c.feedback ?? [])} />}
+      {feedbackOpen && inner && <FeedbackSession chart={inner} library={library} onSave={saveFeedback} onClose={() => setFeedbackOpen(false)} />}
       {pdfOpen && <PdfDialog initial={pdfSections} available={pdfAvailable} onCancel={() => setPdfOpen(false)} onExport={exportPdf} />}
       {toast && <div className="toast" role="status">{toast}</div>}
     </div>

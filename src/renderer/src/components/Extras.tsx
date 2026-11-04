@@ -5,6 +5,7 @@ import { dispositorChains, essentialDignities, isDayChart, mutualReceptions, sec
 import { aspectPatterns } from '@shared/patterns'
 import { chartFactors, keyTitle, midpointHits, type Factor } from '@shared/factors'
 import { fold } from '../search'
+import { feedbackStats, fitShare, GENERIC_MIN_N, GENERIC_SHARE, looksGeneric, RATING_NAME, type FeedbackEntry, type Rating, type Tally } from '@shared/feedback'
 import { fmtOrb } from '../format'
 import { Lon } from './Tables'
 import { usePanelParam } from '../panelParams'
@@ -15,7 +16,7 @@ const GROUPS: Factor['group'][] = ['Köşeler', 'Burçlar', 'Evler', 'Açılar']
 
 // ——— Yorum paneli: bu haritanın etkenleri + astrologun kendi metinleri ———
 
-function FactorRow({ f, text, onSave }: { f: Factor; text?: string; onSave: (t: string) => void }) {
+function FactorRow({ f, text, onSave, last }: { f: Factor; text?: string; onSave: (t: string) => void; last?: Rating }) {
   const [edit, setEdit] = useState(false)
   const [draft, setDraft] = useState(text ?? '')
   useEffect(() => setDraft(text ?? ''), [text])
@@ -24,6 +25,7 @@ function FactorRow({ f, text, onSave }: { f: Factor; text?: string; onSave: (t: 
       <div className="factor-head">
         <span className="sym factor-g">{f.glyphs}</span>
         <span className="factor-t">{f.title}</span>
+        {last && <span className={`tag rate-${last}`} title="Bu danışanın son seans geri bildirimi">{RATING_NAME[last]}</span>}
         {!edit && <button className="link small" onClick={() => setEdit(true)}>{text ? 'Düzenle' : 'Yorum yaz'}</button>}
       </div>
       {edit ? (
@@ -39,7 +41,7 @@ function FactorRow({ f, text, onSave }: { f: Factor; text?: string; onSave: (t: 
   )
 }
 
-export function InterpretPanel({ chart, library, onSave }: { chart: ChartResult; library: Library; onSave: (key: string, text: string) => void }) {
+export function InterpretPanel({ chart, library, onSave, feedback, onFeedback }: { chart: ChartResult; library: Library; onSave: (key: string, text: string) => void; feedback?: FeedbackEntry[]; onFeedback?: () => void }) {
   const factors = useMemo(() => chartFactors(chart), [chart])
   const [onlyDone, setOnlyDone] = useState(false)
   const done = factors.filter((f) => library[f.key]).length
@@ -49,6 +51,7 @@ export function InterpretPanel({ chart, library, onSave }: { chart: ChartResult;
       <div className="toolbar">
         <span className="small"><b className="num">{done}</b> / <span className="num">{factors.length}</span> etkenin yorumu var</span>
         <label className="inline small"><input type="checkbox" checked={onlyDone} onChange={(e) => setOnlyDone(e.target.checked)} /> Sadece yorumlu olanlar</label>
+        {onFeedback && <button className="btn ghost small" disabled={done === 0} title={done === 0 ? 'Önce bu haritanın etkenleri için yorum yazın' : 'Danışana metinleri etken adları olmadan, kontrol metinleriyle karışık gösterir'} onClick={onFeedback}>Seans geri bildirimi al</button>}
       </div>
       {GROUPS.map((g) => {
         const list = factors.filter((f) => f.group === g && (!onlyDone || library[f.key]))
@@ -56,7 +59,7 @@ export function InterpretPanel({ chart, library, onSave }: { chart: ChartResult;
         return (
           <section key={g}>
             <div className="cap">{g}</div>
-            {list.map((f) => <FactorRow key={f.key} f={f} text={library[f.key]?.text} onSave={(t) => onSave(f.key, t)} />)}
+            {list.map((f) => <FactorRow key={f.key} f={f} text={library[f.key]?.text} onSave={(t) => onSave(f.key, t)} last={[...(feedback ?? [])].reverse().find((x) => x.key === f.key && !x.control)?.rating} />)}
           </section>
         )
       })}
@@ -64,9 +67,12 @@ export function InterpretPanel({ chart, library, onSave }: { chart: ChartResult;
   )
 }
 
+const tallyText = (t: Tally) => `${t.fit} uyuyor · ${t.partial} kısmen · ${t.nofit} uymuyor`
+
 // ——— Kütüphane penceresi: tüm yorumlar ———
 
-export function LibraryModal({ library, onSave, onClose }: { library: Library; onSave: (key: string, text: string) => void; onClose: () => void }) {
+export function LibraryModal({ library, onSave, onClose, feedback = [] }: { library: Library; onSave: (key: string, text: string) => void; onClose: () => void; feedback?: FeedbackEntry[] }) {
+  const fst = useMemo(() => feedbackStats(feedback), [feedback])
   const [q, setQ] = useState('')
   const [editing, setEditing] = useState<string | null>(null)
   const [draft, setDraft] = useState('')
@@ -80,6 +86,12 @@ export function LibraryModal({ library, onSave, onClose }: { library: Library; o
       <div className="modal wide" onKeyDown={(e) => { if (e.key === 'Escape' && !editing) onClose() }}>
         <h2>Yorum kütüphanesi</h2>
         <p className="hint" style={{ marginTop: -6 }}>{Object.keys(library).length} yorum. Yeni yorumları bir haritanın “Yorum” sekmesinden ekleyin.</p>
+        {fst.real.n + fst.control.n > 0 && (
+          <div className="fb-summary">
+            <b>Seans geri bildirimi (tüm danışanlar):</b> haritada olan etkenlerin metinleri {fst.real.n} kez işaretlendi, uyum %{Math.round(fitShare(fst.real) * 100)} · kontrol metinleri {fst.control.n} kez, uyum %{Math.round(fitShare(fst.control) * 100)}.
+            <span className="muted small"> {fst.control.n < 10 ? 'Karşılaştırma için henüz az veri var.' : fitShare(fst.control) >= fitShare(fst.real) - 0.05 ? 'Kontrol metinleri neredeyse gerçekler kadar uyuyor: metinler kişileri yeterince ayırt etmiyor olabilir.' : 'Gerçek metinler kontrollerden belirgin biçimde daha çok uyuyor.'} Bu bir bilimsel kanıt değil, metinlerinizin ayırt ediciliğinin ölçüsüdür.</span>
+          </div>
+        )}
         <input id="lib-q" className="filter wide-filter" placeholder="Yorumlarda ara…" value={q} onChange={(e) => setQ(e.target.value)} />
         <div className="lib-list">
           {entries.map((e) => (
@@ -87,6 +99,8 @@ export function LibraryModal({ library, onSave, onClose }: { library: Library; o
               <div className="factor-head">
                 <span className="factor-t">{e.title}</span>
                 <span className="muted small">{e.group} · {new Date(e.updatedAt).toLocaleDateString('tr-TR')}</span>
+                {fst.byKey[e.key] && <span className="muted small" title="Haritada olduğunda / kontrol metni olarak gösterildiğinde">· {[fst.byKey[e.key].real.n ? tallyText(fst.byKey[e.key].real) : '', fst.byKey[e.key].control.n ? `kontrol olarak: ${tallyText(fst.byKey[e.key].control)}` : ''].filter(Boolean).join(' · ')}</span>}
+                {looksGeneric(fst.byKey[e.key]) && <span className="tag cert-saate-bagli" title={`Bu metin, etkene sahip olmayan kişilerde de (kontrol olarak) çoğunlukla uydu: en az ${GENERIC_MIN_N} kontrol, uyum %${Math.round(GENERIC_SHARE * 100)}+. Daha somut ve ayırt edici yazmayı düşünün.`}>fazla genel olabilir</span>}
                 {editing !== e.key && <button className="link small" onClick={() => { setEditing(e.key); setDraft(e.text) }}>Düzenle</button>}
                 {confirmDel === e.key
                   ? <button className="link small danger-text" onClick={() => { onSave(e.key, ''); setConfirmDel(null) }}>Silmeyi onayla</button>

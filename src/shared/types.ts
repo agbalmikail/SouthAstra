@@ -1,3 +1,4 @@
+import type { FeedbackEntry } from './feedback'
 export type HouseSystem = 'P' | 'K' | 'R' | 'C' | 'E' | 'W' | 'O' | 'B' | 'T' | 'M' | 'X'
 
 export const HOUSE_SYSTEMS: { id: HouseSystem; name: string }[] = [
@@ -75,6 +76,7 @@ export interface ChartInput {
   tags?: string[]
   notes?: string
   sessions?: Session[]
+  feedback?: FeedbackEntry[] // seans geri bildirimi (Uyuyor / Kısmen / Uymuyor), kontrol metinleri dahil
   events?: LifeEvent[]
   residence?: Place // danışanın yaşadığı yer: dönüş ve taşınma haritalarında varsayılan
 }
