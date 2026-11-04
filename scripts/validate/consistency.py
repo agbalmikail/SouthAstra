@@ -58,7 +58,7 @@ sha = hashlib.sha256((ROOT / 'tests/reference/jpl.json').read_bytes()).hexdigest
 L = [f'# Tutarlılık denetimi: saklanan NASA referansları ve canlı NASA yanıtı', '', f'Çalıştırıldı: {now} · tests/reference/jpl.json SHA-256 `{sha}` · referans alındı {ref["meta"].get("Alındı")}', '',
      'Fark: saklanan değer ile şimdi NASA JPL Horizons\'tan alınan değer arasında (yay saniyesi). Sıfıra çok yakın olması, saklanan dosyanın gerçekten NASA yanıtı olduğunu ve NASA tarafında o günden beri bir değişiklik olmadığını gösterir.', '',
      f'## 1. Referans dosyasından rastgele 25 kayıt (en büyük fark {worst:.4f}″)', '', '| Anahtar | Saklanan | Canlı | Fark (″) |', '|---|---|---|---|']
-L += [f'| {k} | {a:.7f} | {b:.7f} | {d:.4f} |' for k, a, b, d in rows]
+L += [f'| {k.replace("|", " · ")} | {a:.7f} | {b:.7f} | {d:.4f} |' for k, a, b, d in rows]
 L += ['', f'## 2. Değer denetimindeki (audit.ts) elle yazılmış 1988 değerleri (en büyük fark {aw:.4f}″)', '', '| Cisim | audit.ts | Canlı | Fark (″) |', '|---|---|---|---|']
 L += [f'| {k} | {a:.7f} | {b:.7f} | {d:.4f} |' for k, a, b, d in arows]
 L += ['', f'## 3. Testlerdeki (verify.ts) elle yazılmış 2000-01-01 değerleri (en büyük fark {vw:.4f}″)', '', '| Cisim | verify.ts | Canlı | Fark (″) |', '|---|---|---|---|']

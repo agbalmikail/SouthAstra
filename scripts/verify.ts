@@ -230,6 +230,11 @@ console.log('\n— Ay evresi ve Jülyen günü (UT1 / UTC)')
   const jc = natalChart({ ...base, date: '1988-03-10', time: '01:45', timeMode: 'manual', manualOffset: 0 })
   const dut = (jc.jdUt - jc.jdUtc!) * 86400
   ok(Math.abs(jc.jdUtc! - 2447230.5729166665) < 1e-9 && jc.utc.startsWith('1988-03-10T01:45:00.000'), `10.03.1988 01:45 UTC: JD(UTC) ${jc.jdUtc!.toFixed(6)} (beklenen 2447230.572917), UTC tam saniye`)
+  {
+    // gösterim tutarlılığı: 8 ondalıkla yazılan iki JD'nin farkı, yazılan UT1−UTC ile 1 ms içinde uyuşmalı
+    const shown = (Number(jc.jdUt.toFixed(8)) - Number(jc.jdUtc!.toFixed(8))) * 86400
+    ok(Math.abs(shown - Number(dut.toFixed(3))) < 0.002, `Gösterilen JD'lerin farkı ${shown.toFixed(3)} s, yazılan UT1−UTC ${dut.toFixed(3)} s (6 ondalıkta yuvarlama ±0,09 s sapma yaratırdı)`)
+  }
   ok(dut > 0 && dut < 0.9, `JD(UT1) ${jc.jdUt.toFixed(6)}: UT1−UTC = +${dut.toFixed(2)} s (1988 için IERS değeri yaklaşık +0,2…+0,4 s; sınır 0,9 s)`)
 }
 

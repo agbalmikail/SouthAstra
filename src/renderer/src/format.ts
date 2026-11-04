@@ -49,7 +49,8 @@ export const fmtDateTr = (date: string): string => {
 export function jdText(c: { jdUt: number; jdUtc?: number }): string {
   if (c.jdUtc === undefined) return `${c.jdUt.toFixed(6)} UT`
   const d = (c.jdUt - c.jdUtc) * 86400
-  return `${c.jdUt.toFixed(6)} UT1 · ${c.jdUtc.toFixed(6)} UTC (UT1−UTC ${d >= 0 ? '+' : '−'}${decComma(Math.abs(d).toFixed(2))} s)`
+  // 8 ondalık (≈ 0,9 ms): gösterilen iki değerin farkı, yazılan UT1−UTC ile yuvarlama hatası olmadan uyuşsun
+  return `${c.jdUt.toFixed(8)} UT1 · ${c.jdUtc.toFixed(8)} UTC (UT1−UTC ${d >= 0 ? '+' : '−'}${decComma(Math.abs(d).toFixed(3))} s)`
 }
 
 /** Eski kayıtlardaki doğruluk etiketlerini güncel adıyla göster */
