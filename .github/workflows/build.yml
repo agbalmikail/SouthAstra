@@ -29,6 +29,7 @@ jobs:
       - run: npm run typecheck
       - run: npm run verify
       - run: npm run denetim
+      - run: npm run dogrula
       - run: npm run build
       - run: npx electron-builder ${{ matrix.target }} --publish never
         env:

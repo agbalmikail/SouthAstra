@@ -15,6 +15,9 @@
     "dist:mac": "npm run verify && npm run denetim && electron-vite build && electron-builder --mac",
     "dist:win": "npm run verify && npm run denetim && electron-vite build && electron-builder --win",
     "denetim": "tsx --tsconfig tsconfig.node.json scripts/audit.ts",
+    "ceviri": "tsx scripts/i18n-check.ts",
+    "dogrula": "tsx --tsconfig tsconfig.node.json scripts/validate/validate.ts",
+    "dogrula:yerel": "tsx --tsconfig tsconfig.node.json scripts/validate/validate.ts --local",
     "icon": "node scripts/build-icon.mjs"
   },
   "dependencies": {

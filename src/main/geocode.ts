@@ -2,6 +2,7 @@
 // Kullanım kuralları: saniyede en fazla 1 istek, tanımlayıcı User-Agent. https://operations.osmfoundation.org/policies/nominatim/
 import type { Place } from '@shared/types'
 import { nearest } from './cities'
+import { getLang, t } from '@shared/i18n'
 
 let last = 0
 
@@ -11,14 +12,14 @@ export async function addressSearch(q: string): Promise<(Place & { display: stri
   const wait = last + 1100 - Date.now()
   if (wait > 0) await new Promise((r) => setTimeout(r, wait))
   last = Date.now()
-  const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=6&addressdetails=1&accept-language=tr&q=${encodeURIComponent(query)}`
+  const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=6&addressdetails=1&accept-language=${getLang()}&q=${encodeURIComponent(query)}`
   let res: Response
   try {
     res = await fetch(url, { headers: { 'User-Agent': 'SouthAstra/0.3 (desktop astrology software)' }, signal: AbortSignal.timeout(10000) })
   } catch {
-    throw new Error('İnternete bağlanılamadı. Çevrimdışı yer listesini kullanın veya koordinatı elle girin.')
+    throw new Error(t('İnternete bağlanılamadı. Çevrimdışı yer listesini kullanın veya koordinatı elle girin.'))
   }
-  if (!res.ok) throw new Error(`Adres servisi yanıt vermedi (${res.status}). Biraz sonra tekrar deneyin.`)
+  if (!res.ok) throw new Error(t('Adres servisi yanıt vermedi ({status}). Biraz sonra tekrar deneyin.', { status: res.status }))
   const data = (await res.json()) as { lat: string; lon: string; name?: string; display_name: string; address?: Record<string, string> }[]
   const seen = new Set<string>()
   return data.filter((d) => {
@@ -41,7 +42,7 @@ export async function addressSearch(q: string): Promise<(Place & { display: stri
       countryCode: a.country_code?.toUpperCase(),
       lat, lon,
       tz: n?.tz ?? 'UTC',
-      precision: 'Adres (OpenStreetMap)',
+      precision: 'Adres (OpenStreetMap)', // kayıtlı veri: Türkçe kalır, arayüz t() ile çevirir
       display: d.display_name
     }
   })

@@ -4,7 +4,8 @@ import type { Library, SavedChart } from '@shared/types'
 import { chartFactors } from '@shared/factors'
 import { chartHighlights } from '@shared/highlights'
 import { rng, shuffle } from '@shared/feedback'
-import { BLIND_METHOD, buildSheets, chanceP, chanceText, isSunSignKey, type BlindTrial, type Sheet } from '@shared/blind'
+import { t } from '@shared/i18n'
+import { blindMethod, buildSheets, chanceP, chanceText, isSunSignKey, type BlindTrial, type Sheet } from '@shared/blind'
 
 const MAX_TEXTS = 8
 
@@ -31,7 +32,7 @@ export default function BlindTest({ charts, current, library, rulership, onSave,
   const textsFor = async (c: SavedChart): Promise<{ lib: string[]; hl: string[] }> => {
     const v = await window.southastra.view(c, { mode: 'natal' })
     const ch = v.inner
-    const lib = chartFactors(ch).filter((f) => !(hideSun && isSunSignKey(f.key))).map((f) => library[f.key]?.text).filter((t): t is string => !!t)
+    const lib = chartFactors(ch).filter((f) => !(hideSun && isSunSignKey(f.key))).map((f) => library[f.key]?.text).filter((x): x is string => !!x)
     // öne çıkanlardan yalnızca anlam metni: başlıklardaki burç/gezegen adları ipucu vermesin
     const hl = [...new Set(chartHighlights(ch, rulership).filter((h) => !(hideSun && (h.id === 'big3' || h.id === 'ruler-sun'))).map((h) => h.meaning ?? '').filter(Boolean))]
     return { lib, hl }
@@ -44,12 +45,12 @@ export default function BlindTest({ charts, current, library, rulership, onSave,
       const others = charts.filter((c) => c.id !== who).map((c) => ({ c, r: rand() })).sort((a, b) => a.r - b.r).slice(0, n).map((x) => x.c)
       const raw = await Promise.all([target, ...others].map(async (c) => ({ chartId: c.id, ...(await textsFor(c)) })))
       const libOk = useLib && raw.every((r) => r.lib.length >= 3)
-      if (useLib && !libOk) setNote('Seçilen haritaların bazılarında yeterli kütüphane yorumu (en az 3) olmadığı için, adil olması için bütün sayfalar öne çıkanların genel açıklamalarından hazırlandı.')
+      if (useLib && !libOk) setNote(t('Seçilen haritaların bazılarında yeterli kütüphane yorumu (en az 3) olmadığı için, adil olması için bütün sayfalar öne çıkanların genel açıklamalarından hazırlandı.'))
       const src = raw.map((r) => ({ chartId: r.chartId, texts: libOk ? r.lib : r.hl }))
       setUsed(libOk ? 'kütüphane yorumları' : 'öne çıkanlar (genel açıklamalar)')
       // sayfa uzunluğu ipucu olmasın: hepsi aynı sayıda metin
       const k = Math.min(MAX_TEXTS, ...src.map((x) => x.texts.length))
-      if (k < 3) throw new Error('Sayfa başına en az 3 metin gerekiyor. Kütüphanede bu haritalar için daha fazla yorum yazın.')
+      if (k < 3) throw new Error(t('Sayfa başına en az 3 metin gerekiyor. Kütüphanede bu haritalar için daha fazla yorum yazın.'))
       setSheets(buildSheets(src.map((x) => ({ ...x, texts: shuffle(x.texts, rand).slice(0, k) })), rand))
       setPick(null); setRevealed(false)
     } catch (e) { setError((e as Error).message.replace(/^Error invoking remote method '[^']+': (Error: )?/, '')) }
@@ -61,47 +62,47 @@ export default function BlindTest({ charts, current, library, rulership, onSave,
   return (
     <div className="modal-back">
       <div className="modal wide blind-modal" onKeyDown={(e) => { if (e.key === 'Escape') onClose() }}>
-        <h2>Kör karşılaştırma</h2>
-        <p className="hint" style={{ marginTop: -6 }}>{BLIND_METHOD}</p>
-        <div className="fb-summary"><b>Şimdiye kadar:</b> {summary}</div>
+        <h2>{t('Kör karşılaştırma')}</h2>
+        <p className="hint" style={{ marginTop: -6 }}>{blindMethod()}</p>
+        <div className="fb-summary"><b>{t('Şimdiye kadar:')}</b> {summary}</div>
         {!sheets ? (
           <>
-            {charts.length < 2 ? <p className="empty-note">Kör karşılaştırma için arşivde en az iki harita gerekiyor.</p> : (
+            {charts.length < 2 ? <p className="empty-note">{t('Kör karşılaştırma için arşivde en az iki harita gerekiyor.')}</p> : (
               <div className="blind-setup">
-                <label className="field"><span>Katılımcı (kendi haritası)</span>
+                <label className="field"><span>{t('Katılımcı (kendi haritası)')}</span>
                   <select id="bl-who" value={who} onChange={(e) => setWho(e.target.value)}>{charts.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select>
                 </label>
-                <label className="field"><span>Diğer sayfa sayısı (arşivden rastgele)</span>
-                  <select id="bl-n" value={n} onChange={(e) => setN(Number(e.target.value))}>{[1, 2, 3].filter((x) => x <= charts.length - 1).map((x) => <option key={x} value={x}>{x} (toplam {x + 1} sayfa · şans %{Math.round(100 / (x + 1))})</option>)}</select>
+                <label className="field"><span>{t('Diğer sayfa sayısı (arşivden rastgele)')}</span>
+                  <select id="bl-n" value={n} onChange={(e) => setN(Number(e.target.value))}>{[1, 2, 3].filter((x) => x <= charts.length - 1).map((x) => <option key={x} value={x}>{t('{n} (toplam {total} sayfa · şans %{p})', { n: x, total: x + 1, p: Math.round(100 / (x + 1)) })}</option>)}</select>
                 </label>
-                <label className="inline"><input type="checkbox" checked={useLib} onChange={(e) => setUseLib(e.target.checked)} /> Kendi kütüphane yorumlarımı kullan <span className="muted small">(her haritada en az 3 yorum gerekir; yoksa bütün sayfalar genel açıklamalardan hazırlanır)</span></label>
-                <label className="inline"><input type="checkbox" checked={hideSun} onChange={(e) => setHideSun(e.target.checked)} /> Güneş burcu metinlerini çıkar (önerilir)</label>
+                <label className="inline"><input type="checkbox" checked={useLib} onChange={(e) => setUseLib(e.target.checked)} /> {t('Kendi kütüphane yorumlarımı kullan')} <span className="muted small">{t('(her haritada en az 3 yorum gerekir; yoksa bütün sayfalar genel açıklamalardan hazırlanır)')}</span></label>
+                <label className="inline"><input type="checkbox" checked={hideSun} onChange={(e) => setHideSun(e.target.checked)} /> {t('Güneş burcu metinlerini çıkar (önerilir)')}</label>
               </div>
             )}
             {error && <p className="error">{error}</p>}
             <div className="actions">
-              <button className="btn ghost" onClick={onClose}>Kapat</button>
-              <button className="btn primary" disabled={charts.length < 2 || busy} onClick={() => { void prepare() }}>{busy ? 'Hazırlanıyor…' : 'Sayfaları hazırla'}</button>
+              <button className="btn ghost" onClick={onClose}>{t('Kapat')}</button>
+              <button className="btn primary" disabled={charts.length < 2 || busy} onClick={() => { void prepare() }}>{busy ? t('Hazırlanıyor…') : t('Sayfaları hazırla')}</button>
             </div>
           </>
         ) : (
           <>
-            <p className="hint">Sayfaları katılımcıya gösterin ve kendisini en iyi anlatan sayfayı seçmesini isteyin. Sayfalarda kimlik bilgisi ve burç adı yoktur; bütün sayfalar aynı kaynaktan ({used}) ve aynı sayıda metinle hazırlandı.</p>
+            <p className="hint">{t('Sayfaları katılımcıya gösterin ve kendisini en iyi anlatan sayfayı seçmesini isteyin. Sayfalarda kimlik bilgisi ve burç adı yoktur; bütün sayfalar aynı kaynaktan ({source}) ve aynı sayıda metinle hazırlandı.', { source: t(used) })}</p>
             {note && <p className="hint warn-inline">{note}</p>}
             <div className="blind-sheets" style={{ gridTemplateColumns: `repeat(${sheets.length}, minmax(0, 1fr))` }}>
               {sheets.map((s) => (
                 <div key={s.label} className={['blind-sheet', pick === s.label ? 'picked' : '', revealed && s.chartId === who ? 'is-target' : ''].join(' ')}>
-                  <div className="blind-h">Sayfa {s.label}{revealed && <span className="muted small"> · {s.chartId === who ? 'katılımcının haritası' : nameOf(s.chartId)}</span>}</div>
-                  <ul>{s.texts.map((t, i) => <li key={i}>{t}</li>)}</ul>
-                  {!revealed && <button className={pick === s.label ? 'btn primary small' : 'btn ghost small'} onClick={() => setPick(s.label)}>Bu beni anlatıyor</button>}
+                  <div className="blind-h">{t('Sayfa {label}', { label: s.label })}{revealed && <span className="muted small"> · {s.chartId === who ? t('katılımcının haritası') : nameOf(s.chartId)}</span>}</div>
+                  <ul>{s.texts.map((x, i) => <li key={i}>{x}</li>)}</ul>
+                  {!revealed && <button className={pick === s.label ? 'btn primary small' : 'btn ghost small'} onClick={() => setPick(s.label)}>{t('Bu beni anlatıyor')}</button>}
                 </div>
               ))}
             </div>
-            {revealed && <div className={`fb-result ${correct ? 'ok' : ''}`}><b>{correct ? 'İsabet.' : 'İsabet değil.'}</b> Katılımcı sayfa {pick} dedi; kendi sayfası {sheets.find((s) => s.chartId === who)?.label}. Tek bir deneme tek başına bir şey göstermez; sonuç birçok denemenin toplamına göre değerlendirilir.</div>}
+            {revealed && <div className={`fb-result ${correct ? 'ok' : ''}`}><b>{correct ? t('İsabet.') : t('İsabet değil.')}</b> {t('Katılımcı sayfa {pick} dedi; kendi sayfası {own}. Tek bir deneme tek başına bir şey göstermez; sonuç birçok denemenin toplamına göre değerlendirilir.', { pick: pick ?? '', own: sheets.find((s) => s.chartId === who)?.label ?? '' })}</div>}
             <div className="actions">
-              <button className="btn ghost" onClick={() => setSheets(null)}>Baştan</button>
-              {!revealed ? <button className="btn primary" disabled={!pick} onClick={() => setRevealed(true)}>Seçimi onayla ve açıkla</button>
-                : <button className="btn primary" onClick={() => { onSave(who, { date: new Date().toISOString(), options: sheets.length, correct: !!correct, source }); setSheets(null) }}>Denemeyi kaydet</button>}
+              <button className="btn ghost" onClick={() => setSheets(null)}>{t('Baştan')}</button>
+              {!revealed ? <button className="btn primary" disabled={!pick} onClick={() => setRevealed(true)}>{t('Seçimi onayla ve açıkla')}</button>
+                : <button className="btn primary" onClick={() => { onSave(who, { date: new Date().toISOString(), options: sheets.length, correct: !!correct, source }); setSheets(null) }}>{t('Denemeyi kaydet')}</button>}
             </div>
           </>
         )}

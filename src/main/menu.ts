@@ -1,5 +1,6 @@
 import { app, BrowserWindow, Menu, shell } from 'electron'
 import type { MenuCommand } from '@shared/types'
+import { t } from '@shared/i18n'
 
 export function buildMenu(): void {
   const send = (cmd: MenuCommand) => () => BrowserWindow.getFocusedWindow()?.webContents.send('menu', cmd)
@@ -8,63 +9,63 @@ export function buildMenu(): void {
     ...(isMac ? [{
       label: 'SouthAstra',
       submenu: [
-        { label: 'SouthAstra Hakkında', click: send('about') },
+        { label: t('SouthAstra Hakkında'), click: send('about') },
         { type: 'separator' as const },
-        { label: 'Ayarlar…', accelerator: 'CmdOrCtrl+,', click: send('settings') },
-        { label: 'Güncellemeleri denetle…', click: send('update-check') },
+        { label: t('Ayarlar…'), accelerator: 'CmdOrCtrl+,', click: send('settings') },
+        { label: t('Güncellemeleri denetle…'), click: send('update-check') },
         { type: 'separator' as const },
-        { role: 'hide' as const, label: 'SouthAstra\'yı Gizle' },
-        { role: 'hideOthers' as const, label: 'Diğerlerini Gizle' },
+        { role: 'hide' as const, label: t('SouthAstra\'yı Gizle') },
+        { role: 'hideOthers' as const, label: t('Diğerlerini Gizle') },
         { type: 'separator' as const },
-        { role: 'quit' as const, label: 'SouthAstra\'dan Çık' }
+        { role: 'quit' as const, label: t('SouthAstra\'dan Çık') }
       ]
     }] : []),
     {
-      label: 'Dosya',
+      label: t('Dosya'),
       submenu: [
-        { label: 'Yeni harita', accelerator: 'CmdOrCtrl+N', click: send('new') },
-        { label: 'Şu anın haritası', accelerator: 'CmdOrCtrl+T', click: send('now') },
-        { label: 'Haritayı düzenle', accelerator: 'CmdOrCtrl+E', click: send('edit') },
-        { label: 'Hızlı arama…', accelerator: 'CmdOrCtrl+K', click: send('palette') },
-        { label: 'Arşivde filtrele', accelerator: 'CmdOrCtrl+F', click: send('find') },
-        { label: 'Yorum kütüphanesi', accelerator: 'CmdOrCtrl+L', click: send('library') },
-        { label: 'Efemeris', accelerator: 'CmdOrCtrl+Shift+E', click: send('ephemeris') },
-        { label: 'Kör karşılaştırma…', click: send('blind') },
+        { label: t('Yeni harita'), accelerator: 'CmdOrCtrl+N', click: send('new') },
+        { label: t('Şu anın haritası'), accelerator: 'CmdOrCtrl+T', click: send('now') },
+        { label: t('Haritayı düzenle'), accelerator: 'CmdOrCtrl+E', click: send('edit') },
+        { label: t('Hızlı arama…'), accelerator: 'CmdOrCtrl+K', click: send('palette') },
+        { label: t('Arşivde filtrele'), accelerator: 'CmdOrCtrl+F', click: send('find') },
+        { label: t('Yorum kütüphanesi'), accelerator: 'CmdOrCtrl+L', click: send('library') },
+        { label: t('Efemeris'), accelerator: 'CmdOrCtrl+Shift+E', click: send('ephemeris') },
+        { label: t('Kör karşılaştırma…'), click: send('blind') },
         { type: 'separator' },
-        { label: 'PDF olarak kaydet…', accelerator: 'CmdOrCtrl+P', click: send('pdf') },
-        { label: 'Çarkı resim olarak kopyala', accelerator: 'CmdOrCtrl+Shift+C', click: send('copy-image') },
+        { label: t('PDF olarak kaydet…'), accelerator: 'CmdOrCtrl+P', click: send('pdf') },
+        { label: t('Çarkı resim olarak kopyala'), accelerator: 'CmdOrCtrl+Shift+C', click: send('copy-image') },
         { type: 'separator' },
-        { label: 'Arşivi dışa aktar…', click: send('export') },
-        { label: 'Arşiv içe aktar…', click: send('import') },
-        ...(isMac ? [] : [{ type: 'separator' as const }, { label: 'Ayarlar…', accelerator: 'Ctrl+,', click: send('settings') }, { role: 'quit' as const, label: 'Çıkış' }])
+        { label: t('Arşivi dışa aktar…'), click: send('export') },
+        { label: t('Arşiv içe aktar…'), click: send('import') },
+        ...(isMac ? [] : [{ type: 'separator' as const }, { label: t('Ayarlar…'), accelerator: 'Ctrl+,', click: send('settings') }, { role: 'quit' as const, label: t('Çıkış') }])
       ]
     },
     {
-      label: 'Düzen',
+      label: t('Düzen'),
       submenu: [
-        { role: 'undo', label: 'Geri al' }, { role: 'redo', label: 'Yinele' }, { type: 'separator' },
-        { role: 'cut', label: 'Kes' }, { role: 'copy', label: 'Kopyala' }, { role: 'paste', label: 'Yapıştır' }, { role: 'selectAll', label: 'Tümünü seç' }
+        { role: 'undo', label: t('Geri al') }, { role: 'redo', label: t('Yinele') }, { type: 'separator' },
+        { role: 'cut', label: t('Kes') }, { role: 'copy', label: t('Kopyala') }, { role: 'paste', label: t('Yapıştır') }, { role: 'selectAll', label: t('Tümünü seç') }
       ]
     },
     {
-      label: 'Görünüm',
+      label: t('Görünüm'),
       submenu: [
-        { label: 'Kenar çubuğunu gizle / göster', accelerator: 'CmdOrCtrl+\\', click: send('toggle-side') },
-        { label: 'Paneli gizle / göster', accelerator: 'CmdOrCtrl+Alt+\\', click: send('toggle-panel') },
+        { label: t('Kenar çubuğunu gizle / göster'), accelerator: 'CmdOrCtrl+\\', click: send('toggle-side') },
+        { label: t('Paneli gizle / göster'), accelerator: 'CmdOrCtrl+Alt+\\', click: send('toggle-panel') },
         { type: 'separator' },
-        { role: 'resetZoom', label: 'Gerçek boyut' }, { role: 'zoomIn', label: 'Yakınlaştır' }, { role: 'zoomOut', label: 'Uzaklaştır' },
-        { type: 'separator' }, { role: 'togglefullscreen', label: 'Tam ekran' },
-        ...(app.isPackaged ? [] : [{ role: 'toggleDevTools' as const, label: 'Geliştirici araçları' }])
+        { role: 'resetZoom', label: t('Gerçek boyut') }, { role: 'zoomIn', label: t('Yakınlaştır') }, { role: 'zoomOut', label: t('Uzaklaştır') },
+        { type: 'separator' }, { role: 'togglefullscreen', label: t('Tam ekran') },
+        ...(app.isPackaged ? [] : [{ role: 'toggleDevTools' as const, label: t('Geliştirici araçları') }])
       ]
     },
     {
-      label: 'Yardım',
+      label: t('Yardım'),
       submenu: [
-        ...(isMac ? [] : [{ label: 'SouthAstra Hakkında', click: send('about') }, { label: 'Güncellemeleri denetle…', click: send('update-check') }, { type: 'separator' as const }]),
-        { label: 'Başlangıç rehberi', click: send('onboarding') },
+        ...(isMac ? [] : [{ label: t('SouthAstra Hakkında'), click: send('about') }, { label: t('Güncellemeleri denetle…'), click: send('update-check') }, { type: 'separator' as const }]),
+        { label: t('Başlangıç rehberi'), click: send('onboarding') },
         { type: 'separator' },
-        { label: 'Swiss Ephemeris belgeleri', click: () => shell.openExternal('https://www.astro.com/swisseph/swephinfo_e.htm') },
-        { label: 'Proje sayfası', click: () => shell.openExternal('https://github.com/agbalmikail/SouthAstra') }
+        { label: t('Swiss Ephemeris belgeleri'), click: () => shell.openExternal('https://www.astro.com/swisseph/swephinfo_e.htm') },
+        { label: t('Proje sayfası'), click: () => shell.openExternal('https://github.com/agbalmikail/SouthAstra') }
       ]
     }
   ]

@@ -1,0 +1,42 @@
+# Bağımsız astronomik doğrulama
+
+SouthAstra'nın hesapları Swiss Ephemeris ile yapılır. Bu klasördeki rapor, hesapları **Swiss Ephemeris'ten bağımsız kaynaklarla** karşılaştırır. Program çalışırken hiçbir dış servise bağlanmaz; referans verileri bir kez alınıp sabit dosyalara kaydedilir.
+
+## Kaynaklar
+
+| Ne | Bağımsız referans | Dosya |
+|---|---|---|
+| Gezegenler, Ay, Chiron (görünür ekliptik TT ve UT; astrometrik RA/Dec; toposentrik Ay) | NASA JPL Horizons (DE441 ve uydu/küçük cisim çözümleri; sürümler rapor başında) | `tests/reference/jpl.json` |
+| Progresyonlar, transit kesinleşme anları | NASA JPL Horizons, SouthAstra'nın bulduğu anlarda | `tests/reference/jpl.json` |
+| Yıldız zamanı, ekliptik eğimi, nütasyon, ASC, MC, 7 ev sistemi | Meeus, *Astronomical Algorithms* (2. baskı) formülleri, Swiss Ephemeris kullanılmadan | `scripts/validate/independent.ts` |
+| Ortalama Ay düğümü | Meeus 47.7 | aynı |
+| Açılar | NASA konumlarından yeniden hesap | aynı betik |
+| Tarihsel saat dilimleri | Python `zoneinfo` + işletim sistemi tzdata (SouthAstra luxon + ICU kullanır) | `tests/reference/tz.json` |
+
+Gerçek (oskülatör) Ay düğümü için bağımsız bir referans bulunamadı; raporda **doğrulanmadı** olarak yazılır.
+
+## Çalıştırma
+
+```
+npm run dogrula                        # çevrimdışı karşılaştırma → docs/dogrulama/RAPOR.md
+python3 scripts/validate/fetch_jpl.py  # referansı NASA'dan yeniden al (internet gerekir)
+python3 scripts/validate/fetch_tz.py   # saat dilimi referansını yeniden üret
+```
+
+`npm run dogrula` önce gerekli sorguları `tests/reference/requests.json`'a yazar. Referans dosyası yoksa ilgili bölüm başarılı değil **DOĞRULANMADI** olarak raporlanır.
+
+## Kişisel haritalar
+
+Gerçek doğum verileri depoya girmez. `local/validate-charts.json` (git dışında) varsa:
+
+```
+npm run dogrula:yerel
+python3 scripts/validate/fetch_jpl.py --local
+npm run dogrula:yerel                  # → local/DOGRULAMA.md
+```
+
+NASA'ya bu sorgularda yalnızca Jülyen günü ve cisim numarası gider; ad gönderilmez.
+
+## Sınırlar
+
+Gezegenler 1″, Chiron 3″, toposentrik Ay 2″, köşeler ve evler 5″, ortalama düğüm 3″, transit ve progresyon 1,5″. Başarısız bir kontrolde rapor beklenen değeri, hesaplanan değeri, farkı ve kullanılan parametreleri (JD TT/UT1, RAMC, ε) yazar.

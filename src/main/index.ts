@@ -8,7 +8,7 @@ import { browsePlaces, listCountries, listDistricts, listRegions, loadCities, ne
 import { deleteChart, exportTo, importFrom, initStore, listCharts, readArchive, saveChart } from './store'
 import { getSettings, initSettings, setSettings } from './settings'
 import { buildMenu } from './menu'
-import { getLang, setLang } from '@shared/i18n'
+import { getLang, setLang, t } from '@shared/i18n'
 import '@shared/i18n/en/all'
 import { toUtc } from './time'
 import { addressSearch } from './geocode'
@@ -61,7 +61,7 @@ function createWindow(): void {
   else win.loadFile(join(__dirname, '../renderer/index.html'))
 }
 
-const safeName = (s: string) => s.replace(/[\\/:*?"<>|]+/g, '-').trim() || 'harita'
+const safeName = (s: string) => s.replace(/[\\/:*?"<>|]+/g, '-').trim() || t('harita')
 
 app.whenReady().then(() => {
   // Geliştirme modunda da Dock/görev çubuğunda SouthAstra ikonu (kurulu sürümde ikon pakete gömülüdür)
@@ -100,14 +100,14 @@ app.whenReady().then(() => {
   ipcMain.handle('charts:delete', (_e, id: string) => deleteChart(id))
   ipcMain.handle('charts:export', async (e) => {
     const win = BrowserWindow.fromWebContents(e.sender)!
-    const r = await dialog.showSaveDialog(win, { title: 'Arşivi dışa aktar (haritalar, yorumlar, ayarlar)', defaultPath: `SouthAstra-arsiv-${new Date().toISOString().slice(0, 10)}.json`, filters: [{ name: 'SouthAstra arşivi', extensions: ['json'] }] })
+    const r = await dialog.showSaveDialog(win, { title: t('Arşivi dışa aktar (haritalar, yorumlar, ayarlar)'), defaultPath: `SouthAstra-${t('arsiv')}-${new Date().toISOString().slice(0, 10)}.json`, filters: [{ name: t('SouthAstra arşivi'), extensions: ['json'] }] })
     if (r.canceled || !r.filePath) return null
     exportTo(r.filePath, { library: getLibrary(), settings: getSettings() })
     return r.filePath
   })
   ipcMain.handle('charts:import', async (e) => {
     const win = BrowserWindow.fromWebContents(e.sender)!
-    const r = await dialog.showOpenDialog(win, { title: 'Arşiv içe aktar', properties: ['openFile'], filters: [{ name: 'SouthAstra arşivi', extensions: ['json'] }] })
+    const r = await dialog.showOpenDialog(win, { title: t('Arşiv içe aktar'), properties: ['openFile'], filters: [{ name: t('SouthAstra arşivi'), extensions: ['json'] }] })
     if (r.canceled || !r.filePaths[0]) return null
     const res = importFrom(r.filePaths[0])
     const notes = mergeLibrary(readArchive(r.filePaths[0]).library as Record<string, { text: string; updatedAt: string }>)
@@ -124,7 +124,7 @@ app.whenReady().then(() => {
   ipcMain.handle('pdf:export', async (e, fileName: string, footer: string) => {
     const win = BrowserWindow.fromWebContents(e.sender)!
     const target = process.env.SA_PDF // test: kayıt penceresi olmadan yaz
-      ?? (await dialog.showSaveDialog(win, { title: 'PDF olarak kaydet', defaultPath: `${safeName(fileName)}.pdf`, filters: [{ name: 'PDF', extensions: ['pdf'] }] })).filePath
+      ?? (await dialog.showSaveDialog(win, { title: t('PDF olarak kaydet'), defaultPath: `${safeName(fileName)}.pdf`, filters: [{ name: 'PDF', extensions: ['pdf'] }] })).filePath
     if (!target) return null
     win.setBackgroundColor('#ffffff') // kenar boşlukları pencere rengiyle boyanmasın
     const esc = (t: string) => t.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!)
@@ -133,7 +133,7 @@ app.whenReady().then(() => {
       margins: { top: 0, bottom: 0, left: 0, right: 0 },
       displayHeaderFooter: true,
       headerTemplate: '<span></span>',
-      footerTemplate: `<div style="width:100%;font-family:-apple-system,'Segoe UI',sans-serif;font-size:7.5px;color:#8a93a6;padding:0 12mm;display:flex;justify-content:space-between"><span>${esc(footer)}</span><span>Sayfa <span class="pageNumber"></span> / <span class="totalPages"></span></span></div>`
+      footerTemplate: `<div style="width:100%;font-family:-apple-system,'Segoe UI',sans-serif;font-size:7.5px;color:#8a93a6;padding:0 12mm;display:flex;justify-content:space-between"><span>${esc(footer)}</span><span>${t('Sayfa {page} / {total}', { page: '<span class="pageNumber"></span>', total: '<span class="totalPages"></span>' })}</span></div>`
     })
     win.setBackgroundColor('#13161d')
     writeFileSync(target, pdf)
@@ -145,7 +145,7 @@ app.whenReady().then(() => {
     const win = BrowserWindow.fromWebContents(e.sender)!
     const rect = { x: Math.max(0, Math.round(r.x)), y: Math.max(0, Math.round(r.y)), width: Math.round(r.width), height: Math.round(r.height) }
     const img = await win.webContents.capturePage(rect)
-    if (img.isEmpty()) throw new Error('Görüntü alınamadı.')
+    if (img.isEmpty()) throw new Error(t('Görüntü alınamadı.'))
     const png = img.toPNG()
     await clipboard.write([new ClipboardItem({ 'image/png': new Blob([new Uint8Array(png)], { type: 'image/png' }) })])
     if (process.env.SA_COPY) writeFileSync(process.env.SA_COPY, png) // test

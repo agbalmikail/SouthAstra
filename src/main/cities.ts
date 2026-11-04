@@ -2,11 +2,12 @@
 import { readFileSync } from 'node:fs'
 import { gunzipSync } from 'node:zlib'
 import type { CityFilter, CityHit, CountryInfo } from '@shared/types'
+import { getLang, loc, type Lang } from '@shared/i18n'
 
 // [ad, ascii ad, ilçe/kreis, il/eyalet, ülke kodu, enlem, boylam, saat dilimi, nüfus, alternatif adlar, GeoNames kimliği, yer türü]
 type Row = [string, string, string, string, string, number, number, string, number, string, number, string, string]
 
-/** GeoNames yer türü → koordinatın neyi temsil ettiği */
+/** GeoNames yer türü → koordinatın neyi temsil ettiği. Yerle birlikte kaydedilen veridir: Türkçe kalır, arayüz t() ile çevirir. */
 export function precisionOf(fcode: string, pop = 0): string {
   if (fcode === 'PPLC') return 'Başkent merkezi'
   if (fcode === 'PPLA') return 'İl/eyalet merkezi'
@@ -27,13 +28,15 @@ let primF: string[][] = [] // asıl adlar, sadeleştirilmiş (ör. "bonninghause
 let altF: string[][] = [] // alternatif adlar, sadeleştirilmiş
 let ctxF: string[] = [] // ilçe + il, sadeleştirilmiş
 let detailed: string[] = []
-let countryList: CountryInfo[] = []
+let countryBase: CountryInfo[] = [] // ad: veri dosyasındaki yedek ad
+const countryLists: Partial<Record<Lang, CountryInfo[]>> = {}
 const regionsByCountry = new Map<string, { name: string; count: number }[]>()
 const districtsByRegion = new Map<string, { name: string; count: number }[]>() // "TR|İstanbul" → ilçeler
 
-const trNames = new Intl.DisplayNames(['tr'], { type: 'region' })
-const countryName = (cc: string, fallback: string): string => {
-  try { return trNames.of(cc) ?? fallback } catch { return fallback }
+const displayNames: Partial<Record<Lang, Intl.DisplayNames>> = {}
+/** Ülke adı seçili dilde (arama dizini her iki dili de içerir) */
+const countryName = (cc: string, fallback: string, lang: Lang = getLang()): string => {
+  try { return (displayNames[lang] ??= new Intl.DisplayNames([lang], { type: 'region' })).of(cc) ?? fallback } catch { return fallback }
 }
 
 /** Türkçe karakterleri ve aksanları sadeleştirir: "İzmir" → "izmir", "Şanlıurfa" → "sanliurfa", "München" → "munchen" */
@@ -60,7 +63,17 @@ export function loadCities(path: string): void {
   primF = rows.map((r) => [...new Set([fold(r[0]), fold(r[1])])])
   altF = rows.map((r) => (r[9] ? r[9].split('|').map(fold) : []))
   ctxF = rows.map((r) => fold(`${r[2]} ${r[3]}`))
-  fulls = rows.map((r, i) => names[i] + ' | ' + fold(`${r[2]} ${r[3]} ${countryName(r[4], '')} ${data.countries[r[4]] ?? ''}`))
+  const ccText = new Map<string, string>()
+  const ccIndex = (cc: string): string => {
+    let v = ccText.get(cc)
+    if (v === undefined) {
+      const tr = countryName(cc, '', 'tr'), en = countryName(cc, '', 'en')
+      v = `${tr} ${data.countries[cc] ?? ''}${en && en !== tr ? ' ' + en : ''}`
+      ccText.set(cc, v)
+    }
+    return v
+  }
+  fulls = rows.map((r, i) => names[i] + ' | ' + fold(`${r[2]} ${r[3]} ${ccIndex(r[4])}`))
 
   const counts = new Map<string, number>()
   const regions = new Map<string, Map<string, number>>()
@@ -71,11 +84,10 @@ export function loadCities(path: string): void {
     const m = regions.get(r[4])!
     m.set(r[3], (m.get(r[3]) ?? 0) + 1)
   }
-  countryList = [...counts].map(([code, count]) => ({
-    code, count, name: countryName(code, data.countries[code] ?? code), detailed: detailed.includes(code)
+  countryBase = [...counts].map(([code, count]) => ({
+    code, count, name: data.countries[code] ?? code, detailed: detailed.includes(code)
   }))
-  // Ayrıntılı ülkeler (Türkiye, Almanya…) en üstte, sonra alfabetik
-  countryList.sort((a, b) => Number(b.detailed) - Number(a.detailed) || detailed.indexOf(a.code) - detailed.indexOf(b.code) || a.name.localeCompare(b.name, 'tr'))
+  for (const k of Object.keys(countryLists) as Lang[]) delete countryLists[k]
   const dist = new Map<string, Map<string, number>>()
   for (const r of rows) {
     if (!r[3] || !r[2]) continue
@@ -89,7 +101,13 @@ export function loadCities(path: string): void {
   }
 }
 
-export const listCountries = (): CountryInfo[] => countryList
+/** Ülkeler seçili dilde; ayrıntılı ülkeler (Türkiye, Almanya…) en üstte, sonra alfabetik */
+export function listCountries(): CountryInfo[] {
+  const lang = getLang()
+  return (countryLists[lang] ??= countryBase
+    .map((c) => ({ ...c, name: countryName(c.code, c.name, lang) }))
+    .sort((a, b) => Number(b.detailed) - Number(a.detailed) || detailed.indexOf(a.code) - detailed.indexOf(b.code) || a.name.localeCompare(b.name, loc())))
+}
 export const listRegions = (cc: string): { name: string; count: number }[] => regionsByCountry.get(cc) ?? []
 export const listDistricts = (cc: string, region: string): { name: string; count: number }[] => districtsByRegion.get(`${cc}|${region}`) ?? []
 

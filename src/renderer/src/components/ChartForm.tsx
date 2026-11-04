@@ -3,6 +3,7 @@ import type { ChartInput, CityHit, CountryInfo, HouseSystem, Place, Rodden, Time
 import { HOUSE_SYSTEMS, placeLabel, RODDEN } from '@shared/types'
 import { fmtOffset } from '../format'
 import { parseCoords } from '../coords'
+import { loc, t } from '@shared/i18n'
 
 interface Props {
   initial: ChartInput | null
@@ -12,15 +13,20 @@ interface Props {
 }
 
 const fmtCoord = (v: number, pos: string, neg: string) => `${Math.abs(v).toFixed(4)}° ${v >= 0 ? pos : neg}`
+/** K/G, D/B yön harfleri (İngilizcede N/S, E/W) */
+const fmtLatLon = (la: number, lo: number) => `${fmtCoord(la, t('K'), t('G'))} · ${fmtCoord(lo, t('D'), t('B'))}`
 
 const kmBetween = (la1: number, lo1: number, la2: number, lo2: number) => {
   const r = Math.PI / 180
   const a = Math.sin(((la2 - la1) * r) / 2) ** 2 + Math.cos(la1 * r) * Math.cos(la2 * r) * Math.sin(((lo2 - lo1) * r) / 2) ** 2
   return 12742 * Math.asin(Math.sqrt(a))
 }
-const regionLabel = (cc: string) => (cc === 'TR' ? 'İl' : cc === 'DE' || cc === 'AT' || cc === 'US' ? 'Eyalet' : 'Bölge')
-const districtLabel = (cc: string) => (cc === 'DE' ? 'Landkreis' : cc === 'US' ? 'County' : 'İlçe')
-const plural = (w: string) => (w === 'İl' ? 'iller' : w === 'Eyalet' ? 'eyaletler' : w === 'İlçe' ? 'ilçeler' : w === 'Bölge' ? 'bölgeler' : w)
+const regionKey = (cc: string) => (cc === 'TR' ? 'İl' : cc === 'DE' || cc === 'AT' || cc === 'US' ? 'Eyalet' : 'Bölge')
+const districtKey = (cc: string) => (cc === 'DE' ? 'Landkreis' : cc === 'US' ? 'County' : 'İlçe')
+const regionLabel = (cc: string) => t(regionKey(cc))
+const districtLabel = (cc: string) => t(districtKey(cc))
+/** "Tüm iller" gibi süzgeç başlığı */
+const allOf = (w: string) => (w === 'İl' ? t('Tüm iller') : w === 'Eyalet' ? t('Tüm eyaletler') : w === 'İlçe' ? t('Tüm ilçeler') : w === 'Bölge' ? t('Tüm bölgeler') : t('Tüm {w}', { w }))
 
 const readPref = (k: string, d: string): string => {
   try { return localStorage.getItem(k) ?? d } catch { return d }
@@ -92,7 +98,7 @@ export default function ChartForm({ initial, defaults, onCancel, onSubmit }: Pro
     if (!open || (q.length < 2 && !(q.length === 0 && region && !place))) { setHits([]); setBrowsing(false); return }
     const my = ++seq.current
     setAddrHits([]); setAddrState('')
-    const t = setTimeout(async () => {
+    const timer = setTimeout(async () => {
       if (q.length < 2) {
         const r = await window.southastra.browsePlaces(filter)
         if (my === seq.current) { setHits(r); setActive(-1); setBrowsing(true); setPartial('') }
@@ -116,25 +122,25 @@ export default function ChartForm({ initial, defaults, onCancel, onSubmit }: Pro
           r = await window.southastra.searchCities(kept, filter)
           if (r.length) {
             const dropped = [...words.slice(0, i), ...words.slice(i + len)].join(' ')
-            note = `“${dropped}” çevrimdışı listede yok (sokak ve cadde adları bulunmaz). “${kept}” için sonuçlar:`
+            note = t('“{dropped}” çevrimdışı listede yok (sokak ve cadde adları bulunmaz). “{kept}” için sonuçlar:', { dropped, kept })
             break outer
           }
         }
       }
       if (my === seq.current) { setHits(r); setActive(-1); setBrowsing(false); setPartial(note); setDoneFor(query) }
     }, q.length >= 2 ? 120 : 0)
-    return () => clearTimeout(t)
+    return () => clearTimeout(timer)
   }, [query, open, country, region, district, place])
 
   // Tarih, saat ve yer girildikçe o doğum için geçerli UTC farkını hemen göster
   useEffect(() => {
     setLive(null)
     if (!place || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return
-    const t = timeUnknown ? '12:00' : time
-    if (!/^\d{2}:\d{2}/.test(t)) return
+    const tm = timeUnknown ? '12:00' : time
+    if (!/^\d{2}:\d{2}/.test(tm)) return
     const off = Number(manualOffset.replace(',', '.'))
     const h = setTimeout(() => {
-      window.southastra.previewTime({ name: '', date, time: t, place, timeMode, manualOffset: timeMode === 'manual' ? off : undefined, houseSystem, nodeType })
+      window.southastra.previewTime({ name: '', date, time: tm, place, timeMode, manualOffset: timeMode === 'manual' ? off : undefined, houseSystem, nodeType })
         .then(setLive).catch(() => setLive(null))
     }, 150)
     return () => clearTimeout(h)
@@ -153,10 +159,10 @@ export default function ChartForm({ initial, defaults, onCancel, onSubmit }: Pro
   const chooseCoord = (c: { lat: number; lon: number; near: (CityHit & { distanceKm: number }) | null }) => {
     const n = c.near
     const base: Place | null = n ? { name: n.name, district: n.district, region: n.region, country: n.country, countryCode: n.countryCode, lat: n.lat, lon: n.lon, tz: n.tz, geonameId: n.geonameId, precision: n.precision } : null
-    const p: Place = { ...(base ?? { name: 'Koordinat', region: '', country: '', tz: 'UTC' }), lat: +c.lat.toFixed(6), lon: +c.lon.toFixed(6), geonameId: undefined, precision: 'Elle girilen koordinat' }
+    const p: Place = { ...(base ?? { name: t('Koordinat'), region: '', country: '', tz: 'UTC' }), lat: +c.lat.toFixed(6), lon: +c.lon.toFixed(6), geonameId: undefined, precision: 'Elle girilen koordinat' }
     setPlace(p); setPicked(base)
     setLat(String(p.lat)); setLon(String(p.lon))
-    setTzNote(n ? `Koordinat elle girildi. En yakın kayıtlı yer: ${placeLabel(n)} (${n.distanceKm.toFixed(1)} km); saat dilimi oradan alındı (${n.tz}).` : '')
+    setTzNote(n ? t('Koordinat elle girildi. En yakın kayıtlı yer: {place} ({km} km); saat dilimi oradan alındı ({tz}).', { place: placeLabel(n), km: n.distanceKm.toFixed(1), tz: n.tz }) : '')
     setQuery(p.name)
     setCoordHit(null)
     setOpen(false)
@@ -174,7 +180,7 @@ export default function ChartForm({ initial, defaults, onCancel, onSubmit }: Pro
     const { display, ...p } = a
     setPlace(p)
     setLat(String(p.lat)); setLon(String(p.lon))
-    setTzNote(`Adres OpenStreetMap'ten alındı: ${display}. Saat dilimi en yakın yerleşimden belirlendi (${p.tz}).`)
+    setTzNote(t("Adres OpenStreetMap'ten alındı: {display}. Saat dilimi en yakın yerleşimden belirlendi ({tz}).", { display, tz: p.tz }))
     setQuery(p.name)
     setOpen(false)
   }
@@ -185,25 +191,26 @@ export default function ChartForm({ initial, defaults, onCancel, onSubmit }: Pro
     const la = laIn ?? Number(lat.replace(',', '.'))
     const lo = loIn ?? Number(lon.replace(',', '.'))
     if (!(Math.abs(la) <= 90) || !(Math.abs(lo) <= 180) || !lat.trim() || !lon.trim()) {
-      setCoordMsg({ kind: 'error', text: 'Enlem −90 ile 90, boylam −180 ile 180 arasında olmalı.' }); return
+      setCoordMsg({ kind: 'error', text: t('Enlem −90 ile 90, boylam −180 ile 180 arasında olmalı.') }); return
     }
     if (Math.abs(la - place.lat) < 1e-6 && Math.abs(lo - place.lon) < 1e-6) return
     const n = await window.southastra.nearestPlace(la, lo)
     setPlace({ ...place, lat: la, lon: lo, geonameId: undefined, precision: 'Elle girilen koordinat', tz: n?.tz ?? place.tz })
-    if (n) setTzNote(`Saat dilimi en yakın yerleşimden alındı: ${placeLabel(n)} (${n.distanceKm.toFixed(1)} km)`)
+    if (n) setTzNote(t('Saat dilimi en yakın yerleşimden alındı: {place} ({km} km)', { place: placeLabel(n), km: n.distanceKm.toFixed(1) }))
     const base = picked ?? place
     const km = kmBetween(base.lat, base.lon, la, lo)
     if (km > 30) {
       const swapped = kmBetween(base.lat, base.lon, lo, la) < 30
-      setCoordMsg({ kind: 'warn', text: `Girilen nokta seçtiğiniz ${base.name} kaydından ${Math.round(km).toLocaleString('tr-TR')} km uzakta${n ? ` (en yakın yerleşim: ${placeLabel(n)})` : ''}. ${swapped ? 'Enlem ve boylamı ters girmiş olabilirsiniz.' : 'Doğru yeri girdiğinizden emin olun.'}` })
-    } else setCoordMsg({ kind: 'ok', text: `Koordinat güncellendi · ${base.name} merkezinden ${km.toFixed(1)} km.` })
+      const far = n ? t('Girilen nokta seçtiğiniz {name} kaydından {km} km uzakta (en yakın yerleşim: {near}).', { name: base.name, km: Math.round(km).toLocaleString(loc()), near: placeLabel(n) }) : t('Girilen nokta seçtiğiniz {name} kaydından {km} km uzakta.', { name: base.name, km: Math.round(km).toLocaleString(loc()) })
+      setCoordMsg({ kind: 'warn', text: `${far} ${swapped ? t('Enlem ve boylamı ters girmiş olabilirsiniz.') : t('Doğru yeri girdiğinizden emin olun.')}` })
+    } else setCoordMsg({ kind: 'ok', text: t('Koordinat güncellendi · {name} merkezinden {km} km.', { name: base.name, km: km.toFixed(1) }) })
   }
 
   const applyPaste = (text: string) => {
     setPaste(text)
     if (!text.trim()) return
     const c = parseCoords(text)
-    if (!c) { setCoordMsg({ kind: 'error', text: 'Bu metin koordinat olarak okunamadı. Örnek: 41.0086, 28.9802' }); return }
+    if (!c) { setCoordMsg({ kind: 'error', text: t('Bu metin koordinat olarak okunamadı. Örnek: 41.0086, 28.9802') }); return }
     setLat(String(+c.lat.toFixed(6))); setLon(String(+c.lon.toFixed(6)))
     applyManualCoords(c.lat, c.lon)
   }
@@ -216,18 +223,18 @@ export default function ChartForm({ initial, defaults, onCancel, onSubmit }: Pro
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
-    if (!name.trim()) return setError('Bir isim girin.')
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return setError('Doğum tarihini girin.')
-    const t = timeUnknown ? '12:00' : withSec ? time : time.slice(0, 5)
-    if (!/^\d{2}:\d{2}(:\d{2})?$/.test(t)) return setError('Doğum saatini girin ya da “Doğum saati bilinmiyor” seçeneğini işaretleyin.')
-    if (!place) return setError('Doğum yerini listeden seçin. Aynı adlı yerler karışmasın diye ilk sonuç otomatik seçilmez.')
+    if (!name.trim()) return setError(t('Bir isim girin.'))
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return setError(t('Doğum tarihini girin.'))
+    const tm = timeUnknown ? '12:00' : withSec ? time : time.slice(0, 5)
+    if (!/^\d{2}:\d{2}(:\d{2})?$/.test(tm)) return setError(t('Doğum saatini girin ya da “Doğum saati bilinmiyor” seçeneğini işaretleyin.'))
+    if (!place) return setError(t('Doğum yerini listeden seçin. Aynı adlı yerler karışmasın diye ilk sonuç otomatik seçilmez.'))
     const off = Number(manualOffset.replace(',', '.'))
-    if (timeMode === 'manual' && !(Math.abs(off) <= 15)) return setError('Saat ofseti −15 ile +15 arasında olmalı.')
+    if (timeMode === 'manual' && !(Math.abs(off) <= 15)) return setError(t('Saat ofseti −15 ile +15 arasında olmalı.'))
     const input: ChartInput = {
-      name: name.trim(), date, time: t, timeUnknown: timeUnknown || undefined, place, timeMode,
+      name: name.trim(), date, time: tm, timeUnknown: timeUnknown || undefined, place, timeMode,
       manualOffset: timeMode === 'manual' ? off : undefined, houseSystem, nodeType, notes: notes.trim() || undefined,
       rodden: rodden || (timeUnknown ? 'X' : undefined),
-      tags: tags.split(',').map((t) => t.trim()).filter(Boolean).filter((t, i, a) => a.indexOf(t) === i)
+      tags: tags.split(',').map((x) => x.trim()).filter(Boolean).filter((x, i, a) => a.indexOf(x) === i)
     }
     try {
       setPreview(await window.southastra.previewTime(input))
@@ -244,25 +251,25 @@ export default function ChartForm({ initial, defaults, onCancel, onSubmit }: Pro
     return (
       <div className="modal-back">
         <div className="modal" onKeyDown={(e) => { if (e.key === 'Escape') setStep('edit') }}>
-          <h2>Doğum bilgilerini doğrulayın</h2>
-          <p className="hint" style={{ marginTop: -6 }}>Yükselen ve evler bu bilgilere çok duyarlıdır. Hesaplamadan önce kontrol edin.</p>
+          <h2>{t('Doğum bilgilerini doğrulayın')}</h2>
+          <p className="hint" style={{ marginTop: -6 }}>{t('Yükselen ve evler bu bilgilere çok duyarlıdır. Hesaplamadan önce kontrol edin.')}</p>
           <dl className="confirm">
-            <dt>İsim</dt><dd>{pending.name}</dd>
-            <dt>Yer</dt><dd><b>{placeLabel(p)}</b></dd>
-            <dt>Koordinat</dt><dd className="num">{fmtCoord(p.lat, 'K', 'G')} · {fmtCoord(p.lon, 'D', 'B')}</dd>
-            <dt>Doğruluk</dt><dd>{p.precision ?? '—'}</dd>
-            <dt>Konum kimliği</dt><dd className="num">{p.geonameId ? `GeoNames ${p.geonameId}` : 'Yok (elle girilen koordinat)'}</dd>
-            <dt>Saat dilimi</dt><dd className="num">{p.tz}</dd>
-            <dt>Yerel saat</dt><dd className="num">{d}.{m}.{y} {pending.time}{pending.timeUnknown && <span className="warn-inline"> varsayılan, doğum saati bilinmiyor</span>}</dd>
-            <dt>UTC farkı</dt><dd><span className="num">{fmtOffset(preview.offsetMinutes)}</span> <span className="muted small">{preview.source.replace(/ \(UTC.*\)$/, '')}</span></dd>
-            <dt>UTC karşılığı</dt><dd className="num">{preview.utc.replace('T', ' ').replace(/(\.\d+)?Z$/, '')}</dd>
-            <dt>Ev sistemi</dt><dd>{HOUSE_SYSTEMS.find((h) => h.id === pending.houseSystem)?.name}</dd>
-            <dt>Güvenilirlik</dt><dd>{pending.rodden ? `${pending.rodden} — ${RODDEN.find((r) => r.id === pending.rodden)?.desc}` : 'Belirtilmedi'}</dd>
+            <dt>{t('İsim')}</dt><dd>{pending.name}</dd>
+            <dt>{t('Yer')}</dt><dd><b>{placeLabel(p)}</b></dd>
+            <dt>{t('Koordinat')}</dt><dd className="num">{fmtLatLon(p.lat, p.lon)}</dd>
+            <dt>{t('Doğruluk')}</dt><dd>{p.precision ? t(p.precision) : '—'}</dd>
+            <dt>{t('Konum kimliği')}</dt><dd className="num">{p.geonameId ? `GeoNames ${p.geonameId}` : t('Yok (elle girilen koordinat)')}</dd>
+            <dt>{t('Saat dilimi')}</dt><dd className="num">{p.tz}</dd>
+            <dt>{t('Yerel saat')}</dt><dd className="num">{t('{d}.{m}.{y}', { d, m, y })} {pending.time}{pending.timeUnknown && <span className="warn-inline"> {t('varsayılan, doğum saati bilinmiyor')}</span>}</dd>
+            <dt>{t('UTC farkı')}</dt><dd><span className="num">{fmtOffset(preview.offsetMinutes)}</span> <span className="muted small">{preview.source.replace(/ \(UTC.*\)$/, '')}</span></dd>
+            <dt>{t('UTC karşılığı')}</dt><dd className="num">{preview.utc.replace('T', ' ').replace(/(\.\d+)?Z$/, '')}</dd>
+            <dt>{t('Ev sistemi')}</dt><dd>{HOUSE_SYSTEMS.find((h) => h.id === pending.houseSystem)?.name}</dd>
+            <dt>{t('Güvenilirlik')}</dt><dd>{pending.rodden ? `${pending.rodden} — ${RODDEN.find((r) => r.id === pending.rodden)?.desc}` : t('Belirtilmedi')}</dd>
           </dl>
           {preview.warnings.map((w, i) => <p key={i} className="warn">{w}</p>)}
           <div className="actions">
-            <button type="button" className="btn ghost" onClick={() => setStep('edit')}>Geri dön ve düzelt</button>
-            <button type="button" className="btn primary" autoFocus onClick={() => onSubmit(pending)}>Onayla ve hesapla</button>
+            <button type="button" className="btn ghost" onClick={() => setStep('edit')}>{t('Geri dön ve düzelt')}</button>
+            <button type="button" className="btn primary" autoFocus onClick={() => onSubmit(pending)}>{t('Onayla ve hesapla')}</button>
           </div>
         </div>
       </div>
@@ -272,45 +279,45 @@ export default function ChartForm({ initial, defaults, onCancel, onSubmit }: Pro
   return (
     <div className="modal-back" onMouseDown={(e) => { if (e.target === e.currentTarget) onCancel() }}>
       <form className="modal" onSubmit={submit} onKeyDown={(e) => { if (e.key === 'Escape') onCancel() }}>
-        <h2>{initial ? 'Haritayı düzenle' : 'Yeni harita'}</h2>
+        <h2>{initial ? t('Haritayı düzenle') : t('Yeni harita')}</h2>
 
         <label className="field">
-          <span>İsim</span>
-          <input id="f-name" autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder="Danışanın adı" />
+          <span>{t('İsim')}</span>
+          <input id="f-name" autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder={t('Danışanın adı')} />
         </label>
 
         <div className="row2">
           <label className="field">
-            <span>Doğum tarihi</span>
+            <span>{t('Doğum tarihi')}</span>
             <input id="f-date" type="date" min="1200-01-01" max="2399-12-31" value={date} onChange={(e) => setDate(e.target.value)} />
           </label>
           <div className="field">
-            <span>Yerel doğum saati</span>
+            <span>{t('Yerel doğum saati')}</span>
             <input id="f-time" type="time" step={withSec ? 1 : 60} value={timeUnknown ? '' : withSec ? time : time.slice(0, 5)} disabled={timeUnknown} onChange={(e) => setTime(e.target.value)} />
             <div className="time-opts">
-              <label className="inline small"><input id="f-tu" type="checkbox" checked={timeUnknown} onChange={(e) => setTimeUnknown(e.target.checked)} /> Doğum saati bilinmiyor</label>
-              {!timeUnknown && <label className="inline small muted"><input id="f-sec" type="checkbox" checked={withSec} onChange={(e) => { setWithSec(e.target.checked); if (!e.target.checked) setTime((t) => t.slice(0, 5)); else if (/^\d{2}:\d{2}$/.test(time)) setTime(time + ':00') }} /> Saniye de gir</label>}
+              <label className="inline small"><input id="f-tu" type="checkbox" checked={timeUnknown} onChange={(e) => setTimeUnknown(e.target.checked)} /> {t('Doğum saati bilinmiyor')}</label>
+              {!timeUnknown && <label className="inline small muted"><input id="f-sec" type="checkbox" checked={withSec} onChange={(e) => { setWithSec(e.target.checked); if (!e.target.checked) setTime((t) => t.slice(0, 5)); else if (/^\d{2}:\d{2}$/.test(time)) setTime(time + ':00') }} /> {t('Saniye de gir')}</label>}
             </div>
           </div>
         </div>
-        {timeUnknown && <p className="warn" style={{ margin: 0 }}>12:00 varsayılacak. Yükselen, MC ve evler hesaplanmayacak; Ay'ın konumu için olası aralık gösterilecek.</p>}
+        {timeUnknown && <p className="warn" style={{ margin: 0 }}>{t("12:00 varsayılacak. Yükselen, MC ve evler hesaplanmayacak; Ay'ın konumu için olası aralık gösterilecek.")}</p>}
 
         <div className="field">
-          <span>Doğum yeri</span>
+          <span>{t('Doğum yeri')}</span>
           <div className={districts.length ? 'row3' : 'row2'}>
-            <select id="f-country" value={country} onChange={(e) => { setCountry(e.target.value); writePref('f-country', e.target.value) }} title="Ülke">
-              <option value="">Tüm ülkeler</option>
+            <select id="f-country" value={country} onChange={(e) => { setCountry(e.target.value); writePref('f-country', e.target.value) }} title={t('Ülke')}>
+              <option value="">{t('Tüm ülkeler')}</option>
               {countries.map((c, i) => (
-                <option key={c.code} value={c.code}>{c.name}{c.detailed ? ' · köy düzeyinde' : ''}{i > 0 && countries[i - 1].detailed && !c.detailed ? '' : ''}</option>
+                <option key={c.code} value={c.code}>{c.name}{c.detailed ? ` · ${t('köy düzeyinde')}` : ''}{i > 0 && countries[i - 1].detailed && !c.detailed ? '' : ''}</option>
               ))}
             </select>
             <select id="f-region" value={region} onChange={(e) => setRegion(e.target.value)} disabled={!country || !regions.length} title={regionLabel(country)}>
-              <option value="">{country ? `Tüm ${plural(regionLabel(country))}` : '—'}</option>
+              <option value="">{country ? allOf(regionKey(country)) : '—'}</option>
               {regions.map((r) => <option key={r.name} value={r.name}>{r.name}</option>)}
             </select>
             {districts.length > 0 && (
               <select id="f-district" value={district} onChange={(e) => setDistrict(e.target.value)} title={districtLabel(country)}>
-                <option value="">Tüm {plural(districtLabel(country))}</option>
+                <option value="">{allOf(districtKey(country))}</option>
                 {districts.map((d) => <option key={d.name} value={d.name}>{d.name}</option>)}
               </select>
             )}
@@ -319,7 +326,7 @@ export default function ChartForm({ initial, defaults, onCancel, onSubmit }: Pro
 
         <div className="field city">
           <input
-            id="f-city" value={query} placeholder={region ? 'Listeden seçin veya yazarak daraltın…' : 'Şehir, ilçe, köy veya semt adı yazın · koordinat da yapıştırabilirsiniz'} autoComplete="off"
+            id="f-city" value={query} placeholder={region ? t('Listeden seçin veya yazarak daraltın…') : t('Şehir, ilçe, köy veya semt adı yazın · koordinat da yapıştırabilirsiniz')} autoComplete="off"
             onChange={(e) => { setQuery(e.target.value); setOpen(true); if (place) { setPlace(null); setLat(''); setLon('') } }}
             onFocus={() => { if (!place) setOpen(true) }}
             onBlur={() => setTimeout(() => setOpen(false), 150)}
@@ -334,17 +341,17 @@ export default function ChartForm({ initial, defaults, onCancel, onSubmit }: Pro
           {open && coordHit && (
             <ul className="suggest" onMouseDown={(e) => e.preventDefault()}>
               <li className="on" onMouseDown={() => chooseCoord(coordHit)}>
-                <div className="s-main"><b>Bu koordinatı kullan</b> <span className="muted">— {fmtCoord(coordHit.lat, 'K', 'G')} · {fmtCoord(coordHit.lon, 'D', 'B')}</span></div>
-                <div className="s-meta">{coordHit.near ? `En yakın yer: ${placeLabel(coordHit.near)} · ${coordHit.near.distanceKm.toFixed(1)} km · ${coordHit.near.tz}` : 'Yakında kayıtlı yer yok'}</div>
+                <div className="s-main"><b>{t('Bu koordinatı kullan')}</b> <span className="muted">— {fmtLatLon(coordHit.lat, coordHit.lon)}</span></div>
+                <div className="s-meta">{coordHit.near ? t('En yakın yer: {place} · {km} km · {tz}', { place: placeLabel(coordHit.near), km: coordHit.near.distanceKm.toFixed(1), tz: coordHit.near.tz }) : t('Yakında kayıtlı yer yok')}</div>
               </li>
             </ul>
           )}
           {open && !coordHit && (hits.length > 0 || query.trim().length >= 3) && (
             <ul className="suggest" onMouseDown={(e) => e.preventDefault()}>
-              {browsing && <li className="suggest-head muted small">{district || region} · {hits.length}{hits.length >= 400 ? '+' : ''} yer · yazarak daraltabilirsiniz</li>}
+              {browsing && <li className="suggest-head muted small">{district || region} · {t('{n} yer · yazarak daraltabilirsiniz', { n: `${hits.length}${hits.length >= 400 ? '+' : ''}` })}</li>}
               {partial && <li className="suggest-head warn-inline small">{partial}</li>}
-              {!hits.length && !addrHits.length && doneFor !== query && <li className="suggest-head muted small">Aranıyor…</li>}
-              {!hits.length && !addrHits.length && doneFor === query && <li className="suggest-head muted small">Çevrimdışı listede sonuç yok. Ülke, {regionLabel(country).toLowerCase()} veya {districtLabel(country).toLowerCase()} süzgecini kaldırmayı ya da internetten aramayı deneyin.</li>}
+              {!hits.length && !addrHits.length && doneFor !== query && <li className="suggest-head muted small">{t('Aranıyor…')}</li>}
+              {!hits.length && !addrHits.length && doneFor === query && <li className="suggest-head muted small">{t('Çevrimdışı listede sonuç yok. Ülke, {region} veya {district} süzgecini kaldırmayı ya da internetten aramayı deneyin.', { region: regionLabel(country).toLocaleLowerCase(loc()), district: districtLabel(country).toLocaleLowerCase(loc()) })}</li>}
               {hits.map((c, i) => (
                 <li key={c.geonameId} className={i === active ? 'on' : ''} onMouseDown={() => choose(c)} onMouseEnter={() => setActive(i)}>
                   <div className="s-main">
@@ -352,114 +359,114 @@ export default function ChartForm({ initial, defaults, onCancel, onSubmit }: Pro
                     <span className="muted"> — {[c.district, c.region, c.country].filter((x) => x && x !== c.name).join(', ')}</span>
                   </div>
                   <div className="s-meta num">
-                    {fmtCoord(c.lat, 'K', 'G')} · {fmtCoord(c.lon, 'D', 'B')} · {c.precision} · ID {c.geonameId}
+                    {fmtLatLon(c.lat, c.lon)} · {c.precision ? t(c.precision) : ''} · ID {c.geonameId}
                   </div>
                 </li>
               ))}
-              {addrHits.length > 0 && <li className="suggest-head muted small">İnternetten bulunan adresler (OpenStreetMap)</li>}
+              {addrHits.length > 0 && <li className="suggest-head muted small">{t('İnternetten bulunan adresler (OpenStreetMap)')}</li>}
               {addrHits.map((a, i) => (
                 <li key={'a' + i} onMouseDown={() => chooseAddress(a)}>
                   <div className="s-main"><b>{a.name}</b> <span className="muted">— {a.display.split(', ').slice(1, 5).join(', ')}</span></div>
-                  <div className="s-meta num">{fmtCoord(a.lat, 'K', 'G')} · {fmtCoord(a.lon, 'D', 'B')} · Adres · {a.tz}</div>
+                  <div className="s-meta num">{fmtLatLon(a.lat, a.lon)} · {t('Adres')} · {a.tz}</div>
                 </li>
               ))}
               {query.trim().length >= 3 && addrState !== 'done' && (
                 <li className="suggest-online" onMouseDown={() => { if (addrState !== 'busy') searchOnline() }}>
-                  {addrState === 'busy' ? 'İnternette aranıyor…' : addrState ? <span className="danger-text">{addrState}</span> : <>İnternette adres ara (sokak düzeyi) <span className="muted small">· yazdığınız adres OpenStreetMap'e gönderilir</span></>}
+                  {addrState === 'busy' ? t('İnternette aranıyor…') : addrState ? <span className="danger-text">{addrState}</span> : <>{t('İnternette adres ara (sokak düzeyi)')} <span className="muted small">· {t("yazdığınız adres OpenStreetMap'e gönderilir")}</span></>}
                 </li>
               )}
-              {addrState === 'done' && !addrHits.length && <li className="suggest-head muted small">OpenStreetMap'te de bulunamadı. Koordinatı elle girebilirsiniz.</li>}
+              {addrState === 'done' && !addrHits.length && <li className="suggest-head muted small">{t("OpenStreetMap'te de bulunamadı. Koordinatı elle girebilirsiniz.")}</li>}
             </ul>
           )}
           {place ? (
             <div className="place-card">
-              <div><b>{placeLabel(place)}</b>{place.localName && <span className="local-name"> · yerel adı {place.localName}</span>}</div>
-              <div className="num small">{fmtCoord(place.lat, 'K', 'G')} · {fmtCoord(place.lon, 'D', 'B')} · {place.tz}</div>
-              <div className="muted small">{place.precision}{place.geonameId ? ` · GeoNames ${place.geonameId}` : ''}</div>
+              <div><b>{placeLabel(place)}</b>{place.localName && <span className="local-name"> · {t('yerel adı {name}', { name: place.localName })}</span>}</div>
+              <div className="num small">{fmtLatLon(place.lat, place.lon)} · {place.tz}</div>
+              <div className="muted small">{place.precision ? t(place.precision) : ''}{place.geonameId ? ` · GeoNames ${place.geonameId}` : ''}</div>
               {tzNote && <div className="muted small">{tzNote}</div>}
               {live ? (
                 <div className="live-off">
-                  Bu doğum için: <b className="num">{fmtOffset(live.offsetMinutes)}</b>
-                  <span className="muted small"> · {timeMode === 'zone' ? `${place.tz} kuralı${live.dst ? ', yaz saati' : ', standart saat'}` : timeMode === 'lmt' ? 'yerel ortalama saat' : 'elle girilen ofset'} · UTC {live.utc.slice(11, 16)}</span>
+                  {t('Bu doğum için:')} <b className="num">{fmtOffset(live.offsetMinutes)}</b>
+                  <span className="muted small"> · {timeMode === 'zone' ? (live.dst ? t('{tz} kuralı, yaz saati', { tz: place.tz }) : t('{tz} kuralı, standart saat', { tz: place.tz })) : timeMode === 'lmt' ? t('yerel ortalama saat') : t('elle girilen ofset')} · UTC {live.utc.slice(11, 16)}</span>
                   {live.warnings.map((w, i) => <div key={i} className="warn-inline small">{w}</div>)}
                 </div>
-              ) : <div className="muted small">Tarih ve saat girilince bu doğum için geçerli UTC farkı burada görünür.</div>}
+              ) : <div className="muted small">{t('Tarih ve saat girilince bu doğum için geçerli UTC farkı burada görünür.')}</div>}
             </div>
           ) : (
-            <p className="hint">Listeden bir yer seçin. Aynı adı taşıyan yerleri ilçe ve il bilgisinden ayırt edin.</p>
+            <p className="hint">{t('Listeden bir yer seçin. Aynı adı taşıyan yerleri ilçe ve il bilgisinden ayırt edin.')}</p>
           )}
         </div>
 
         {place && (
           <details className="adv">
-            <summary>Koordinatı değiştir (isteğe bağlı)</summary>
-            <p className="hint">Koordinatlar seçtiğiniz yerden <b>otomatik dolduruldu</b>; çoğu harita için değiştirmeniz gerekmez. Yalnızca doğumun gerçekleştiği yeri (ör. hastane) tam biliyorsanız kullanın: Google Haritalar'da o noktaya sağ tıklayın, en üstteki sayıları (ör. 41.0086, 28.9802) tıklayıp kopyalayın ve aşağıya yapıştırın.</p>
+            <summary>{t('Koordinatı değiştir (isteğe bağlı)')}</summary>
+            <p className="hint">{t('Koordinatlar seçtiğiniz yerden')} <b>{t('otomatik dolduruldu')}</b>{t("; çoğu harita için değiştirmeniz gerekmez. Yalnızca doğumun gerçekleştiği yeri (ör. hastane) tam biliyorsanız kullanın: Google Haritalar'da o noktaya sağ tıklayın, en üstteki sayıları (ör. 41.0086, 28.9802) tıklayıp kopyalayın ve aşağıya yapıştırın.")}</p>
             <label className="field">
-              <span>Koordinatı yapıştır</span>
-              <input id="f-paste" value={paste} placeholder="41.0086, 28.9802   veya   41°00'31&quot;K 28°58'49&quot;D" onChange={(e) => setPaste(e.target.value)} onPaste={(e) => { e.preventDefault(); applyPaste(e.clipboardData.getData('text')) }} onBlur={() => paste && applyPaste(paste)} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); applyPaste(paste) } }} />
+              <span>{t('Koordinatı yapıştır')}</span>
+              <input id="f-paste" value={paste} placeholder={t('41.0086, 28.9802   veya   41°00\'31"K 28°58\'49"D')} onChange={(e) => setPaste(e.target.value)} onPaste={(e) => { e.preventDefault(); applyPaste(e.clipboardData.getData('text')) }} onBlur={() => paste && applyPaste(paste)} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); applyPaste(paste) } }} />
             </label>
             <div className="row2">
-              <label className="field"><span>Enlem (kuzey +, güney −)</span><input id="f-lat" value={lat} onChange={(e) => setLat(e.target.value)} onBlur={() => applyManualCoords()} /></label>
-              <label className="field"><span>Boylam (doğu +, batı −)</span><input id="f-lon" value={lon} onChange={(e) => setLon(e.target.value)} onBlur={() => applyManualCoords()} /></label>
+              <label className="field"><span>{t('Enlem (kuzey +, güney −)')}</span><input id="f-lat" value={lat} onChange={(e) => setLat(e.target.value)} onBlur={() => applyManualCoords()} /></label>
+              <label className="field"><span>{t('Boylam (doğu +, batı −)')}</span><input id="f-lon" value={lon} onChange={(e) => setLon(e.target.value)} onBlur={() => applyManualCoords()} /></label>
             </div>
             {coordMsg && <p className={coordMsg.kind === 'warn' ? 'warn' : coordMsg.kind === 'error' ? 'error' : 'hint'}>{coordMsg.text}</p>}
-            {picked && place && (picked.lat !== place.lat || picked.lon !== place.lon) && <button type="button" className="link small" onClick={resetCoords}>{picked.name} koordinatına geri dön</button>}
+            {picked && place && (picked.lat !== place.lat || picked.lon !== place.lon) && <button type="button" className="link small" onClick={resetCoords}>{t('{name} koordinatına geri dön', { name: picked.name })}</button>}
           </details>
         )}
 
         <fieldset className="field">
-          <span>Saat çevirisi</span>
+          <span>{t('Saat çevirisi')}</span>
           <div className="seg">
-            <label><input type="radio" name="tm" checked={timeMode === 'zone'} onChange={() => setTimeMode('zone')} />Saat dilimi (otomatik)</label>
-            <label><input type="radio" name="tm" checked={timeMode === 'manual'} onChange={() => setTimeMode('manual')} />Elle ofset</label>
-            <label><input type="radio" name="tm" checked={timeMode === 'lmt'} onChange={() => setTimeMode('lmt')} />Yerel ortalama (LMT)</label>
+            <label><input type="radio" name="tm" checked={timeMode === 'zone'} onChange={() => setTimeMode('zone')} />{t('Saat dilimi (otomatik)')}</label>
+            <label><input type="radio" name="tm" checked={timeMode === 'manual'} onChange={() => setTimeMode('manual')} />{t('Elle ofset')}</label>
+            <label><input type="radio" name="tm" checked={timeMode === 'lmt'} onChange={() => setTimeMode('lmt')} />{t('Yerel ortalama (LMT)')}</label>
           </div>
           {timeMode === 'manual' && (
-            <label className="inline">UTC'ye göre fark (saat): <input id="f-off" className="short" value={manualOffset} onChange={(e) => setManualOffset(e.target.value)} /> <span className="muted small">ör. 3, 2, −5.5</span></label>
+            <label className="inline">{t("UTC'ye göre fark (saat):")} <input id="f-off" className="short" value={manualOffset} onChange={(e) => setManualOffset(e.target.value)} /> <span className="muted small">{t('ör. 3, 2, −5.5')}</span></label>
           )}
-          {timeMode === 'zone' && <p className="hint">Doğum tarihinde o yerde geçerli olan saat dilimi ve yaz saati kuralı uygulanır (bugünkü kural değil).</p>}
-          {timeMode === 'lmt' && <p className="hint">Standart saat öncesi doğumlar için: saat, doğum yerinin boylamına göre hesaplanır.</p>}
+          {timeMode === 'zone' && <p className="hint">{t('Doğum tarihinde o yerde geçerli olan saat dilimi ve yaz saati kuralı uygulanır (bugünkü kural değil).')}</p>}
+          {timeMode === 'lmt' && <p className="hint">{t('Standart saat öncesi doğumlar için: saat, doğum yerinin boylamına göre hesaplanır.')}</p>}
         </fieldset>
 
         <div className="row2">
           <label className="field">
-            <span>Ev sistemi</span>
+            <span>{t('Ev sistemi')}</span>
             <select id="f-hsys" value={houseSystem} onChange={(e) => setHouseSystem(e.target.value as HouseSystem)}>
               {HOUSE_SYSTEMS.map((h) => <option key={h.id} value={h.id}>{h.name}</option>)}
             </select>
           </label>
           <label className="field">
-            <span>Ay düğümü</span>
+            <span>{t('Ay düğümü')}</span>
             <select id="f-node" value={nodeType} onChange={(e) => setNodeType(e.target.value as 'true' | 'mean')}>
-              <option value="true">Gerçek düğüm</option>
-              <option value="mean">Ortalama düğüm</option>
+              <option value="true">{t('Gerçek düğüm')}</option>
+              <option value="mean">{t('Ortalama düğüm')}</option>
             </select>
           </label>
         </div>
 
         <div className="row2">
           <label className="field">
-            <span>Veri güvenilirliği (Rodden)</span>
+            <span>{t('Veri güvenilirliği (Rodden)')}</span>
             <select id="f-rodden" value={rodden} onChange={(e) => setRodden(e.target.value as Rodden | '')}>
-              <option value="">Belirtilmedi</option>
+              <option value="">{t('Belirtilmedi')}</option>
               {RODDEN.map((r) => <option key={r.id} value={r.id}>{r.id} — {r.desc}</option>)}
             </select>
           </label>
           <label className="field">
-            <span>Etiketler (virgülle)</span>
-            <input id="f-tags" value={tags} onChange={(e) => setTags(e.target.value)} placeholder="danışan, aile, olay haritası…" />
+            <span>{t('Etiketler (virgülle)')}</span>
+            <input id="f-tags" value={tags} onChange={(e) => setTags(e.target.value)} placeholder={t('danışan, aile, olay haritası…')} />
           </label>
         </div>
 
         <label className="field">
-          <span>Notlar</span>
-          <textarea id="f-notes" rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Doğum saatinin kaynağı, güvenilirliği (ör. doğum belgesi, anne beyanı)…" />
+          <span>{t('Notlar')}</span>
+          <textarea id="f-notes" rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder={t('Doğum saatinin kaynağı, güvenilirliği (ör. doğum belgesi, anne beyanı)…')} />
         </label>
 
         {error && <p className="error">{error}</p>}
         <div className="actions">
-          <button type="button" className="btn ghost" onClick={onCancel}>Vazgeç</button>
-          <button type="submit" className="btn primary">Devam et</button>
+          <button type="button" className="btn ghost" onClick={onCancel}>{t('Vazgeç')}</button>
+          <button type="submit" className="btn primary">{t('Devam et')}</button>
         </div>
       </form>
     </div>

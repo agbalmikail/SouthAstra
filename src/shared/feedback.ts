@@ -1,9 +1,10 @@
 // Seans geri bildirimi ve genel geçerlik ölçümü (yorum katmanı; hesaplama yapmaz).
 // Yöntem: danışana yalnızca metinler gösterilir; araya bu haritada OLMAYAN etkenlerin metinleri (kontrol) karıştırılır.
 // Kontrol metinleri gerçekler kadar "uyuyor" alıyorsa metinler kişiyi ayırt etmiyor demektir (genel geçer / Barnum etkisi).
+import { t } from './i18n'
 
 export type Rating = 'fit' | 'partial' | 'nofit'
-export const RATING_NAME: Record<Rating, string> = { fit: 'Uyuyor', partial: 'Kısmen', nofit: 'Uymuyor' }
+export const RATING_NAME: Record<Rating, string> = { get fit() { return t('Uyuyor') }, get partial() { return t('Kısmen') }, get nofit() { return t('Uymuyor') } }
 
 export interface FeedbackEntry {
   key: string // kütüphane anahtarı (etken)
@@ -74,5 +75,5 @@ export function looksGeneric(k: { real: Tally; control: Tally } | undefined): bo
   return !!k && k.control.n >= GENERIC_MIN_N && fitShare(k.control) >= GENERIC_SHARE
 }
 
-export const FEEDBACK_METHOD =
-  'Yöntem: Danışana yalnızca yorum metinleri gösterilir (etken adları gizli). Araya, kütüphanenizden bu haritada olmayan etkenlere ait kontrol metinleri karışık sırayla eklenir. Danışan her metni Uyuyor / Kısmen / Uymuyor olarak işaretler; hangilerinin kontrol olduğu sonunda açıklanır. Kontrol metinleri gerçek metinler kadar "uyuyor" alıyorsa, metinler kişiyi ayırt etmiyor (genel geçer) demektir. Sonuçlar yazdığınız metinlerin ayırt ediciliğini ölçer; astrolojinin doğruluğunun bilimsel kanıtı değildir.'
+export const feedbackMethod = (): string =>
+  t('Yöntem: Danışana yalnızca yorum metinleri gösterilir (etken adları gizli). Araya, kütüphanenizden bu haritada olmayan etkenlere ait kontrol metinleri karışık sırayla eklenir. Danışan her metni Uyuyor / Kısmen / Uymuyor olarak işaretler; hangilerinin kontrol olduğu sonunda açıklanır. Kontrol metinleri gerçek metinler kadar "uyuyor" alıyorsa, metinler kişiyi ayırt etmiyor (genel geçer) demektir. Sonuçlar yazdığınız metinlerin ayırt ediciliğini ölçer; astrolojinin doğruluğunun bilimsel kanıtı değildir.')

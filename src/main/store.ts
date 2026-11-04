@@ -3,6 +3,7 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, w
 import { join } from 'node:path'
 import { randomUUID } from 'node:crypto'
 import type { SavedChart } from '@shared/types'
+import { t } from '@shared/i18n'
 
 let file = ''
 let backupDir = ''
@@ -70,7 +71,7 @@ export function readArchive(path: string): { library?: unknown } {
 export function importFrom(path: string): { added: number; skipped: number } {
   const data = JSON.parse(readFileSync(path, 'utf8'))
   const list: SavedChart[] = Array.isArray(data) ? data : data?.charts
-  if (!Array.isArray(list)) throw new Error('Bu dosya bir SouthAstra arşivi değil.')
+  if (!Array.isArray(list)) throw new Error(t('Bu dosya bir SouthAstra arşivi değil.'))
   const key = (c: SavedChart) => [c.name, c.date, c.time, c.place?.lat, c.place?.lon].join('|')
   const have = new Set(charts.map(key))
   let added = 0

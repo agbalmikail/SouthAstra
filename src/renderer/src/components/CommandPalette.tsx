@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { fold } from '../search'
+import { t } from '@shared/i18n'
 
 export interface Command {
   id: string
@@ -39,9 +40,9 @@ export default function CommandPalette({ commands, onClose }: { commands: Comman
   let lastGroup = ''
   return (
     <div className="modal-back palette-back" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose() }}>
-      <div className="palette" role="dialog" aria-label="Hızlı arama">
+      <div className="palette" role="dialog" aria-label={t('Hızlı arama')}>
         <input
-          id="palette-q" autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder="Harita, görünüm, araç veya komut ara…"
+          id="palette-q" autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('Harita, görünüm, araç veya komut ara…')}
           onKeyDown={(e) => {
             if (e.key === 'Escape') { e.preventDefault(); onClose() }
             else if (e.key === 'ArrowDown') { e.preventDefault(); setI((x) => Math.min(shown.length - 1, x + 1)) }
@@ -60,9 +61,9 @@ export default function CommandPalette({ commands, onClose }: { commands: Comman
               </li>
             ]
           })}
-          {!shown.length && <li className="muted pal-empty">Sonuç yok</li>}
+          {!shown.length && <li className="muted pal-empty">{t('Sonuç yok')}</li>}
         </ul>
-        <div className="pal-foot muted small">↑↓ seç · Enter aç · Esc kapat</div>
+        <div className="pal-foot muted small">{t('↑↓ seç · Enter aç · Esc kapat')}</div>
       </div>
     </div>
   )

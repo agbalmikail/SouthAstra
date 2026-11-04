@@ -1,9 +1,20 @@
 import type { FeedbackEntry } from './feedback'
 import type { BlindTrial } from './blind'
 import type { RankWeights } from './transitRank'
+import { t } from './i18n'
+
+/** Metin alanları okunduğu anda seçili dile çevrilir (Türkçe kaynak metin anahtardır) */
+function translated<T extends object>(o: T, keys: (keyof T)[]): T {
+  const out = { ...o }
+  for (const k of keys) {
+    const tr = o[k]
+    if (typeof tr === 'string') Object.defineProperty(out, k, { get: () => t(tr), enumerable: true, configurable: true })
+  }
+  return out
+}
 export type HouseSystem = 'P' | 'K' | 'R' | 'C' | 'E' | 'W' | 'O' | 'B' | 'T' | 'M' | 'X'
 
-export const HOUSE_SYSTEMS: { id: HouseSystem; name: string }[] = [
+export const HOUSE_SYSTEMS: { id: HouseSystem; readonly name: string }[] = ([
   { id: 'P', name: 'Placidus' },
   { id: 'K', name: 'Koch' },
   { id: 'R', name: 'Regiomontanus' },
@@ -15,7 +26,7 @@ export const HOUSE_SYSTEMS: { id: HouseSystem; name: string }[] = [
   { id: 'T', name: 'Topocentric' },
   { id: 'M', name: 'Morinus' },
   { id: 'X', name: 'Meridian' }
-]
+] as { id: HouseSystem; name: string }[]).map((h) => translated(h, ['name']))
 
 export interface Place {
   name: string
@@ -54,7 +65,7 @@ export type TimeMode = 'zone' | 'manual' | 'lmt'
 
 /** Doğum verisi güvenilirliği (Rodden derecelendirmesi) */
 export type Rodden = 'AA' | 'A' | 'B' | 'C' | 'DD' | 'X' | 'XX'
-export const RODDEN: { id: Rodden; desc: string }[] = [
+export const RODDEN: { id: Rodden; readonly desc: string }[] = ([
   { id: 'AA', desc: 'Doğum belgesi veya resmî kayıt' },
   { id: 'A', desc: 'Kişinin, ailesinin beyanı veya hafızadan' },
   { id: 'B', desc: 'Biyografi veya otobiyografi' },
@@ -62,7 +73,7 @@ export const RODDEN: { id: Rodden; desc: string }[] = [
   { id: 'DD', desc: 'Çelişkili kaynaklar' },
   { id: 'X', desc: 'Tarih biliniyor, saat bilinmiyor' },
   { id: 'XX', desc: 'Tarih de doğrulanmamış' }
-]
+] as { id: Rodden; desc: string }[]).map((r) => translated(r, ['desc']))
 
 export interface ChartInput {
   name: string
@@ -116,7 +127,8 @@ export type ViewMode =
   | 'synastry' | 'composite'
   | 'harmonic' | 'acg' | 'relocated'
 
-export const VIEW_MODES: { id: ViewMode; name: string; group: string; needsDate?: boolean; needsPartner?: boolean; needsPlace?: boolean }[] = [
+type ViewModeDef = { id: ViewMode; name: string; group: string; needsDate?: boolean; needsPartner?: boolean; needsPlace?: boolean }
+export const VIEW_MODES: ViewModeDef[] = ([
   { id: 'natal', name: 'Natal', group: 'Doğum' },
   { id: 'draconic', name: 'Drakonik', group: 'Doğum' },
   { id: 'relocated', name: 'Taşınma haritası', group: 'Doğum', needsPlace: true },
@@ -131,7 +143,7 @@ export const VIEW_MODES: { id: ViewMode; name: string; group: string; needsDate?
   { id: 'composite', name: 'Kompozit', group: 'İlişki', needsPartner: true },
   { id: 'harmonic', name: 'Harmonik harita', group: 'Doğum' },
   { id: 'acg', name: 'Astrokartografi (ACG)', group: 'Doğum' }
-]
+] as ViewModeDef[]).map((m) => translated(m, ['name', 'group']))
 
 export interface ViewRequest {
   mode: ViewMode

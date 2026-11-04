@@ -4,7 +4,7 @@ import { activeOrbs, ASPECT_BY_TYPE, ASPECTS, moonPhase, SIGNS } from '@shared/z
 import { aspectPatterns } from '@shared/patterns'
 import { chartFactors } from '@shared/factors'
 import Wheel from './Wheel'
-import { AspectGrid, AspectList, CrossList, HouseTable, PLANET_LEGEND, PlanetTable } from './Tables'
+import { AspectGrid, AspectList, CrossList, HouseTable, planetLegend, PlanetTable } from './Tables'
 import { Distribution, LotsTable, RectifyTable, StarsTable } from './Analysis'
 import { getPanelParams } from '../panelParams'
 import { LearnPanel } from './LearnPanel'
@@ -14,6 +14,7 @@ import { TimeLordsPanel } from './TimeLords'
 import { EclipsePanel, MidpointsPanel, PatternsBlock, TraditionalPanel, type PdfSections } from './Extras'
 import { fmtDateTr, fmtOffset, precisionText } from '../format'
 import logoMark from '../assets/logo-mark.svg'
+import { loc, t } from '@shared/i18n'
 
 const noop = () => undefined
 
@@ -37,20 +38,22 @@ function Meta({ view, reportAt }: { view: ViewResult; reportAt: string }) {
   const i = c.input
   const natal: ChartResult | undefined = c.kind === 'natal' || c.kind === 'draconic' || c.kind === 'harmonic' || c.kind === 'relocated' ? c : view.outer?.kind === 'natal' ? view.outer : undefined
   const moment = c.kind === 'solarreturn' || c.kind === 'lunarreturn' ? c.utc : view.outer && view.outer.kind !== 'natal' ? view.outer.utc : null
-  const local = (iso: string) => new Date(iso).toLocaleString('tr-TR', { timeZone: (c.place ?? i.place).tz, dateStyle: 'long', timeStyle: 'short' })
+  const local = (iso: string) => new Date(iso).toLocaleString(loc(), { timeZone: (c.place ?? i.place).tz, dateStyle: 'long', timeStyle: 'short' })
+  const NS = (lat: number) => (lat >= 0 ? t('K') : t('G'))
+  const EW = (lon: number) => (lon >= 0 ? t('D') : t('B'))
   const rows: [string, string][] = [
-    ['Doğum tarihi', `${fmtDateTr(i.date)} · ${i.timeUnknown ? 'saat bilinmiyor (12:00 varsayıldı)' : i.time} yerel saat`],
-    ...(natal?.shiftMin ? [['Simülasyon', `harita ${shiftedTime(i.timeUnknown ? '12:00' : i.time, natal.shiftMin)} için hesaplandı (${natal.shiftMin > 0 ? '+' : ''}${natal.shiftMin} dk); kayıtlı saat değişmedi`] as [string, string]] : []),
-    ['Doğum yeri', placeLabel(i.place)],
-    ...(c.place && (c.place.lat !== i.place.lat || c.place.lon !== i.place.lon) ? [['Harita yeri', `${placeLabel(c.place)} · ${Math.abs(c.place.lat).toFixed(4)}° ${c.place.lat >= 0 ? 'K' : 'G'} · ${Math.abs(c.place.lon).toFixed(4)}° ${c.place.lon >= 0 ? 'D' : 'B'}`] as [string, string]] : []),
-    ['Koordinat', `${Math.abs(i.place.lat).toFixed(4)}° ${i.place.lat >= 0 ? 'K' : 'G'} · ${Math.abs(i.place.lon).toFixed(4)}° ${i.place.lon >= 0 ? 'D' : 'B'}${i.place.precision ? ` · ${precisionText(i.place.precision)}` : ''}`],
-    ...(natal ? [['UTC', `${natal.utc.replace('T', ' ').replace(/(\.\d+)?Z$/, '')} · ${fmtOffset(natal.offsetMinutes)} (${i.timeMode === 'zone' ? i.place.tz : i.timeMode === 'lmt' ? 'LMT' : 'elle ofset'})`] as [string, string]] : []),
-    ...(moment ? [[c.kind === 'solarreturn' || c.kind === 'lunarreturn' ? 'Dönüş anı' : 'Harita tarihi', `${local(moment)} (${(c.place ?? i.place).tz})`] as [string, string]] : []),
-    ['Rapor tarihi', new Date(reportAt).toLocaleString('tr-TR', { dateStyle: 'long', timeStyle: 'short' })],
-    ['Ev sistemi', c.hasHouses ? c.houseSystemUsed : (HOUSE_SYSTEMS.find((h) => h.id === c.houseSystem)?.name ?? '') + ' · evler gösterilmiyor'],
-    ['Zodyak', `${c.zodiac} · geosantrik · görünür konum`],
-    ['Ay düğümü', i.nodeType === 'mean' ? 'Ortalama düğüm' : 'Gerçek (oskülatör) düğüm'],
-    ...(i.rodden ? [['Veri güvenilirliği', `Rodden ${i.rodden} — ${RODDEN.find((r) => r.id === i.rodden)?.desc}`] as [string, string]] : [])
+    [t('Doğum tarihi'), `${fmtDateTr(i.date)} · ${i.timeUnknown ? t('saat bilinmiyor (12:00 varsayıldı)') : i.time} ${t('yerel saat')}`],
+    ...(natal?.shiftMin ? [[t('Simülasyon'), t('harita {time} için hesaplandı ({shift} dk); kayıtlı saat değişmedi', { time: shiftedTime(i.timeUnknown ? '12:00' : i.time, natal.shiftMin), shift: `${natal.shiftMin > 0 ? '+' : ''}${natal.shiftMin}` })] as [string, string]] : []),
+    [t('Doğum yeri'), placeLabel(i.place)],
+    ...(c.place && (c.place.lat !== i.place.lat || c.place.lon !== i.place.lon) ? [[t('Harita yeri'), `${placeLabel(c.place)} · ${Math.abs(c.place.lat).toFixed(4)}° ${NS(c.place.lat)} · ${Math.abs(c.place.lon).toFixed(4)}° ${EW(c.place.lon)}`] as [string, string]] : []),
+    [t('Koordinat'), `${Math.abs(i.place.lat).toFixed(4)}° ${NS(i.place.lat)} · ${Math.abs(i.place.lon).toFixed(4)}° ${EW(i.place.lon)}${i.place.precision ? ` · ${precisionText(i.place.precision)}` : ''}`],
+    ...(natal ? [['UTC', `${natal.utc.replace('T', ' ').replace(/(\.\d+)?Z$/, '')} · ${fmtOffset(natal.offsetMinutes)} (${i.timeMode === 'zone' ? i.place.tz : i.timeMode === 'lmt' ? 'LMT' : t('elle ofset')})`] as [string, string]] : []),
+    ...(moment ? [[c.kind === 'solarreturn' || c.kind === 'lunarreturn' ? t('Dönüş anı') : t('Harita tarihi'), `${local(moment)} (${(c.place ?? i.place).tz})`] as [string, string]] : []),
+    [t('Rapor tarihi'), new Date(reportAt).toLocaleString(loc(), { dateStyle: 'long', timeStyle: 'short' })],
+    [t('Ev sistemi'), c.hasHouses ? c.houseSystemUsed : (HOUSE_SYSTEMS.find((h) => h.id === c.houseSystem)?.name ?? '') + ' · ' + t('evler gösterilmiyor')],
+    [t('Zodyak'), `${c.zodiac} · ${t('geosantrik · görünür konum')}`],
+    [t('Ay düğümü'), i.nodeType === 'mean' ? t('Ortalama düğüm') : t('Gerçek (oskülatör) düğüm')],
+    ...(i.rodden ? [[t('Veri güvenilirliği'), `Rodden ${i.rodden} — ${RODDEN.find((r) => r.id === i.rodden)?.desc}`] as [string, string]] : [])
   ]
   return <dl className="p-meta">{rows.map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}</dl>
 }
@@ -61,20 +64,20 @@ function OrbLegend({ settings, cross }: { settings: Settings; cross?: 'transit' 
   const orbs = ASPECTS.map((a) => `${a.name} ${a.angle}° ±${prof.orbs[a.type] ?? '—'}°`).join(' · ')
   return (
     <div className="p-orbs">
-      <p><b>Okuma:</b> Hücrede açının işareti, altında durum ve orb (derece°dakika) yer alır. <b>A</b> = yaklaşan (açı henüz tamlaşmadı, gezegenler birbirine yaklaşıyor), <b>S</b> = ayrılan (açı tamlaştı, gezegenler uzaklaşıyor). Paralel ve kontraparaleller deklinasyona göredir (orb 1°).</p>
+      <p><b>{t('Okuma:')}</b> {t('Hücrede açının işareti, altında durum ve orb (derece°dakika) yer alır.')} <b>A</b> = {t('yaklaşan (açı henüz tamlaşmadı, gezegenler birbirine yaklaşıyor)')}, <b>S</b> = {t('ayrılan (açı tamlaştı, gezegenler uzaklaşıyor)')}. {t('Paralel ve kontraparaleller deklinasyona göredir (orb 1°).')}</p>
       {cross === 'transit' || cross === 'progression'
-        ? <p><b>Orb sınırı:</b> {cross === 'transit' ? `transitlerde majör açılar için ±${settings.transitOrb}°` : `progresyon ve solar arc için majör açılar ±${settings.progressionOrb}°`}.</p>
-        : <p><b>Orb sınırları ({prof.name} profili):</b> {orbs}. Güneş veya Ay içeren açılara +{prof.luminaryBonus}° eklenir.</p>}
+        ? <p><b>{t('Orb sınırı:')}</b> {cross === 'transit' ? t('transitlerde majör açılar için ±{n}°', { n: settings.transitOrb }) : t('progresyon ve solar arc için majör açılar ±{n}°', { n: settings.progressionOrb })}.</p>
+        : <p><b>{t('Orb sınırları ({name} profili):', { name: prof.name })}</b> {orbs}. {t('Güneş veya Ay içeren açılara +{n}° eklenir.', { n: prof.luminaryBonus })}</p>}
     </div>
   )
 }
 
 function Legend() {
-  const items: [string, string][] = [['conjunction', 'Kavuşum'], ['sextile', 'Altmışlık'], ['square', 'Kare'], ['trine', 'Üçgen'], ['opposition', 'Karşıt']]
+  const items: [string, string][] = [['conjunction', t('Kavuşum')], ['sextile', t('Altmışlık')], ['square', t('Kare')], ['trine', t('Üçgen')], ['opposition', t('Karşıt')]]
   return (
     <div className="p-legend">
       {items.map(([t, n]) => <span key={t}><span className={`asp-g ${t}`}>{ASPECT_BY_TYPE[t as keyof typeof ASPECT_BY_TYPE].glyph}</span> {n}</span>)}
-      <span className="muted">R: geri · AC/MC: köşeler</span>
+      <span className="muted">{t('R: geri · AC/MC: köşeler')}</span>
     </div>
   )
 }
@@ -91,25 +94,25 @@ function Summary({ chart }: { chart: ChartResult }) {
   }
   const el = count((s) => s % 4, 4)
   const mo = count((s) => s % 3, 3)
-  const EL = ['Ateş', 'Toprak', 'Hava', 'Su']
-  const MO = ['Öncü', 'Sabit', 'Değişken']
+  const EL = [t('Ateş'), t('Toprak'), t('Hava'), t('Su')]
+  const MO = [t('Öncü'), t('Sabit'), t('Değişken')]
   const maxIdx = (a: number[]) => a.indexOf(Math.max(...a))
   const sun = p('sun')
   const moon = p('moon')
   const phase = sun && moon ? moonPhase(sun.lon, moon.lon).text : '—'
   const patterns = chart.kind === 'harmonic' ? [] : aspectPatterns(chart)
   const rows: [string, string][] = [
-    ['Güneş', sign(sun?.lon) + (chart.hasHouses && sun ? ` · ${sun.house}. ev` : '')],
-    ['Ay', sign(moon?.lon) + (chart.hasHouses && moon ? ` · ${moon.house}. ev` : '')],
-    ...(chart.hasHouses ? [['Yükselen', sign(chart.angles.asc)] as [string, string], ['MC', sign(chart.angles.mc)] as [string, string]] : []),
-    ['Baskın element', `${EL[maxIdx(el)]} (${el.map((n, i) => `${EL[i]} ${n}`).join(', ')})`],
-    ['Baskın nitelik', `${MO[maxIdx(mo)]} (${mo.map((n, i) => `${MO[i]} ${n}`).join(', ')})`],
-    ['Ay evresi', phase],
-    ...(patterns.length ? [['Açı kalıpları', patterns.map((x) => x.name).join(', ')] as [string, string]] : [])
+    [t('Güneş'), sign(sun?.lon) + (chart.hasHouses && sun ? ' · ' + t('{n}. ev', { n: sun.house }) : '')],
+    [t('Ay'), sign(moon?.lon) + (chart.hasHouses && moon ? ' · ' + t('{n}. ev', { n: moon.house }) : '')],
+    ...(chart.hasHouses ? [[t('Yükselen'), sign(chart.angles.asc)] as [string, string], ['MC', sign(chart.angles.mc)] as [string, string]] : []),
+    [t('Baskın element'), `${EL[maxIdx(el)]} (${el.map((n, i) => `${EL[i]} ${n}`).join(', ')})`],
+    [t('Baskın nitelik'), `${MO[maxIdx(mo)]} (${mo.map((n, i) => `${MO[i]} ${n}`).join(', ')})`],
+    [t('Ay evresi'), phase],
+    ...(patterns.length ? [[t('Açı kalıpları'), patterns.map((x) => t(x.name)).join(', ')] as [string, string]] : [])
   ]
   return (
     <div className="p-summary">
-      <h3>Özet</h3>
+      <h3>{t('Özet')}</h3>
       <dl className="p-meta">{rows.map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}</dl>
     </div>
   )
@@ -126,12 +129,12 @@ export default function PrintView({ view, sections, library, transits, eclipses,
   const natalLike = c.kind === 'natal' || c.kind === 'draconic' || c.kind === 'relocated' || c.kind === 'composite' || c.kind === 'solarreturn' || c.kind === 'lunarreturn'
   const factors = natalLike ? chartFactors(c).filter((f) => library[f.key]) : []
   const natal = view.outer?.kind === 'natal' ? view.outer : c
-  const nm = (id: string) => (id === 'asc' ? 'Yükselen' : id === 'mc' ? 'MC' : natal.points.find((p) => p.id === id)?.name ?? id)
+  const nm = (id: string) => (id === 'asc' ? t('Yükselen') : id === 'mc' ? 'MC' : natal.points.find((p) => p.id === id)?.name ?? id)
   const gl = (id: string) => natal.points.find((p) => p.id === id)?.glyph ?? ''
   const transitRangeText = () => {
-    const t = getPanelParams().transitList
-    const kinds = [t.kinds.aspects && 'açılar', t.kinds.stations && 'duraklamalar', t.kinds.ingress && 'burç geçişleri'].filter(Boolean).join(', ')
-    return `${t.from.split('-').reverse().join('.')} – ${t.to.split('-').reverse().join('.')} · ${t.planets.map((p) => gl(p)).join(' ')} · ${kinds || 'olay türü seçilmedi'}`
+    const tl = getPanelParams().transitList
+    const kinds = [tl.kinds.aspects && t('açılar'), tl.kinds.stations && t('duraklamalar'), tl.kinds.ingress && t('burç geçişleri')].filter(Boolean).join(', ')
+    return `${tl.from.split('-').reverse().join('.')} – ${tl.to.split('-').reverse().join('.')} · ${tl.planets.map((p) => gl(p)).join(' ')} · ${kinds || t('olay türü seçilmedi')}`
   }
 
   return (
@@ -154,28 +157,28 @@ export default function PrintView({ view, sections, library, transits, eclipses,
       )}
 
       {sections.highlights && (
-        <Section title="Öne çıkanlar" who={who}>
+        <Section title={t('Öne çıkanlar')} who={who}>
           <HighlightsPanel chart={c} rulership={settings.rulership} print />
         </Section>
       )}
 
       {sections.positions && (
-        <Section title="Konumlar" who={who} page>
+        <Section title={t('Konumlar')} who={who} page>
           {view.outer ? (
             <>
               <div className="p-two">
                 <div><h3>{c.label}</h3><PlanetTable chart={c} hovered={null} onHover={noop} compact /></div>
-                <div><h3>{view.outer.label}</h3><PlanetTable chart={view.outer} hovered={null} onHover={noop} compact innerLabel={c.kind === 'solarreturn' || c.kind === 'lunarreturn' ? 'Dönüş' : view.title.includes(' × ') ? i.name : 'Natal'} /></div>
+                <div><h3>{view.outer.label}</h3><PlanetTable chart={view.outer} hovered={null} onHover={noop} compact innerLabel={c.kind === 'solarreturn' || c.kind === 'lunarreturn' ? t('Dönüş') : view.title.includes(' × ') ? i.name : t('Natal')} /></div>
               </div>
-              <p className="p-legend-text">{PLANET_LEGEND} Hız ve deklinasyon her iki çark için ayrı PDF'lerde (tek çark) ayrıntılı verilir.</p>
-              {c.hasHouses && (<><h3>Ev başlangıçları · {c.houseSystemUsed}</h3><div className="p-cols2"><HouseTable chart={c} /></div></>)}
+              <p className="p-legend-text">{planetLegend()} {t("Hız ve deklinasyon her iki çark için ayrı PDF'lerde (tek çark) ayrıntılı verilir.")}</p>
+              {c.hasHouses && (<><h3>{t('Ev başlangıçları')} · {c.houseSystemUsed}</h3><div className="p-cols2"><HouseTable chart={c} /></div></>)}
             </>
           ) : (
             <>
               <h3>{c.label}</h3>
               <PlanetTable chart={c} hovered={null} onHover={noop} />
-              <p className="p-legend-text">{PLANET_LEGEND}</p>
-              {c.hasHouses && (<><h3>Ev başlangıçları · {c.houseSystemUsed}</h3><div className="p-cols2"><HouseTable chart={c} /></div></>)}
+              <p className="p-legend-text">{planetLegend()}</p>
+              {c.hasHouses && (<><h3>{t('Ev başlangıçları')} · {c.houseSystemUsed}</h3><div className="p-cols2"><HouseTable chart={c} /></div></>)}
             </>
           )}
         </Section>
@@ -183,17 +186,17 @@ export default function PrintView({ view, sections, library, transits, eclipses,
 
       {sections.aspects && single && (
         <>
-          <Section title="Açı tablosu" who={who} page>
+          <Section title={t('Açı tablosu')} who={who} page>
             <AspectGrid chart={c} showMinor hovered={null} onHover={noop} legend={<OrbLegend settings={settings} />} />
           </Section>
-          <Section title="Açı listesi" who={who}>
-            <p className="hint">Bütün açılar orba göre sıralı (en sıkı açı en üstte).</p>
+          <Section title={t('Açı listesi')} who={who}>
+            <p className="hint">{t('Bütün açılar orba göre sıralı (en sıkı açı en üstte).')}</p>
             <div className="p-cols2"><AspectList chart={c} showMinor hovered={null} onHover={noop} /></div>
           </Section>
         </>
       )}
       {sections.aspects && !single && (
-        <Section title="Karşılıklı açılar" who={who}>
+        <Section title={t('Karşılıklı açılar')} who={who}>
           <CrossList outer={view.outer!} inner={c} cross={view.cross} showMinor hovered={null} onHover={noop} />
           <OrbLegend settings={settings} cross={view.outer!.kind === 'transit' || c.kind === 'solarreturn' || c.kind === 'lunarreturn' ? 'transit' : view.outer!.kind === 'natal' ? 'natal' : 'progression'} />
         </Section>
@@ -201,59 +204,59 @@ export default function PrintView({ view, sections, library, transits, eclipses,
 
       {sections.analysis && single && c.kind !== 'harmonic' && (
         <>
-          <Section title="Analiz" who={who}>
+          <Section title={t('Analiz')} who={who}>
             <PatternsBlock chart={c} />
             <div className="p-two">
               <div><Distribution chart={c} /></div>
-              <div><h3>Sabit yıldız kavuşumları</h3><StarsTable chart={c} orb={settings.fixedStarOrb} /><h3>Arap noktaları</h3><LotsTable chart={c} /></div>
+              <div><h3>{t('Sabit yıldız kavuşumları')}</h3><StarsTable chart={c} orb={settings.fixedStarOrb} /><h3>{t('Arap noktaları')}</h3><LotsTable chart={c} /></div>
             </div>
           </Section>
-          <Section title="Geleneksel analiz" who={who}>
+          <Section title={t('Geleneksel analiz')} who={who}>
             <TraditionalPanel chart={c} />
           </Section>
-          <Section title="Orta nokta temasları" who={who}>
+          <Section title={t('Orta nokta temasları')} who={who}>
             <div className="p-cols2"><MidpointsPanel chart={c} print /></div>
           </Section>
         </>
       )}
 
       {sections.timelords && c.kind === 'natal' && (
-        <Section title="Profeksiyon ve firdaria" who={who}>
+        <Section title={t('Profeksiyon ve firdaria')} who={who}>
           <TimeLordsPanel chart={c} print />
         </Section>
       )}
 
       {sections.eclipses && eclipses && (
-        <Section title="Tutulmalar" who={who}>
+        <Section title={t('Tutulmalar')} who={who}>
           <EclipsePanel input={i} chart={c.kind === 'natal' ? c : view.outer ?? c} print preloaded={eclipses} />
         </Section>
       )}
 
       {sections.rectify && rectify && (
-        <Section title="Doğum saati aralığı" who={who}>
-          <p className="hint">{rectify.from} – {rectify.to} yerel saat · {rectify.step} dk adım · yükselen ve MC'nin burç değiştirdiği satırlar vurgulu</p>
+        <Section title={t('Doğum saati aralığı')} who={who}>
+          <p className="hint">{t("{from} – {to} yerel saat · {step} dk adım · yükselen ve MC'nin burç değiştirdiği satırlar vurgulu", { from: rectify.from, to: rectify.to, step: rectify.step })}</p>
           <div className="p-cols2"><RectifyTable rows={rectify.rows} current={i.timeUnknown ? undefined : i.time.slice(0, 5)} /></div>
         </Section>
       )}
 
       {sections.transits && transits && (
-        <Section title="Transit listesi" who={who}>
-          <p className="hint">{transitRangeText()} · tam açı anları, {i.place.tz} saatiyle · {transits.length} olay</p>
+        <Section title={t('Transit listesi')} who={who}>
+          <p className="hint">{transitRangeText()} · {t('tam açı anları, {tz} saatiyle · {n} olay', { tz: i.place.tz, n: transits.length })}</p>
           <TransitSummary natal={natal} transits={transits} tz={i.place.tz} />
           <TransitTimeline natal={natal} transits={transits} from={getPanelParams().transitList.from} to={getPanelParams().transitList.to} />
-          <h3>Bütün olaylar</h3>
+          <h3>{t('Bütün olaylar')}</h3>
           <TransitTable natal={natal} transits={transits} tz={i.place.tz} />
         </Section>
       )}
 
       {sections.interpretations && factors.length > 0 && (
-        <Section title="Yorumlar" who={who}>
+        <Section title={t('Yorumlar')} who={who}>
           {(['Köşeler', 'Burçlar', 'Evler', 'Açılar'] as const).map((grp) => {
             const list = factors.filter((f) => f.group === grp)
             if (!list.length) return null
             return (
               <div key={grp} className="p-interp">
-                <h3>{grp}</h3>
+                <h3>{t(grp)}</h3>
                 {list.map((f) => (
                   <div key={f.key} className="p-factor">
                     <div className="p-factor-t"><span className="sym">{f.glyphs}</span> {f.title}</div>
@@ -267,24 +270,24 @@ export default function PrintView({ view, sections, library, transits, eclipses,
       )}
 
       {sections.learning && (
-        <Section title="Öğrenme · sembollerin geleneksel anlamları" who={who}>
+        <Section title={t('Öğrenme · sembollerin geleneksel anlamları')} who={who}>
           <LearnPanel chart={c} outer={view.outer} cross={view.cross} print />
         </Section>
       )}
 
       {sections.technical && (
-        <Section title="Teknik ek · hesaplama bilgileri" who={who}>
-          <p className="hint">Bu rapordaki değerleri başka bir programla yeniden üretmek için gereken ayarlar.</p>
+        <Section title={t('Teknik ek · hesaplama bilgileri')} who={who}>
+          <p className="hint">{t('Bu rapordaki değerleri başka bir programla yeniden üretmek için gereken ayarlar.')}</p>
           <TechnicalAppendix view={view} settings={settings} info={info} reportAt={reportAt} />
         </Section>
       )}
 
       {sections.notes && (i.notes || (i.sessions && i.sessions.length > 0)) && (
-        <Section title="Notlar" who={who}>
+        <Section title={t('Notlar')} who={who}>
           {i.notes && <p className="p-pre">{i.notes}</p>}
           {[...(i.sessions ?? [])].sort((a, b) => a.date.localeCompare(b.date)).map((s) => (
             <div key={s.id} className="p-factor">
-              <div className="p-factor-t">{new Date(s.date + 'T12:00:00').toLocaleDateString('tr-TR', { dateStyle: 'long' })}</div>
+              <div className="p-factor-t">{new Date(s.date + 'T12:00:00').toLocaleDateString(loc(), { dateStyle: 'long' })}</div>
               <p className="p-pre">{s.text}</p>
             </div>
           ))}

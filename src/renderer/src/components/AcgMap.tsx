@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react'
 import type { AcgLine, ChartInput, CityHit } from '@shared/types'
 import { placeLabel } from '@shared/types'
 import world from '../assets/world.json'
+import { loc, t } from '@shared/i18n'
+import { decComma, fmtDateTr } from '../format'
 
 const err = (e: unknown) => (e as Error).message.replace(/^Error invoking remote method '[^']+': (Error: )?/, '')
 
@@ -58,7 +60,7 @@ export function AcgMap({ input, lines, hidden, hovered, onHover, marker }: {
   for (let lon = -150; lon <= 150; lon += 30) grid.push(<line key={'o' + lon} x1={X(lon)} y1={0} x2={X(lon)} y2={180} className="acg-grid" />)
   for (let lat = -60; lat <= 60; lat += 30) grid.push(<line key={'a' + lat} x1={0} y1={Y(lat)} x2={360} y2={Y(lat)} className={lat === 0 ? 'acg-grid eq' : 'acg-grid'} />)
   return (
-    <svg className="acg" viewBox="0 0 360 180" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Astrokartografi haritası">
+    <svg className="acg" viewBox="0 0 360 180" preserveAspectRatio="xMidYMid meet" role="img" aria-label={t('Astrokartografi haritası')}>
       <rect x={0} y={0} width={360} height={180} className="acg-sea" />
       <path d={world.land} className="acg-land" />
       <path d={world.borders} className="acg-border" />
@@ -79,7 +81,7 @@ export function AcgMap({ input, lines, hidden, hovered, onHover, marker }: {
       })}
       <g className="acg-birth">
         <circle cx={X(input.place.lon)} cy={Y(input.place.lat)} r={1.8} />
-        <text x={X(input.place.lon) + 2.5} y={Y(input.place.lat) - 2} className="acg-place">Doğum yeri</text>
+        <text x={X(input.place.lon) + 2.5} y={Y(input.place.lat) - 2} className="acg-place">{t('Doğum yeri')}</text>
       </g>
       {marker && (
         <g className="acg-marker">
@@ -100,23 +102,23 @@ export function AcgPanel({ input, lines, hidden, setHidden, hovered, onHover, ma
   const [error, setError] = useState('')
   useEffect(() => {
     if (q.trim().length < 2) { setHits([]); return }
-    const t = setTimeout(() => window.southastra.searchCities(q).then((r) => setHits(r.slice(0, 8))).catch((e) => setError(err(e))), 150)
-    return () => clearTimeout(t)
+    const timer = setTimeout(() => window.southastra.searchCities(q).then((r) => setHits(r.slice(0, 8))).catch((e) => setError(err(e))), 150)
+    return () => clearTimeout(timer)
   }, [q])
   const at = marker ?? input.place
   const dist = useMemo(() => distancesFor(lines.filter((l) => !hidden.has(l.id)), at.lat, at.lon).filter((d) => d.km <= 1200), [lines, hidden, at])
   const toggle = (id: string) => { const s = new Set(hidden); if (s.has(id)) s.delete(id); else s.add(id); setHidden(s) }
   return (
     <div>
-      <p className="hint">Düz çizgi: MC (üst) ve yükselen (AC); kesikli çizgi: IC ve batan (DC). Doğum anında gezegenin o yerde köşede olduğu çizgilerdir.</p>
+      <p className="hint">{t('Düz çizgi: MC (üst) ve yükselen (AC); kesikli çizgi: IC ve batan (DC). Doğum anında gezegenin o yerde köşede olduğu çizgilerdir.')}</p>
       <div className="chips">
         {lines.map((l) => (
           <button key={l.id} className={hidden.has(l.id) ? 'chip sym' : 'chip on sym'} style={{ borderColor: hidden.has(l.id) ? undefined : PLANET_COLOR[l.id], color: PLANET_COLOR[l.id] }} onClick={() => toggle(l.id)} onMouseEnter={() => onHover(l.id)} onMouseLeave={() => onHover(null)} title={l.name}>{l.glyph}</button>
         ))}
       </div>
-      <div className="cap">Bir şehri kontrol et</div>
+      <div className="cap">{t('Bir şehri kontrol et')}</div>
       <div className="city acg-city">
-        <input id="acg-q" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Şehir adı yazın (taşınma, seyahat)…" />
+        <input id="acg-q" value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('Şehir adı yazın (taşınma, seyahat)…')} />
         {hits.length > 0 && (
           <ul className="suggest">
             {hits.map((c) => <li key={c.geonameId} onMouseDown={() => { setMarker(c); setQ(''); setHits([]) }}><div className="s-main"><b>{c.name}</b>{c.localName && <span className="local-name"> ({c.localName})</span>} <span className="muted">— {[c.district, c.region, c.country].filter((x) => x && x !== c.name).join(', ')}</span></div></li>)}
@@ -124,33 +126,33 @@ export function AcgPanel({ input, lines, hidden, setHidden, hovered, onHover, ma
         )}
       </div>
       {error && <p className="error">{error}</p>}
-      <div className="cap">{marker ? placeLabel(marker) : `Doğum yeri · ${placeLabel(input.place)}`}{marker && <button className="link small" style={{ marginLeft: 8 }} onClick={() => setMarker(null)}>Doğum yerine dön</button>}</div>
+      <div className="cap">{marker ? placeLabel(marker) : `${t('Doğum yeri')} · ${placeLabel(input.place)}`}{marker && <button className="link small" style={{ marginLeft: 8 }} onClick={() => setMarker(null)}>{t('Doğum yerine dön')}</button>}</div>
       <table className="data">
-        <thead><tr><th>Çizgi</th><th className="r">Uzaklık</th></tr></thead>
+        <thead><tr><th>{t('Çizgi')}</th><th className="r">{t('Uzaklık')}</th></tr></thead>
         <tbody>
           {dist.map((d, i) => (
             <tr key={i} className={hovered === d.id ? 'hl' : ''} onMouseEnter={() => onHover(d.id)} onMouseLeave={() => onHover(null)}>
               <td><span className="sym" style={{ color: PLANET_COLOR[d.id] }}>{d.glyph}</span> {d.name} {d.kind}</td>
-              <td className="r num">{d.km < 10 ? '< 10' : Math.round(d.km).toLocaleString('tr-TR')} km</td>
+              <td className="r num">{d.km < 10 ? '< 10' : Math.round(d.km).toLocaleString(loc())} km</td>
             </tr>
           ))}
-          {!dist.length && <tr><td colSpan={2} className="muted">1200 km içinde çizgi yok.</td></tr>}
+          {!dist.length && <tr><td colSpan={2} className="muted">{t('1200 km içinde çizgi yok.')}</td></tr>}
         </tbody>
       </table>
     </div>
   )
 }
 
-const lonTxt = (lon: number) => `${Math.abs(lon).toFixed(2).replace('.', ',')}° ${lon >= 0 ? 'D' : 'B'}`
+const lonTxt = (lon: number) => `${decComma(Math.abs(lon).toFixed(2))}° ${lon >= 0 ? t('D') : t('B')}`
 
 function DistTable({ lines, lat, lon }: { lines: AcgLine[]; lat: number; lon: number }) {
   const d = distancesFor(lines, lat, lon).filter((x) => x.km <= 1200)
   return (
     <table className="data">
-      <thead><tr><th>Çizgi</th><th className="r">Uzaklık</th></tr></thead>
+      <thead><tr><th>{t('Çizgi')}</th><th className="r">{t('Uzaklık')}</th></tr></thead>
       <tbody>
-        {d.map((x, i) => <tr key={i}><td><span className="sym" style={{ color: PLANET_COLOR[x.id] }}>{x.glyph}</span> {x.name} {x.kind}</td><td className="r num">{x.km < 10 ? '< 10' : Math.round(x.km).toLocaleString('tr-TR')} km</td></tr>)}
-        {!d.length && <tr><td colSpan={2} className="muted">1200 km içinde çizgi yok.</td></tr>}
+        {d.map((x, i) => <tr key={i}><td><span className="sym" style={{ color: PLANET_COLOR[x.id] }}>{x.glyph}</span> {x.name} {x.kind}</td><td className="r num">{x.km < 10 ? '< 10' : Math.round(x.km).toLocaleString(loc())} km</td></tr>)}
+        {!d.length && <tr><td colSpan={2} className="muted">{t('1200 km içinde çizgi yok.')}</td></tr>}
       </tbody>
     </table>
   )
@@ -163,27 +165,27 @@ export function AcgPrint({ input, lines, hidden, marker, utc, logo }: { input: C
     <div className="print-page acg-print">
       <style>{'@page { size: A4 landscape; margin: 10mm 10mm 12mm; }'}</style>
       <section className="p-sec">
-        <div className="p-h"><h2><img src={logo} alt="" className="logo-mark" /> Astrokartografi · {input.name}</h2><span>{input.date.split('-').reverse().join('.')} · {input.timeUnknown ? 'saat bilinmiyor' : input.time} · {placeLabel(input.place)}</span></div>
+        <div className="p-h"><h2><img src={logo} alt="" className="logo-mark" /> {t('Astrokartografi')} · {input.name}</h2><span>{fmtDateTr(input.date)} · {input.timeUnknown ? t('saat bilinmiyor') : input.time} · {placeLabel(input.place)}</span></div>
         <AcgMap input={input} lines={lines} hidden={hidden} hovered={null} onHover={() => undefined} marker={marker} />
         <div className="acg-legend">
           {shown.map((l) => <span key={l.id}><i style={{ background: PLANET_COLOR[l.id] }} /> <span className="sym">{l.glyph}</span> {l.name}</span>)}
         </div>
-        <p className="hint">Düz çizgi: MC (gezegen tepe noktasında) ve AC (doğuyor); kesikli çizgi: IC (alt noktada) ve DC (batıyor). Çizgiler doğum anında ({utc ? utc.replace('T', ' ').replace(/(\.\d+)?Z$/, ' UT') : ''}) gezegenin o coğrafi konumda köşede olduğu yerleri gösterir; ekliptik boylam yerine gezegenin gerçek konumu (sağ açıklık ve deklinasyon) kullanılır. Harita eşit dikdörtgen izdüşümdür.</p>
+        <p className="hint">{t('Düz çizgi: MC (gezegen tepe noktasında) ve AC (doğuyor); kesikli çizgi: IC (alt noktada) ve DC (batıyor). Çizgiler doğum anında ({utc}) gezegenin o coğrafi konumda köşede olduğu yerleri gösterir; ekliptik boylam yerine gezegenin gerçek konumu (sağ açıklık ve deklinasyon) kullanılır. Harita eşit dikdörtgen izdüşümdür.', { utc: utc ? utc.replace('T', ' ').replace(/(\.\d+)?Z$/, ' UT') : '' })}</p>
       </section>
       <section className="p-sec">
-        <div className="p-h"><h2>Çizgilere uzaklık</h2><span>{input.name}</span></div>
+        <div className="p-h"><h2>{t('Çizgilere uzaklık')}</h2><span>{input.name}</span></div>
         <div className="p-two">
-          <div><h3>Doğum yeri · {placeLabel(input.place)}</h3><DistTable lines={shown} lat={input.place.lat} lon={input.place.lon} /></div>
+          <div><h3>{t('Doğum yeri')} · {placeLabel(input.place)}</h3><DistTable lines={shown} lat={input.place.lat} lon={input.place.lon} /></div>
           <div>
             {marker && <><h3>{placeLabel(marker)}</h3><DistTable lines={shown} lat={marker.lat} lon={marker.lon} /></>}
-            <h3>MC ve IC çizgilerinin boylamları</h3>
+            <h3>{t('MC ve IC çizgilerinin boylamları')}</h3>
             <table className="data">
-              <thead><tr><th>Gezegen</th><th className="r">MC</th><th className="r">IC</th></tr></thead>
+              <thead><tr><th>{t('Gezegen')}</th><th className="r">MC</th><th className="r">IC</th></tr></thead>
               <tbody>{shown.map((l) => <tr key={l.id}><td><span className="sym" style={{ color: PLANET_COLOR[l.id] }}>{l.glyph}</span> {l.name}</td><td className="r num">{lonTxt(((l.mc + 540) % 360) - 180)}</td><td className="r num">{lonTxt(((l.ic + 540) % 360) - 180)}</td></tr>)}</tbody>
             </table>
           </div>
         </div>
-        <p className="hint">Uzaklık: noktadan çizgiye en kısa yer yüzeyi uzaklığı (küresel Dünya, R = 6371 km). Yalnızca 1200 km içindeki çizgiler listelenir.</p>
+        <p className="hint">{t('Uzaklık: noktadan çizgiye en kısa yer yüzeyi uzaklığı (küresel Dünya, R = 6371 km). Yalnızca 1200 km içindeki çizgiler listelenir.')}</p>
       </section>
     </div>
   )

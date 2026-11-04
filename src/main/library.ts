@@ -1,4 +1,5 @@
 // Kişisel yorum kütüphanesi: astrologun her etken için yazdığı kendi metinleri (library.json)
+import { t } from '@shared/i18n'
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import type { Library } from '@shared/types'
@@ -16,9 +17,9 @@ export function initLibrary(path: string): void {
 export const getLibrary = (): Library => lib
 
 export function setLibraryEntry(key: string, text: string): Library {
-  if (key !== '__yaz__' && !/^[a-z0-9:-]{3,80}$/.test(key)) throw new Error('Geçersiz yorum anahtarı')
-  const t = text.trim()
-  if (t) lib[key] = { text: t, updatedAt: new Date().toISOString() }
+  if (key !== '__yaz__' && !/^[a-z0-9:-]{3,80}$/.test(key)) throw new Error(t('Geçersiz yorum anahtarı'))
+  const body = text.trim()
+  if (body) lib[key] = { text: body, updatedAt: new Date().toISOString() }
   else delete lib[key]
   const tmp = file + '.tmp'
   writeFileSync(tmp, JSON.stringify(lib, null, 2))

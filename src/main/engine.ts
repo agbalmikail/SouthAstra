@@ -8,6 +8,7 @@ import type {
 import { HOUSE_SYSTEMS, placeLabel } from '@shared/types'
 import { activeOrbs, ASPECTS, DEFAULT_SETTINGS, dignityOf, norm360, separation, signOf, AYANAMSAS, SIGNS } from '@shared/zodiac'
 import { toUtc } from './time'
+import { t } from '@shared/i18n'
 
 const C = sweph.constants
 const VS = '︎'
@@ -66,8 +67,8 @@ const ayanamsaAt = (jd: number): number => {
   return sweph.get_ayanamsa_ex_ut(jd, C.SEFLG_SWIEPH).data
 }
 const zodiacName = (): string => settings.zodiac === 'sidereal'
-  ? `Sideral · ${AYANAMSAS.find((a) => a.id === settings.ayanamsa)?.name ?? sweph.get_ayanamsa_name(settings.ayanamsa)}`
-  : 'Tropikal'
+  ? t('Sideral · {ayanamsa}', { ayanamsa: AYANAMSAS.find((a) => a.id === settings.ayanamsa)?.name ?? sweph.get_ayanamsa_name(settings.ayanamsa) })
+  : t('Tropikal')
 
 const obliquityAt = (jd: number): number => sweph.calc_ut(jd, C.SE_ECL_NUT, 0).data[0]
 
@@ -112,11 +113,11 @@ function computePoints(jd: number, nodeType: 'true' | 'mean', geo: Geo | null, w
   const out: PointPos[] = []
   for (const b of all) {
     const r = sweph.calc_ut(jd, b.se, flags)
-    if (r.flag < 0) { warnings.push(`${b.name} hesaplanamadı: ${r.error}`); continue }
+    if (r.flag < 0) { warnings.push(t('{name} hesaplanamadı: {error}', { name: t(b.name), error: r.error })); continue }
     if ((b.se <= C.SE_PLUTO || ASTEROID_IDS.has(b.id)) && !(r.flag & C.SEFLG_SWIEPH)) usedMoshier = true
     const eq = sweph.calc_ut(jd, b.se, C.SEFLG_SWIEPH | C.SEFLG_SPEED | C.SEFLG_EQUATORIAL)
     const p: PointPos = {
-      id: b.id, name: b.name, glyph: b.glyph + VS,
+      id: b.id, name: t(b.name), glyph: b.glyph + VS,
       lon: r.data[0], lat: r.data[1], distance: r.data[2], speed: r.data[3], latSpeed: r.data[4], retro: r.data[3] < 0,
       ra: eq.data[0], declination: eq.data[1], house: 0,
       dignity: dignityOf(b.id, r.data[0], settings.rulership)
@@ -133,8 +134,8 @@ function computePoints(jd: number, nodeType: 'true' | 'mean', geo: Geo | null, w
     out.push(p)
   }
   const nn = out.find((p) => p.id === 'northnode')
-  if (nn) out.push({ ...nn, id: 'southnode', name: nodeType === 'mean' ? 'G. Ay Düğümü (ortalama)' : 'G. Ay Düğümü (gerçek)', glyph: '☋' + VS, lon: norm360(nn.lon + 180), lat: -nn.lat, declination: -nn.declination, ra: norm360((nn.ra ?? 0) + 180), azimuth: undefined, altitude: undefined })
-  if (usedMoshier) warnings.push('Efemeris dosyaları bulunamadı; daha düşük hassasiyetli Moshier yöntemi kullanıldı.')
+  if (nn) out.push({ ...nn, id: 'southnode', name: t(nodeType === 'mean' ? 'G. Ay Düğümü (ortalama)' : 'G. Ay Düğümü (gerçek)'), glyph: '☋' + VS, lon: norm360(nn.lon + 180), lat: -nn.lat, declination: -nn.declination, ra: norm360((nn.ra ?? 0) + 180), azimuth: undefined, altitude: undefined })
+  if (usedMoshier) warnings.push(t('Efemeris dosyaları bulunamadı; daha düşük hassasiyetli Moshier yöntemi kullanıldı.'))
   return out
 }
 
@@ -153,8 +154,8 @@ function computeHouses(jd: number, geo: Geo, hsys: HouseSystem, warnings: string
   const h = sweph.houses_ex2(jd, zf(), geo.lat, geo.lon, hsys)
   let used = HOUSE_SYSTEMS.find((x) => x.id === hsys)?.name ?? hsys
   if (h.flag < 0) {
-    warnings.push(`${used} bu enlemde hesaplanamıyor (kutup bölgesi); Porphyry kullanıldı.`)
-    used = 'Porphyry (yedek)'
+    warnings.push(t('{system} bu enlemde hesaplanamıyor (kutup bölgesi); Porphyry kullanıldı.', { system: used }))
+    used = t('Porphyry (yedek)')
   }
   const [asc, mc, armc, vertex] = h.data.points
   return { cusps: h.data.houses.slice(0, 12), asc, mc, vertex, armc, used, ok: true }
@@ -193,7 +194,7 @@ function computeLots(points: PointPos[], asc: number, cusps: number[], day: bool
     ['victory', 'Zafer (Nike)', lot(L('jupiter'), spirit), 'Jüpiter', 'Ruh'],
     ['nemesis', 'Nemesis', lot(fortune, L('saturn')), 'Şans', 'Satürn']
   ]
-  return defs.map(([id, name, lon, a, b]) => ({ id, name, lon, house: houseOf(lon, cusps), formula: day ? `AC + ${a} − ${b}` : `AC + ${b} − ${a} (gece)` }))
+  return defs.map(([id, name, lon, a, b]) => ({ id, name: t(name), lon, house: houseOf(lon, cusps), formula: day ? `AC + ${t(a)} − ${t(b)}` : t('AC + {b} − {a} (gece)', { a: t(a), b: t(b) }) }))
 }
 
 function addFortune(points: PointPos[], asc: number): void {
@@ -202,7 +203,7 @@ function addFortune(points: PointPos[], asc: number): void {
   if (!sun || !moon) return
   const day = sun.house >= 7 // Güneş ufkun üstünde (7–12. evler)
   const lon = norm360(day ? asc + moon.lon - sun.lon : asc + sun.lon - moon.lon)
-  points.push({ id: 'fortune', name: `Şans Noktası (${day ? 'gündüz' : 'gece'})`, glyph: '⊗', lon, lat: 0, speed: 0, retro: false, house: 0, declination: 0 })
+  points.push({ id: 'fortune', name: day ? t('Şans Noktası (gündüz)') : t('Şans Noktası (gece)'), glyph: '⊗', lon, lat: 0, speed: 0, retro: false, house: 0, declination: 0 })
 }
 
 // ——— Açılar ———
@@ -352,7 +353,7 @@ function makeChart(o: MakeOpts): ChartResult {
     offsetMinutes: o.offsetMinutes ?? 0,
     offsetSource: o.offsetSource ?? 'UTC',
     warnings,
-    ephemeris: warnings.some((w) => w.includes('Moshier')) ? 'Moshier (yedek)' : `Swiss Ephemeris ${sweph.version()}`,
+    ephemeris: warnings.some((w) => w.includes('Moshier')) ? t('Moshier (yedek)') : `Swiss Ephemeris ${sweph.version()}`,
     zodiac: zodiacName(),
     points,
     cusps: h ? h.cusps : [],
@@ -367,23 +368,23 @@ function makeChart(o: MakeOpts): ChartResult {
 }
 
 function birth(input: ChartInput, shiftMin = 0) {
-  const t = toUtc(input)
-  const ms = t.utcMs + shiftMin * 60000
+  const tu = toUtc(input)
+  const ms = tu.utcMs + shiftMin * 60000
   const d = new Date(ms)
   const r = sweph.utc_to_jd(d.getUTCFullYear(), d.getUTCMonth() + 1, d.getUTCDate(), d.getUTCHours(), d.getUTCMinutes(), d.getUTCSeconds() + d.getUTCMilliseconds() / 1000, C.SE_GREG_CAL)
-  if (r.flag !== C.OK) throw new Error('Jülyen günü hesaplanamadı: ' + r.error)
-  return { jd: r.data[1], t }
+  if (r.flag !== C.OK) throw new Error(t('Jülyen günü hesaplanamadı: {error}', { error: r.error }))
+  return { jd: r.data[1], t: tu }
 }
 
 export function natalChart(input: ChartInput, hsys?: HouseSystem, shiftMin = 0): ChartResult {
   const b = birth(input, shiftMin)
   const warnings = [...b.t.warnings]
   if (input.timeUnknown) {
-    warnings.unshift('Doğum saati bilinmiyor: 12:00 varsayıldı. Yükselen, MC ve evler bu yüzden gösterilmiyor. Ay gün içinde yaklaşık ±6–7° oynayabilir; diğer gezegenler ±1°\'nin altında kalır.')
+    warnings.unshift(t('Doğum saati bilinmiyor: 12:00 varsayıldı. Yükselen, MC ve evler bu yüzden gösterilmiyor. Ay gün içinde yaklaşık ±6–7° oynayabilir; diğer gezegenler ±1°\'nin altında kalır.'))
   }
-  if (shiftMin) warnings.unshift(`Simülasyon: doğum saati ${shiftMin > 0 ? '+' : ''}${shiftMin} dakika kaydırılmış olarak hesaplandı. Kayıtlı saat değişmedi.`)
+  if (shiftMin) warnings.unshift(t('Simülasyon: doğum saati {min} dakika kaydırılmış olarak hesaplandı. Kayıtlı saat değişmedi.', { min: `${shiftMin > 0 ? '+' : ''}${shiftMin}` }))
   const ch = makeChart({
-    input, jd: b.jd, place: input.place, hsys: hsys ?? input.houseSystem, kind: 'natal', label: 'Doğum haritası',
+    input, jd: b.jd, place: input.place, hsys: hsys ?? input.houseSystem, kind: 'natal', label: t('Doğum haritası'),
     offsetMinutes: b.t.offsetMinutes, offsetSource: b.t.source, warnings
   })
   if (shiftMin) ch.shiftMin = shiftMin
@@ -408,7 +409,7 @@ function applyMoonUncertainty(ch: ChartResult, noonJd: number) {
   const moonLon = times.map((t) => sweph.calc_ut(t, C.SE_MOON, flags).data[0])
   const minL = moonLon[0], maxL = moonLon[N]
   ch.moonRange = { from: minL, to: maxL }
-  if (signOf(minL) !== signOf(maxL)) ch.warnings.unshift(`Ay doğum gününde burç değiştiriyor: günün başında ${SIGNS[signOf(minL)].name}, sonunda ${SIGNS[signOf(maxL)].name}. Ay'ın burcu doğum saatine bağlıdır.`)
+  if (signOf(minL) !== signOf(maxL)) ch.warnings.unshift(t("Ay doğum gününde burç değiştiriyor: günün başında {from}, sonunda {to}. Ay'ın burcu doğum saatine bağlıdır.", { from: SIGNS[signOf(minL)].name, to: SIGNS[signOf(maxL)].name }))
   const others = ch.points.filter((p) => p.id !== 'moon' && !NO_ASPECT.has(p.id))
   // Ay'ın paralelleri (deklinasyon da gün içinde değişir): saate bağlı say
   const keep = ch.aspects.filter((a) => (a.a !== 'moon' && a.b !== 'moon') || a.type === 'parallel' || a.type === 'contraparallel')
@@ -462,19 +463,24 @@ function addTimeSensitivity(ch: ChartResult, jd: number) {
     sens.push({ id, name, minutes: Math.min(toNext, toPrev), direction: later ? 'geç' : 'erken', otherSign: (s + (useNext ? 1 : 11)) % 12 })
   }
   const moon = ch.points.find((p) => p.id === 'moon')
-  if (moon) check('moon', 'Ay', moon.lon, moon.speed, 120)
+  if (moon) check('moon', t('Ay'), moon.lon, moon.speed, 120)
   if (ch.hasHouses && ch.place) {
     const geo = { lat: ch.place.lat, lon: ch.place.lon }
     const dt = 2 / 1440
     const w: string[] = []
     const a = computeHouses(jd - dt, geo, ch.houseSystem, w), b = computeHouses(jd + dt, geo, ch.houseSystem, w)
     const ascSpeed = norm180(b.asc - a.asc) / (2 * dt), mcSpeed = norm180(b.mc - a.mc) / (2 * dt)
-    check('asc', 'Yükselen', ch.angles.asc, ascSpeed, 10)
+    check('asc', t('Yükselen'), ch.angles.asc, ascSpeed, 10)
     check('mc', 'MC', ch.angles.mc, mcSpeed, 10)
   }
   if (!sens.length) return
   ch.sensitivity = sens
-  for (const x of sens) ch.warnings.push(`Saat duyarlılığı: ${x.name} burç sınırına çok yakın (${SIGNS[signOf(x.id === 'moon' ? ch.points.find((p) => p.id === 'moon')!.lon : x.id === 'asc' ? ch.angles.asc : ch.angles.mc)].name}). Doğum saati yaklaşık ${Math.max(1, Math.round(x.minutes))} dakika ${x.direction} olsaydı ${x.name} ${SIGNS[x.otherSign].name} burcunda olurdu. Saat kaydının kaynağını (Rodden) dikkate alın.`)
+  for (const x of sens) {
+    const vars = { name: x.name, sign: SIGNS[signOf(x.id === 'moon' ? ch.points.find((p) => p.id === 'moon')!.lon : x.id === 'asc' ? ch.angles.asc : ch.angles.mc)].name, min: Math.max(1, Math.round(x.minutes)), other: SIGNS[x.otherSign].name }
+    ch.warnings.push(x.direction === 'geç'
+      ? t('Saat duyarlılığı: {name} burç sınırına çok yakın ({sign}). Doğum saati yaklaşık {min} dakika geç olsaydı {name} {other} burcunda olurdu. Saat kaydının kaynağını (Rodden) dikkate alın.', vars)
+      : t('Saat duyarlılığı: {name} burç sınırına çok yakın ({sign}). Doğum saati yaklaşık {min} dakika erken olsaydı {name} {other} burcunda olurdu. Saat kaydının kaynağını (Rodden) dikkate alın.', vars))
+  }
 }
 
 function draconic(ch: ChartResult): ChartResult {
@@ -487,7 +493,7 @@ function draconic(ch: ChartResult): ChartResult {
     ? { ...ch.angles, asc: sh(ch.angles.asc), mc: sh(ch.angles.mc), dsc: sh(ch.angles.dsc), ic: sh(ch.angles.ic), vertex: sh(ch.angles.vertex) }
     : ch.angles
   return {
-    ...ch, kind: 'draconic', label: 'Drakonik harita', points, angles, cusps: ch.cusps.map(sh),
+    ...ch, kind: 'draconic', label: t('Drakonik harita'), points, angles, cusps: ch.cusps.map(sh),
     aspects: natalAspects(points, ch.hasHouses ? angles : null), stars: starContacts(ch.jdUt, points, ch.hasHouses ? angles : null),
     lots: ch.lots.map((l) => ({ ...l, lon: sh(l.lon) }))
   }
@@ -522,15 +528,15 @@ function viewRaw(input: ChartInput, req: ViewRequest): ViewResult {
     case 'relocated': {
       // aynı doğum anı, evler ve köşeler başka bir yer için
       const at = req.place ?? input.place
-      const rel = makeChart({ input: { ...input }, jd: natal.jdUt, place: at, hsys, kind: 'relocated', label: 'Taşınma haritası', offsetMinutes: natal.offsetMinutes, offsetSource: natal.offsetSource })
-      rel.warnings.unshift(`Taşınma haritası: doğum anı aynı (${natal.utc.slice(0, 16).replace('T', ' ')} UT); evler ve köşeler ${placeLabel(at)} (${at.lat.toFixed(4)}°, ${at.lon.toFixed(4)}°) için hesaplandı.`)
-      return { inner: rel, cross: [], title: who, subtitle: `Taşınma · ${placeLabel(at)}` }
+      const rel = makeChart({ input: { ...input }, jd: natal.jdUt, place: at, hsys, kind: 'relocated', label: t('Taşınma haritası'), offsetMinutes: natal.offsetMinutes, offsetSource: natal.offsetSource })
+      rel.warnings.unshift(t('Taşınma haritası: doğum anı aynı ({utc} UT); evler ve köşeler {place} ({lat}°, {lon}°) için hesaplandı.', { utc: natal.utc.slice(0, 16).replace('T', ' '), place: placeLabel(at), lat: at.lat.toFixed(4), lon: at.lon.toFixed(4) }))
+      return { inner: rel, cross: [], title: who, subtitle: t('Taşınma · {place}', { place: placeLabel(at) }) }
     }
     case 'draconic':
-      return { inner: draconic(natal), cross: [], title: who, subtitle: 'Drakonik harita' }
+      return { inner: draconic(natal), cross: [], title: who, subtitle: t('Drakonik harita') }
     case 'transit': {
-      const outer = makeChart({ input, jd: target, place: null, hsys, kind: 'transit', label: 'Transitler' })
-      return { inner: natal, outer, cross: crossAspects(outer, natal, majorOnly(settings.transitOrb)), title: who, subtitle: 'Transitler' }
+      const outer = makeChart({ input, jd: target, place: null, hsys, kind: 'transit', label: t('Transitler') })
+      return { inner: natal, outer, cross: crossAspects(outer, natal, majorOnly(settings.transitOrb)), title: who, subtitle: t('Transitler') }
     }
     case 'progressed':
     case 'tertiary':
@@ -540,7 +546,7 @@ function viewRaw(input: ChartInput, req: ViewRequest): ViewResult {
       // İkincil: 1 gün = 1 yıl · Tersiyer: 1 gün = 1 kameri ay · Minör: 1 kameri ay = 1 yıl
       const pdays = req.mode === 'progressed' ? age : req.mode === 'tertiary' ? elapsed / LUNAR_MONTH : age * LUNAR_MONTH
       const pjd = natal.jdUt + pdays
-      const label = req.mode === 'progressed' ? 'İkincil progresyon' : req.mode === 'tertiary' ? 'Tersiyer progresyon' : 'Minör progresyon'
+      const label = t(req.mode === 'progressed' ? 'İkincil progresyon' : req.mode === 'tertiary' ? 'Tersiyer progresyon' : 'Minör progresyon')
       const pts = computePoints(pjd, input.nodeType, null, [])
       let houses: HouseData | undefined
       if (natal.hasHouses) {
@@ -549,9 +555,9 @@ function viewRaw(input: ChartInput, req: ViewRequest): ViewResult {
       }
       const outer = makeChart({
         input, jd: pjd, place: natal.hasHouses ? input.place : null, hsys, kind: req.mode, label,
-        points: pts, houses, warnings: natal.hasHouses ? ['Progresif köşe noktaları: MC güneş yayıyla (solar arc), yükselen bu MC\'den doğum enleminde hesaplandı.'] : []
+        points: pts, houses, warnings: natal.hasHouses ? [t('Progresif köşe noktaları: MC güneş yayıyla (solar arc), yükselen bu MC\'den doğum enleminde hesaplandı.')] : []
       })
-      return { inner: natal, outer, cross: crossAspects(outer, natal, majorOnly(settings.progressionOrb)), title: who, subtitle: `${label} · yaş ${age.toFixed(2)} · progresif an ${isoFromJd(pjd).slice(0, 10)}` }
+      return { inner: natal, outer, cross: crossAspects(outer, natal, majorOnly(settings.progressionOrb)), title: who, subtitle: t('{label} · yaş {age} · progresif an {date}', { label, age: age.toFixed(2), date: isoFromJd(pjd).slice(0, 10) }) }
     }
     case 'harmonic': {
       const n = Math.max(1, Math.min(180, Math.round(req.harmonic ?? 5)))
@@ -561,14 +567,14 @@ function viewRaw(input: ChartInput, req: ViewRequest): ViewResult {
       }))
       if (natal.hasHouses) {
         points.push(
-          { id: 'h-asc', name: `H${n} Yükselen`, glyph: 'AC', lon: hl(natal.angles.asc), lat: 0, speed: 0, retro: false, house: 0, declination: 0 },
+          { id: 'h-asc', name: t('H{n} Yükselen', { n }), glyph: 'AC', lon: hl(natal.angles.asc), lat: 0, speed: 0, retro: false, house: 0, declination: 0 },
           { id: 'h-mc', name: `H${n} MC`, glyph: 'MC', lon: hl(natal.angles.mc), lat: 0, speed: 0, retro: false, house: 0, declination: 0 }
         )
       }
-      const h = makeChart({ input: { ...input, timeUnknown: true }, jd: natal.jdUt, place: null, hsys, kind: 'harmonic', label: `${n}. harmonik`, points })
+      const h = makeChart({ input: { ...input, timeUnknown: true }, jd: natal.jdUt, place: null, hsys, kind: 'harmonic', label: t('{n}. harmonik', { n }), points })
       h.input = input
-      h.warnings.unshift(`${n}. harmonik: her boylam ${n} ile çarpıldı (mod 360°). Bu haritadaki kavuşumlar natal haritadaki 360°/${n} = ${(360 / n).toFixed(2)}° katı açılara karşılık gelir.`)
-      return { inner: h, cross: [], title: who, subtitle: `${n}. harmonik harita` }
+      h.warnings.unshift(t('{n}. harmonik: her boylam {n} ile çarpıldı (mod 360°). Bu haritadaki kavuşumlar natal haritadaki 360°/{n} = {deg}° katı açılara karşılık gelir.', { n, deg: (360 / n).toFixed(2) }))
+      return { inner: h, cross: [], title: who, subtitle: t('{n}. harmonik harita', { n }) }
     }
     case 'solararc': {
       const age = (target - natal.jdUt) / TROPICAL_YEAR
@@ -578,11 +584,11 @@ function viewRaw(input: ChartInput, req: ViewRequest): ViewResult {
       const outer = makeChart({ input, jd: natal.jdUt + age, place: null, hsys, kind: 'solararc', label: 'Solar arc', points })
       if (natal.hasHouses) {
         outer.points.push(
-          { id: 'sa-asc', name: 'SA Yükselen', glyph: 'AC', lon: norm360(natal.angles.asc + arc), lat: 0, speed: 0, retro: false, house: 0, declination: 0 },
+          { id: 'sa-asc', name: t('SA Yükselen'), glyph: 'AC', lon: norm360(natal.angles.asc + arc), lat: 0, speed: 0, retro: false, house: 0, declination: 0 },
           { id: 'sa-mc', name: 'SA MC', glyph: 'MC', lon: norm360(natal.angles.mc + arc), lat: 0, speed: 0, retro: false, house: 0, declination: 0 }
         )
       }
-      return { inner: natal, outer, cross: crossAspects(outer, natal, majorOnly(settings.progressionOrb)), title: who, subtitle: `Solar arc · yay ${arc.toFixed(2)}° · yaş ${age.toFixed(2)}` }
+      return { inner: natal, outer, cross: crossAspects(outer, natal, majorOnly(settings.progressionOrb)), title: who, subtitle: t('Solar arc · yay {arc}° · yaş {age}', { arc: arc.toFixed(2), age: age.toFixed(2) }) }
     }
     case 'solarreturn':
     case 'lunarreturn': {
@@ -590,23 +596,23 @@ function viewRaw(input: ChartInput, req: ViewRequest): ViewResult {
       const natalLon = natal.points.find((p) => p.id === (isSun ? 'sun' : 'moon'))?.lon ?? 0
       const flags = C.SEFLG_SWIEPH | zf()
       const r = isSun ? sweph.solcross_ut(natalLon, target, flags) : sweph.mooncross_ut(natalLon, target, flags)
-      if (r.error) throw new Error('Dönüş anı bulunamadı: ' + r.error)
+      if (r.error) throw new Error(t('Dönüş anı bulunamadı: {error}', { error: r.error }))
       const at = req.place ?? input.place
       const retInput: ChartInput = { ...input, timeUnknown: false }
-      const ret = makeChart({ input: retInput, jd: r.date, place: at, hsys, kind: req.mode, label: isSun ? 'Güneş dönüşü' : 'Ay dönüşü', offsetSource: 'Dönüş anı (UTC)' })
-      ret.warnings.unshift(`Dönüş haritası ${placeLabel(at)} için kuruldu${at === input.place ? ' (doğum yeri)' : ''}.`)
-      if (input.timeUnknown) ret.warnings.unshift(`Doğum saati bilinmediği için natal ${isSun ? 'Güneş' : 'Ay'} konumu yaklaşık; dönüş anı ${isSun ? 'birkaç saat' : 'birkaç saat'} kayabilir.`)
-      const natalOuter = { ...natal, label: 'Doğum haritası' }
-      return { inner: ret, outer: natalOuter, cross: crossAspects(natalOuter, ret, majorOnly(settings.transitOrb)), title: who, subtitle: `${isSun ? 'Güneş' : 'Ay'} dönüşü · ${placeLabel(at)}` }
+      const ret = makeChart({ input: retInput, jd: r.date, place: at, hsys, kind: req.mode, label: t(isSun ? 'Güneş dönüşü' : 'Ay dönüşü'), offsetSource: t('Dönüş anı (UTC)') })
+      ret.warnings.unshift(at === input.place ? t('Dönüş haritası {place} için kuruldu (doğum yeri).', { place: placeLabel(at) }) : t('Dönüş haritası {place} için kuruldu.', { place: placeLabel(at) }))
+      if (input.timeUnknown) ret.warnings.unshift(isSun ? t('Doğum saati bilinmediği için natal Güneş konumu yaklaşık; dönüş anı birkaç saat kayabilir.') : t('Doğum saati bilinmediği için natal Ay konumu yaklaşık; dönüş anı birkaç saat kayabilir.'))
+      const natalOuter = { ...natal, label: t('Doğum haritası') }
+      return { inner: ret, outer: natalOuter, cross: crossAspects(natalOuter, ret, majorOnly(settings.transitOrb)), title: who, subtitle: t(isSun ? 'Güneş dönüşü · {place}' : 'Ay dönüşü · {place}', { place: placeLabel(at) }) }
     }
     case 'synastry': {
-      if (!req.partner) throw new Error('Sinastri için ikinci bir harita seçin.')
+      if (!req.partner) throw new Error(t('Sinastri için ikinci bir harita seçin.'))
       const b = natalChart(req.partner, hsys)
       const outer = { ...b, label: req.partner.name }
-      return { inner: natal, outer, cross: crossAspects(outer, natal, natalOrb), title: `${who} × ${req.partner.name}`, subtitle: 'Sinastri' }
+      return { inner: natal, outer, cross: crossAspects(outer, natal, natalOrb), title: `${who} × ${req.partner.name}`, subtitle: t('Sinastri') }
     }
     case 'composite': {
-      if (!req.partner) throw new Error('Kompozit için ikinci bir harita seçin.')
+      if (!req.partner) throw new Error(t('Kompozit için ikinci bir harita seçin.'))
       const b = natalChart(req.partner, hsys)
       const midJd = (natal.jdUt + b.jdUt) / 2
       const pb = Object.fromEntries(b.points.map((p) => [p.id, p]))
@@ -617,15 +623,15 @@ function viewRaw(input: ChartInput, req: ViewRequest): ViewResult {
           return { id: p.id, name: p.name, glyph: p.glyph, lon, lat: 0, speed: (p.speed + pb[p.id].speed) / 2, retro: false, house: 0, declination: (p.declination + pb[p.id].declination) / 2, dignity: dignityOf(p.id, lon, settings.rulership) }
         })
       const nn = points.find((p) => p.id === 'northnode')
-      if (nn) points.push({ ...nn, id: 'southnode', name: 'G. Ay Düğümü', glyph: '☋' + VS, lon: norm360(nn.lon + 180) })
+      if (nn) points.push({ ...nn, id: 'southnode', name: t('G. Ay Düğümü'), glyph: '☋' + VS, lon: norm360(nn.lon + 180) })
       const both = natal.hasHouses && b.hasHouses
       const lat = (input.place.lat + req.partner.place.lat) / 2
       const houses = both ? housesFromMc(midpoint(natal.angles.mc, b.angles.mc), lat, midJd, hsys) : undefined
       const compInput: ChartInput = { ...input, name: `${who} + ${req.partner.name}`, timeUnknown: !both }
-      const comp = makeChart({ input: compInput, jd: midJd, place: both ? { ...input.place, lat } : null, hsys, kind: 'composite', label: 'Kompozit', points, houses, offsetSource: 'Orta nokta yöntemi' })
-      comp.warnings.unshift('Kompozit: gezegenler iki haritadaki konumların kısa yay orta noktası; MC orta noktasından ve ortalama enlemden evler kuruldu.')
-      if (!both) comp.warnings.unshift('Haritalardan birinde doğum saati bilinmediği için kompozit evler hesaplanmadı.')
-      return { inner: comp, cross: [], title: `${who} + ${req.partner.name}`, subtitle: 'Kompozit (orta nokta)' }
+      const comp = makeChart({ input: compInput, jd: midJd, place: both ? { ...input.place, lat } : null, hsys, kind: 'composite', label: t('Kompozit'), points, houses, offsetSource: t('Orta nokta yöntemi') })
+      comp.warnings.unshift(t('Kompozit: gezegenler iki haritadaki konumların kısa yay orta noktası; MC orta noktasından ve ortalama enlemden evler kuruldu.'))
+      if (!both) comp.warnings.unshift(t('Haritalardan birinde doğum saati bilinmediği için kompozit evler hesaplanmadı.'))
+      return { inner: comp, cross: [], title: `${who} + ${req.partner.name}`, subtitle: t('Kompozit (orta nokta)') }
     }
   }
 }
@@ -639,7 +645,7 @@ export function transitList(input: ChartInput, fromIso: string, toIso: string, p
   const from = jdFromMs(Date.parse(fromIso))
   const to = jdFromMs(Date.parse(toIso))
   if (!(to > from)) return []
-  if (to - from > 3660 * 3) throw new Error('En fazla 30 yıllık aralık hesaplanabilir.')
+  if (to - from > 3660 * 3) throw new Error(t('En fazla 30 yıllık aralık hesaplanabilir.'))
   const flags = C.SEFLG_SWIEPH | C.SEFLG_SPEED | zf()
   const targets = [
     ...natal.points.filter((p) => !['southnode', 'lilith', 'fortune'].includes(p.id)).map((p) => ({ id: p.id, lon: p.lon })),
@@ -859,13 +865,13 @@ const EPHEM_IDS = ['sun', 'moon', 'mercury', 'venus', 'mars', 'jupiter', 'saturn
 export function ephemeris(fromIso: string, toIso: string, voidPlanets: 'modern' | 'traditional' = 'modern'): Ephemeris {
   const from = jdFromMs(Date.parse(fromIso))
   const to = jdFromMs(Date.parse(toIso))
-  if (!(to > from)) throw new Error('Geçersiz tarih aralığı.')
-  if (to - from > 400) throw new Error('Efemeris en fazla bir yıllık aralık için hesaplanır.')
+  if (!(to > from)) throw new Error(t('Geçersiz tarih aralığı.'))
+  if (to - from > 400) throw new Error(t('Efemeris en fazla bir yıllık aralık için hesaplanır.'))
   const flags = C.SEFLG_SWIEPH | C.SEFLG_SPEED | zf()
   const nodeSe = settings.defaultNodeType === 'mean' ? C.SE_MEAN_NODE : C.SE_TRUE_NODE
   const bodies = [
-    ...EPHEM_IDS.map((id) => ({ id, name: BODY_BY_ID[id].name, glyph: BODY_BY_ID[id].glyph + VS, se: BODY_BY_ID[id].se })),
-    { id: 'northnode', name: settings.defaultNodeType === 'mean' ? 'K. Ay Düğümü (ortalama)' : 'K. Ay Düğümü (gerçek)', glyph: '☊' + VS, se: nodeSe }
+    ...EPHEM_IDS.map((id) => ({ id, name: t(BODY_BY_ID[id].name), glyph: BODY_BY_ID[id].glyph + VS, se: BODY_BY_ID[id].se })),
+    { id: 'northnode', name: t(settings.defaultNodeType === 'mean' ? 'K. Ay Düğümü (ortalama)' : 'K. Ay Düğümü (gerçek)'), glyph: '☊' + VS, se: nodeSe }
   ]
   const at = (jd: number, se: number) => sweph.calc_ut(jd, se, flags).data
 
@@ -933,7 +939,7 @@ export function rectify(input: ChartInput, from: string, to: string, stepMin: nu
   let b = toMin(to)
   if (b < a) b += 24 * 60
   const step = Math.max(1, Math.round(stepMin))
-  if ((b - a) / step > 500) throw new Error('Çok fazla satır: aralığı daraltın veya adımı büyütün.')
+  if ((b - a) / step > 500) throw new Error(t('Çok fazla satır: aralığı daraltın veya adımı büyütün.'))
   const rows: RectifyRow[] = []
   for (let m = a; m <= b; m += step) {
     const mm = m % (24 * 60)
@@ -949,8 +955,8 @@ export function rectify(input: ChartInput, from: string, to: string, stepMin: nu
 
 // ——— Tutulmalar ———
 
-const SOLAR_TYPE = (f: number) => (f & C.SE_ECL_TOTAL ? 'Tam' : f & C.SE_ECL_ANNULAR ? 'Halkalı' : f & C.SE_ECL_HYBRID ? 'Melez' : 'Parçalı')
-const LUNAR_TYPE = (f: number) => (f & C.SE_ECL_TOTAL ? 'Tam' : f & C.SE_ECL_PARTIAL ? 'Parçalı' : 'Yarıgölge')
+const SOLAR_TYPE = (f: number) => t(f & C.SE_ECL_TOTAL ? 'Tam' : f & C.SE_ECL_ANNULAR ? 'Halkalı' : f & C.SE_ECL_HYBRID ? 'Melez' : 'Parçalı')
+const LUNAR_TYPE = (f: number) => t(f & C.SE_ECL_TOTAL ? 'Tam' : f & C.SE_ECL_PARTIAL ? 'Parçalı' : 'Yarıgölge')
 
 function eclipseAt(jd: number, kind: 'solar' | 'lunar', flag: number, natal: ChartResult, prenatal = false): EclipseEvent {
   const body = kind === 'solar' ? C.SE_SUN : C.SE_MOON
@@ -975,7 +981,7 @@ export function eclipses(input: ChartInput, fromIso: string, toIso: string): Ecl
   const natal = natalChart(input)
   const from = jdFromMs(Date.parse(fromIso))
   const to = jdFromMs(Date.parse(toIso))
-  if (to - from > 366 * 50) throw new Error('En fazla 50 yıllık aralık listelenebilir.')
+  if (to - from > 366 * 50) throw new Error(t('En fazla 50 yıllık aralık listelenebilir.'))
   const out: EclipseEvent[] = []
   for (const kind of ['solar', 'lunar'] as const) {
     let jd = from
@@ -1016,6 +1022,6 @@ export function acg(input: ChartInput): AcgLine[] {
       asc.push([lat, norm180(ra - H - gmst)])
       dsc.push([lat, norm180(ra + H - gmst)])
     }
-    return { id, name: body.name, glyph: body.glyph + VS, mc, ic: norm180(mc + 180), asc, dsc }
+    return { id, name: t(body.name), glyph: body.glyph + VS, mc, ic: norm180(mc + 180), asc, dsc }
   })
 }

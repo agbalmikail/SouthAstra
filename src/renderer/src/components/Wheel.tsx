@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import type { Appearance, Aspect, ChartResult } from '@shared/types'
 import { ASPECT_BY_TYPE, norm360, SIGNS } from '@shared/zodiac'
 import { ELEMENT_VAR, fmtDegMin } from '../format'
+import { t } from '@shared/i18n'
 
 const C = 200
 
@@ -151,7 +152,7 @@ export default function Wheel({ inner, outer, cross, hovered, selected, onHover,
   }
 
   return (
-    <svg className={print ? 'wheel print' : 'wheel'} viewBox="-24 -24 448 448" role="img" aria-label="Harita çarkı">
+    <svg className={print ? 'wheel print' : 'wheel'} viewBox="-24 -24 448 448" role="img" aria-label={t('Harita çarkı')}>
       {outer && (
         <>
           <circle cx={C} cy={C} r={ROUT} className="outer-band" />
@@ -202,7 +203,7 @@ export default function Wheel({ inner, outer, cross, hovered, selected, onHover,
         const r = R1 - 3
         const [x1, y1] = pt(ib.moon.lon - half, r)
         const [x2, y2] = pt(ib.moon.lon + half, r)
-        return <path d={`M${x1} ${y1}A${r} ${r} 0 0 0 ${x2} ${y2}`} className="moon-range"><title>Ay'ın gün içindeki olası aralığı</title></path>
+        return <path d={`M${x1} ${y1}A${r} ${r} 0 0 0 ${x2} ${y2}`} className="moon-range"><title>{t("Ay'ın gün içindeki olası aralığı")}</title></path>
       })()}
 
       {/* açı çizgileri */}

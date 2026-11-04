@@ -1,6 +1,7 @@
 // Haritadaki yorumlanabilir etkenler ve orta noktalar (kişisel yorum kütüphanesi için)
 import type { ChartResult } from './types'
 import { ASPECT_BY_TYPE, norm360, separation, SIGNS, signOf } from './zodiac'
+import { t } from './i18n'
 
 export interface Factor {
   key: string // kütüphane anahtarı, ör. "ps:sun:4" (Güneş Aslan'da)
@@ -16,26 +17,26 @@ const MAJOR = new Set(['conjunction', 'opposition', 'trine', 'square', 'sextile'
 export function chartFactors(c: ChartResult): Factor[] {
   const out: Factor[] = []
   const pts = c.points.filter((p) => ORDER.includes(p.id))
-  const name = (id: string) => (id === 'asc' ? 'Yükselen' : id === 'mc' ? 'MC' : c.points.find((p) => p.id === id)?.name ?? id)
+  const name = (id: string) => (id === 'asc' ? t('Yükselen') : id === 'mc' ? 'MC' : c.points.find((p) => p.id === id)?.name ?? id)
   const glyph = (id: string) => (id === 'asc' ? 'AC' : id === 'mc' ? 'MC' : c.points.find((p) => p.id === id)?.glyph ?? '')
   if (c.hasHouses) {
-    out.push({ key: `ang:asc:${signOf(c.angles.asc)}`, group: 'Köşeler', title: `Yükselen ${SIGNS[signOf(c.angles.asc)].name}`, glyphs: `AC ${SIGNS[signOf(c.angles.asc)].glyph}` })
+    out.push({ key: `ang:asc:${signOf(c.angles.asc)}`, group: 'Köşeler', title: t('Yükselen {sign}', { sign: SIGNS[signOf(c.angles.asc)].name }), glyphs: `AC ${SIGNS[signOf(c.angles.asc)].glyph}` })
     out.push({ key: `ang:mc:${signOf(c.angles.mc)}`, group: 'Köşeler', title: `MC ${SIGNS[signOf(c.angles.mc)].name}`, glyphs: `MC ${SIGNS[signOf(c.angles.mc)].glyph}` })
   }
   for (const p of pts) {
     const s = signOf(p.lon)
     const moonUnsure = p.id === 'moon' && c.moonRange && signOf(c.moonRange.from) !== signOf(c.moonRange.to)
-    out.push({ key: `ps:${p.id}:${s}`, group: 'Burçlar', title: `${p.name} ${SIGNS[s].name} burcunda${moonUnsure ? ' (saate bağlı: Ay doğum gününde burç değiştiriyor)' : ''}`, glyphs: `${p.glyph} ${SIGNS[s].glyph}` })
+    out.push({ key: `ps:${p.id}:${s}`, group: 'Burçlar', title: t('{planet} {sign} burcunda', { planet: p.name, sign: SIGNS[s].name }) + (moonUnsure ? t(' (saate bağlı: Ay doğum gününde burç değiştiriyor)') : ''), glyphs: `${p.glyph} ${SIGNS[s].glyph}` })
   }
   if (c.hasHouses) {
-    for (const p of pts) out.push({ key: `ph:${p.id}:${p.house}`, group: 'Evler', title: `${p.name} ${p.house}. evde`, glyphs: `${p.glyph} ${p.house}` })
+    for (const p of pts) out.push({ key: `ph:${p.id}:${p.house}`, group: 'Evler', title: t('{planet} {house}. evde', { planet: p.name, house: p.house }), glyphs: `${p.glyph} ${p.house}` })
   }
   for (const a of c.aspects.filter((x) => x.certainty !== 'olasi')) {
     if (!MAJOR.has(a.type)) continue
     const [x, y] = [a.a, a.b].sort((m, n) => ORDER.indexOf(m) - ORDER.indexOf(n))
     if (!ORDER.includes(x) || !ORDER.includes(y)) continue
     const def = ASPECT_BY_TYPE[a.type]
-    out.push({ key: `as:${x}:${y}:${a.type}`, group: 'Açılar', title: `${name(x)} ${def.name.toLowerCase()} ${name(y)}${a.certainty === 'saate-bagli' ? ' (saate bağlı: doğum saati bilinmiyor)' : ''}`, glyphs: `${glyph(x)} ${def.glyph} ${glyph(y)}` })
+    out.push({ key: `as:${x}:${y}:${a.type}`, group: 'Açılar', title: t('{a} {aspect} {b}', { a: name(x), aspect: def.name.toLowerCase(), b: name(y) }) + (a.certainty === 'saate-bagli' ? t(' (saate bağlı: doğum saati bilinmiyor)') : ''), glyphs: `${glyph(x)} ${def.glyph} ${glyph(y)}` })
   }
   return out
 }
@@ -87,9 +88,10 @@ const NAMES: Record<string, string> = {
 /** Kütüphane anahtarını okunur başlığa çevirir (harita açık olmadan da) */
 export function keyTitle(key: string): { title: string; group: Factor['group'] } {
   const [kind, a, b, c] = key.split(':')
-  if (kind === 'ps') return { title: `${NAMES[a] ?? a} ${SIGNS[Number(b)]?.name} burcunda`, group: 'Burçlar' }
-  if (kind === 'ph') return { title: `${NAMES[a] ?? a} ${b}. evde`, group: 'Evler' }
-  if (kind === 'ang') return { title: `${NAMES[a] ?? a} ${SIGNS[Number(b)]?.name}`, group: 'Köşeler' }
-  if (kind === 'as') return { title: `${NAMES[a] ?? a} ${(ASPECT_BY_TYPE[c as keyof typeof ASPECT_BY_TYPE]?.name ?? c).toLowerCase()} ${NAMES[b] ?? b}`, group: 'Açılar' }
+  const N = (id: string) => (NAMES[id] ? t(NAMES[id]) : id)
+  if (kind === 'ps') return { title: t('{planet} {sign} burcunda', { planet: N(a), sign: String(SIGNS[Number(b)]?.name) }), group: 'Burçlar' }
+  if (kind === 'ph') return { title: t('{planet} {house}. evde', { planet: N(a), house: b }), group: 'Evler' }
+  if (kind === 'ang') return { title: `${N(a)} ${SIGNS[Number(b)]?.name}`, group: 'Köşeler' }
+  if (kind === 'as') return { title: t('{a} {aspect} {b}', { a: N(a), aspect: (ASPECT_BY_TYPE[c as keyof typeof ASPECT_BY_TYPE]?.name ?? c).toLowerCase(), b: N(b) }), group: 'Açılar' }
   return { title: key, group: 'Açılar' }
 }

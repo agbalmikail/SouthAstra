@@ -1,8 +1,9 @@
 // Transit sunumu: süre sınıfı ve kural tabanlı astrolojik önem sıralaması (hesaplama değil, sunum katmanı)
 import type { TransitEvent } from './types'
+import { getLang, t } from './i18n'
 
 export type DurationClass = 'short' | 'medium' | 'long'
-export const DURATION_NAME: Record<DurationClass, string> = { short: 'Kısa', medium: 'Orta', long: 'Uzun' }
+export const DURATION_NAME: Record<DurationClass, string> = { get short() { return t('Kısa') }, get medium() { return t('Orta') }, get long() { return t('Uzun') } }
 
 /** Süre sınıfı: etkinlik döneminin (orba girişten çıkışa, tekrarlar dahil) uzunluğuna göre */
 export function durationClass(e: TransitEvent): DurationClass | undefined {
@@ -29,9 +30,9 @@ export function importance(e: TransitEvent): number {
   return W[c] + aspectW(e.type) + target(e.natal) + ((e.pass?.of ?? 1) > 1 ? W.series : 0)
 }
 
-const n = (x: number) => String(Math.round(x * 100) / 100).replace('.', ',')
+const n = (x: number) => { const s = String(Math.round(x * 100) / 100); return getLang() === 'en' ? s : s.replace('.', ',') }
 export function rankRule(): string {
-  return `Astrolojik önem sıralaması kural tabanlıdır ve yalnızca sunum içindir; bilimsel bir olasılık değildir. Puan = süre (uzun ${n(W.long)} · orta ${n(W.medium)} · kısa ${n(W.short)}) + açı türü (kavuşum ${n(W.conjunction)} · karşıt ve kare ${n(W.hard)} · üçgen ${n(W.soft)} · altmışlık ${n(W.soft * 2 / 3)}) + natal hedef (Güneş, Ay, Yükselen, MC ${n(W.lights)} · Merkür, Venüs, Mars ${n(W.personal)} · Jüpiter, Satürn ${n(W.social)} · diğerleri ${n(W.other)}) + retrograd serisi ise ${n(W.series)}. Ağırlıklar Ayarlar'dan değiştirilebilir. Süre sınıfı, orba giriş ile çıkış arası (tekrarlar dahil): kısa < 14 gün · orta 14–90 gün · uzun > 90 gün. Etkinlik dönemi Ayarlar'daki transit orbuna göre hesaplanır; fiziksel olarak kanıtlanmış bir etki süresi değildir.`
+  return t("Astrolojik önem sıralaması kural tabanlıdır ve yalnızca sunum içindir; bilimsel bir olasılık değildir. Puan = süre (uzun {long} · orta {medium} · kısa {short}) + açı türü (kavuşum {conj} · karşıt ve kare {hard} · üçgen {soft} · altmışlık {sext}) + natal hedef (Güneş, Ay, Yükselen, MC {lights} · Merkür, Venüs, Mars {personal} · Jüpiter, Satürn {social} · diğerleri {other}) + retrograd serisi ise {series}. Ağırlıklar Ayarlar'dan değiştirilebilir. Süre sınıfı, orba giriş ile çıkış arası (tekrarlar dahil): kısa < 14 gün · orta 14–90 gün · uzun > 90 gün. Etkinlik dönemi Ayarlar'daki transit orbuna göre hesaplanır; fiziksel olarak kanıtlanmış bir etki süresi değildir.", { long: n(W.long), medium: n(W.medium), short: n(W.short), conj: n(W.conjunction), hard: n(W.hard), soft: n(W.soft), sext: n(W.soft * 2 / 3), lights: n(W.lights), personal: n(W.personal), social: n(W.social), other: n(W.other), series: n(W.series) })
 }
 /** Eski adla uyumluluk */
 export const RANK_RULE_DEFAULT = rankRule()

@@ -1,6 +1,9 @@
 // Kör karşılaştırma: yorumlar haritaları gerçekten ayırt ediyor mu? (yorum katmanı; hesaplama yapmaz)
 // Katılımcıya kimlik bilgisi olmayan 2–4 metin sayfası gösterilir; biri kendi haritasınındır. Seçim sonrası açıklanır.
 import { shuffle } from './feedback'
+import { getLang, t } from './i18n'
+
+const dec = (x: string) => (getLang() === 'en' ? x : x.replace('.', ','))
 
 export interface BlindTrial {
   date: string
@@ -37,12 +40,12 @@ export function chanceP(trials: { options: number; correct: boolean }[]): { hits
   return { hits, expected: trials.reduce((a, t) => a + 1 / t.options, 0), p: Math.min(1, p) }
 }
 
-export const BLIND_METHOD =
-  'Kör karşılaştırma: katılımcıya her biri farklı bir haritanın yorumlarından oluşan 2–4 sayfa gösterilir; sayfalarda ad, tarih, yer ya da etken adı yoktur. Katılımcı kendisini en iyi anlatan sayfayı seçer; hangisinin kendisine ait olduğu seçimden sonra açıklanır. Güneş burcu metinleri, çoğu kişi Güneş burcunu bildiği için varsayılan olarak çıkarılır. Çok sayıda denemenin isabet oranı şans düzeyiyle (1/seçenek sayısı) karşılaştırılır. Bu, yazdığınız yorumların haritaları ayırt edip etmediğini ölçer; az sayıda deneme güvenilir bir sonuç vermez.'
+export const blindMethod = (): string =>
+  t('Kör karşılaştırma: katılımcıya her biri farklı bir haritanın yorumlarından oluşan 2–4 sayfa gösterilir; sayfalarda ad, tarih, yer ya da etken adı yoktur. Katılımcı kendisini en iyi anlatan sayfayı seçer; hangisinin kendisine ait olduğu seçimden sonra açıklanır. Güneş burcu metinleri, çoğu kişi Güneş burcunu bildiği için varsayılan olarak çıkarılır. Çok sayıda denemenin isabet oranı şans düzeyiyle (1/seçenek sayısı) karşılaştırılır. Bu, yazdığınız yorumların haritaları ayırt edip etmediğini ölçer; az sayıda deneme güvenilir bir sonuç vermez.')
 
 export function chanceText(r: { hits: number; expected: number; p: number }, n: number): string {
-  if (!n) return 'Henüz deneme yok.'
-  const pTxt = r.p < 0.001 ? '< 0,001' : r.p.toFixed(3).replace('.', ',')
-  const verdict = n < 10 ? 'Sonuç için en az 10–20 deneme gerekir.' : r.p < 0.05 ? 'İsabet şans düzeyinin belirgin biçimde üstünde (p < 0,05).' : 'İsabet şans düzeyinden belirgin biçimde farklı değil.'
-  return `${n} denemede ${r.hits} isabet; şansla beklenen ${r.expected.toFixed(1).replace('.', ',')}. Şansla en az bu kadar isabet olasılığı p = ${pTxt}. ${verdict}`
+  if (!n) return t('Henüz deneme yok.')
+  const pTxt = r.p < 0.001 ? '< ' + dec('0.001') : dec(r.p.toFixed(3))
+  const verdict = n < 10 ? t('Sonuç için en az 10–20 deneme gerekir.') : r.p < 0.05 ? t('İsabet şans düzeyinin belirgin biçimde üstünde (p < 0,05).') : t('İsabet şans düzeyinden belirgin biçimde farklı değil.')
+  return t('{n} denemede {hits} isabet; şansla beklenen {expected}. Şansla en az bu kadar isabet olasılığı p = {p}.', { n, hits: r.hits, expected: dec(r.expected.toFixed(1)), p: pTxt }) + ' ' + verdict
 }

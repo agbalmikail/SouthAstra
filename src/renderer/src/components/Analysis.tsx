@@ -7,6 +7,7 @@ import { Lon, stationText } from './Tables'
 import { rectifyDefaults, rectifyKey, usePanelParam, type PanelParams } from '../panelParams'
 import { transitExplain } from '@shared/learn'
 import { durationClass, DURATION_NAME, importance, rankRule, windowDays } from '@shared/transitRank'
+import { t, loc } from '@shared/i18n'
 
 const err = (e: unknown) => (e as Error).message.replace(/^Error invoking remote method '[^']+': (Error: )?/, '')
 
@@ -34,7 +35,7 @@ export function PlanetDetail({ chart, id, onClose }: { chart: ChartResult; id: s
   const aspects = chart.aspects.filter((a) => a.a === id || a.b === id)
   const other = (a: { a: string; b: string }) => {
     const o = a.a === id ? a.b : a.a
-    return o === 'asc' ? 'Yükselen' : o === 'mc' ? 'MC' : chart.points.find((x) => x.id === o)?.name ?? o
+    return o === 'asc' ? t('Yükselen') : o === 'mc' ? 'MC' : chart.points.find((x) => x.id === o)?.name ?? o
   }
   const row = (k: string, v: React.ReactNode) => <><dt>{k}</dt><dd>{v}</dd></>
   return (
@@ -45,35 +46,35 @@ export function PlanetDetail({ chart, id, onClose }: { chart: ChartResult; id: s
           <b>{p.name}</b>
           <div className="muted small">{l.deg}° {l.signName} {pad2(l.min)}' · {chart.label}</div>
         </div>
-        <button className="btn ghost small-btn" onClick={onClose} aria-label="Kapat">Kapat</button>
+        <button className="btn ghost small-btn" onClick={onClose} aria-label={t('Kapat')}>{t('Kapat')}</button>
       </div>
       <dl className="kv">
-        {row('Ekliptik boylam', <span className="num">{dms(p.lon)} <span className="muted">({p.lon.toFixed(6)}°)</span></span>)}
-        {row('Ekliptik enlem', <span className="num">{dms(p.lat)}</span>)}
-        {row('Hız (boylam)', <span className="num">{p.speed.toFixed(6)}°/gün {p.retro ? '· geri' : '· ileri'}</span>)}
-        {p.station && row('Duraklama', <span>{stationText(p.station)}</span>)}
-        {p.latSpeed !== undefined && row('Hız (enlem)', <span className="num">{p.latSpeed.toFixed(6)}°/gün</span>)}
-        {p.distance !== undefined && p.id !== 'northnode' && p.id !== 'southnode' && p.id !== 'lilith' && row('Uzaklık', <span className="num">{p.distance.toFixed(6)} AU{p.id === 'moon' ? ` · ${(p.distance * 149597870.7).toFixed(0)} km` : ''}</span>)}
-        {p.ra !== undefined && row('Sağ açıklık (RA)', <span className="num">{hms(p.ra / 15)} <span className="muted">({p.ra.toFixed(4)}°)</span></span>)}
-        {row('Deklinasyon', <span className="num">{fmtDecl(p.declination)} <span className="muted">({p.declination.toFixed(4)}°)</span></span>)}
-        {p.azimuth !== undefined && row('Azimut / yükseklik', <span className="num">{p.azimuth.toFixed(2)}° / {p.altitude!.toFixed(2)}° <span className="muted">({p.altitude! > 0 ? 'ufkun üstünde' : 'ufkun altında'})</span></span>)}
-        {chart.hasHouses && row('Ev', <span className="num">{p.house}{p.housePos !== undefined ? ` · ondalık ${p.housePos.toFixed(3)}` : ''}</span>)}
-        {p.dignity && row('Dignite', p.dignity)}
-        {row('Burç yöneticisi', chart.points.find((x) => x.id === TRAD_RULER[signOf(p.lon)])?.name ?? '—')}
+        {row(t('Ekliptik boylam'), <span className="num">{dms(p.lon)} <span className="muted">({p.lon.toFixed(6)}°)</span></span>)}
+        {row(t('Ekliptik enlem'), <span className="num">{dms(p.lat)}</span>)}
+        {row(t('Hız (boylam)'), <span className="num">{p.speed.toFixed(6)}°/{t('gün')} · {p.retro ? t('geri') : t('ileri')}</span>)}
+        {p.station && row(t('Duraklama'), <span>{stationText(p.station)}</span>)}
+        {p.latSpeed !== undefined && row(t('Hız (enlem)'), <span className="num">{p.latSpeed.toFixed(6)}°/{t('gün')}</span>)}
+        {p.distance !== undefined && p.id !== 'northnode' && p.id !== 'southnode' && p.id !== 'lilith' && row(t('Uzaklık'), <span className="num">{p.distance.toFixed(6)} AU{p.id === 'moon' ? ` · ${(p.distance * 149597870.7).toFixed(0)} km` : ''}</span>)}
+        {p.ra !== undefined && row(t('Sağ açıklık (RA)'), <span className="num">{hms(p.ra / 15)} <span className="muted">({p.ra.toFixed(4)}°)</span></span>)}
+        {row(t('Deklinasyon'), <span className="num">{fmtDecl(p.declination)} <span className="muted">({p.declination.toFixed(4)}°)</span></span>)}
+        {p.azimuth !== undefined && row(t('Azimut / yükseklik'), <span className="num">{p.azimuth.toFixed(2)}° / {p.altitude!.toFixed(2)}° <span className="muted">({p.altitude! > 0 ? t('ufkun üstünde') : t('ufkun altında')})</span></span>)}
+        {chart.hasHouses && row(t('Ev'), <span className="num">{p.house}{p.housePos !== undefined ? ` · ${t('ondalık')} ${p.housePos.toFixed(3)}` : ''}</span>)}
+        {p.dignity && row(t('Dignite'), p.dignity)}
+        {row(t('Burç yöneticisi'), chart.points.find((x) => x.id === TRAD_RULER[signOf(p.lon)])?.name ?? '—')}
       </dl>
-      <div className="cap">Hesaplama</div>
+      <div className="cap">{t('Hesaplama')}</div>
       <dl className="kv">
-        {row('Zodyak', chart.zodiac + (chart.ayanamsa !== undefined ? ` · ayanamsa ${dms(chart.ayanamsa)}` : ''))}
-        {row('Koordinat', 'Geosantrik · görünür konum · gerçek ekinoks')}
-        {row('Efemeris', chart.ephemeris)}
-        {row('Jülyen günü', <span className="num">{jdText(chart)} · {chart.jdTt.toFixed(6)} TT</span>)}
-        {row('ΔT', <span className="num">{chart.deltaT.toFixed(2)} sn</span>)}
-        {row('Ekliptik eğimi', <span className="num">{dms(chart.obliquity)}</span>)}
-        {chart.hasHouses && row('Yerel yıldız zamanı', <span className="num">{hms(chart.siderealTime)}</span>)}
+        {row(t('Zodyak'), chart.zodiac + (chart.ayanamsa !== undefined ? ` · ayanamsa ${dms(chart.ayanamsa)}` : ''))}
+        {row(t('Koordinat'), t('Geosantrik · görünür konum · gerçek ekinoks'))}
+        {row(t('Efemeris'), chart.ephemeris)}
+        {row(t('Jülyen günü'), <span className="num">{jdText(chart)} · {chart.jdTt.toFixed(6)} TT</span>)}
+        {row('ΔT', <span className="num">{chart.deltaT.toFixed(2)} {t('sn')}</span>)}
+        {row(t('Ekliptik eğimi'), <span className="num">{dms(chart.obliquity)}</span>)}
+        {chart.hasHouses && row(t('Yerel yıldız zamanı'), <span className="num">{hms(chart.siderealTime)}</span>)}
       </dl>
       {aspects.length > 0 && (
         <>
-          <div className="cap">Açılar</div>
+          <div className="cap">{t('Açılar')}</div>
           <ul className="mini-list">
             {aspects.map((a, i) => (
               <li key={i}><span className={`asp-g ${a.type}`}>{ASPECT_BY_TYPE[a.type].glyph}</span> {ASPECT_BY_TYPE[a.type].name} {other(a)} <span className="muted num">{fmtOrb(a.orb)}</span></li>
@@ -95,14 +96,14 @@ export function HouseCompare({ input, base, hsys }: { input: ChartInput; base: C
     setError('')
     window.southastra.view(input, { mode: 'natal', houseSystem: other }).then((r) => setCmp(r.inner)).catch((e) => setError(err(e)))
   }, [input, other])
-  if (!base.hasHouses) return <p className="empty-note">Doğum saati bilinmediği için evler karşılaştırılamaz.</p>
+  if (!base.hasHouses) return <p className="empty-note">{t('Doğum saati bilinmediği için evler karşılaştırılamaz.')}</p>
   const nameA = HOUSE_SYSTEMS.find((h) => h.id === hsys)?.name
   const nameB = HOUSE_SYSTEMS.find((h) => h.id === other)?.name
   const changed = cmp ? base.points.filter((p) => cmp.points.find((q) => q.id === p.id)?.house !== p.house).length : 0
   return (
     <div>
       <div className="toolbar">
-        <span className="muted small">{nameA} ile karşılaştır:</span>
+        <span className="muted small">{t('{name} ile karşılaştır:', { name: nameA ?? '' })}</span>
         <select id="cmp-hsys" className="compact" value={other} onChange={(e) => setOther(e.target.value as HouseSystem)}>
           {HOUSE_SYSTEMS.filter((h) => h.id !== hsys).map((h) => <option key={h.id} value={h.id}>{h.name}</option>)}
         </select>
@@ -110,9 +111,9 @@ export function HouseCompare({ input, base, hsys }: { input: ChartInput; base: C
       {error && <p className="error">{error}</p>}
       {cmp && (
         <>
-          <p className="hint">{changed ? `${changed} noktanın evi değişiyor (vurgulu satırlar).` : 'Hiçbir noktanın evi değişmiyor.'}</p>
+          <p className="hint">{changed ? t('{n} noktanın evi değişiyor (vurgulu satırlar).', { n: changed }) : t('Hiçbir noktanın evi değişmiyor.')}</p>
           <table className="data">
-            <thead><tr><th>Nokta</th><th className="r">{nameA}</th><th className="r">{nameB}</th></tr></thead>
+            <thead><tr><th>{t('Nokta')}</th><th className="r">{nameA}</th><th className="r">{nameB}</th></tr></thead>
             <tbody>
               {base.points.filter((p) => p.id !== 'southnode').map((p) => {
                 const q = cmp.points.find((x) => x.id === p.id)
@@ -122,7 +123,7 @@ export function HouseCompare({ input, base, hsys }: { input: ChartInput; base: C
             </tbody>
           </table>
           <table className="data" style={{ marginTop: 12 }}>
-            <thead><tr><th>Ev</th><th className="r">{nameA}</th><th className="r">{nameB}</th></tr></thead>
+            <thead><tr><th>{t('Ev')}</th><th className="r">{nameA}</th><th className="r">{nameB}</th></tr></thead>
             <tbody>
               {base.cusps.map((c, i) => <tr key={i}><td className="num">{i + 1}</td><td className="r"><Lon lon={c} /></td><td className="r"><Lon lon={cmp.cusps[i]} /></td></tr>)}
             </tbody>
@@ -136,13 +137,13 @@ export function HouseCompare({ input, base, hsys }: { input: ChartInput; base: C
 // ——— Sabit yıldızlar ———
 
 export function StarsTable({ chart, orb }: { chart: ChartResult; orb?: number }) {
-  const name = (id: string) => (id === 'asc' ? 'Yükselen' : id === 'mc' ? 'MC' : chart.points.find((p) => p.id === id)?.name ?? id)
-  const note = <p className="hint">Yıldız konumları Swiss Ephemeris sabit yıldız kataloğundan (sefstars.txt, Hipparcos tabanlı); harita anına göre öz hareket ve presesyon uygulanmış, görünür geosantrik ekliptik boylam ({chart.zodiac.toLowerCase()}). Yalnızca kavuşum (boylam farkı) değerlendirilir{orb ? `, orb ±${orb}°` : ''}; enlem farkı dikkate alınmaz. 28 klasik yıldız.</p>
-  if (!chart.stars.length) return <><p className="empty-note">Orb içinde sabit yıldız kavuşumu yok.</p>{note}</>
+  const name = (id: string) => (id === 'asc' ? t('Yükselen') : id === 'mc' ? 'MC' : chart.points.find((p) => p.id === id)?.name ?? id)
+  const note = <p className="hint">{t('Yıldız konumları Swiss Ephemeris sabit yıldız kataloğundan (sefstars.txt, Hipparcos tabanlı); harita anına göre öz hareket ve presesyon uygulanmış, görünür geosantrik ekliptik boylam ({zodiac}). Yalnızca kavuşum (boylam farkı) değerlendirilir{orb}; enlem farkı dikkate alınmaz. 28 klasik yıldız.', { zodiac: chart.zodiac.toLowerCase(), orb: orb ? `, orb ±${orb}°` : '' })}</p>
+  if (!chart.stars.length) return <><p className="empty-note">{t('Orb içinde sabit yıldız kavuşumu yok.')}</p>{note}</>
   return (
     <>
     <table className="data">
-      <thead><tr><th>Yıldız</th><th className="r">Konum</th><th>Kavuşum</th><th className="r">Orb</th></tr></thead>
+      <thead><tr><th>{t('Yıldız')}</th><th className="r">{t('Konum')}</th><th>{t('Kavuşum')}</th><th className="r">Orb</th></tr></thead>
       <tbody>
         {chart.stars.map((s, i) => (
           <tr key={i}><td>{s.star}</td><td className="r"><Lon lon={s.starLon} /></td><td>{name(s.point)}</td><td className="r num">{fmtOrb(s.orb)}</td></tr>
@@ -180,33 +181,33 @@ export function Distribution({ chart }: { chart: ChartResult }) {
     const ruler = (id: string) => TRAD_RULER[signOf(pts.find((p) => p.id === id)?.lon ?? 0)]
     const finals = ids.filter((id) => ruler(id) === id)
     const names = finals.map((f) => pts.find((p) => p.id === f)?.name).join(', ')
-    return finals.length === 1 ? names : finals.length > 1 ? `Birden fazla: ${names}` : 'Yok (karşılıklı ağırlama döngüsü)'
+    return finals.length === 1 ? names : finals.length > 1 ? t('Birden fazla: {names}', { names }) : t('Yok (karşılıklı ağırlama döngüsü)')
   }, [pts])
   const bar = (n: number) => <span className="bar"><span style={{ width: `${(n / pts.length) * 100}%` }} /></span>
   return (
     <div className="dist">
-      <div className="cap">Elementler</div>
+      <div className="cap">{t('Elementler')}</div>
       {(['fire', 'earth', 'air', 'water'] as const).map((k) => (
         <div key={k} className="dist-row"><span className="dist-k" style={{ color: `var(--${k})` }}>{ELEMENT_TR[k]}</span>{bar(el[k].length)}<span className="num">{el[k].length}</span><span className="sym small">{el[k].join(' ')}</span></div>
       ))}
-      <div className="cap">Nitelikler</div>
+      <div className="cap">{t('Nitelikler')}</div>
       {MODALITY.map((m, i) => (
         <div key={m} className="dist-row"><span className="dist-k">{m}</span>{bar(mo[i].length)}<span className="num">{mo[i].length}</span><span className="sym small">{mo[i].join(' ')}</span></div>
       ))}
       {hemi && (
         <>
-          <div className="cap">Yarımküreler</div>
+          <div className="cap">{t('Yarımküreler')}</div>
           <div className="dist-grid">
-            <span>Üst (görünür) <b className="num">{hemi.üst}</b></span><span>Alt <b className="num">{hemi.alt}</b></span>
-            <span>Doğu (AC tarafı) <b className="num">{hemi.doğu}</b></span><span>Batı (DC tarafı) <b className="num">{hemi.batı}</b></span>
+            <span>{t('Üst (görünür)')} <b className="num">{hemi.üst}</b></span><span>{t('Alt')} <b className="num">{hemi.alt}</b></span>
+            <span>{t('Doğu (AC tarafı)')} <b className="num">{hemi.doğu}</b></span><span>{t('Batı (DC tarafı)')} <b className="num">{hemi.batı}</b></span>
           </div>
         </>
       )}
-      <div className="cap">Diğer</div>
+      <div className="cap">{t('Diğer')}</div>
       <dl className="kv">
-        {phase && <><dt>Ay evresi</dt><dd title="Astrolojik evre Rudhyar'ın 8 evresine göredir (her biri 45°); astronomik durum ayrıca yazılır.">{phase.name} evresi <span className="muted small">· {phase.astro} ({phase.angle.toFixed(1)}°)</span></dd></>}
-        <dt>Son dispozitör</dt><dd>{finalDisp}</dd>
-        <dt>Retro gezegenler</dt><dd className="sym">{pts.filter((p) => p.retro).map((p) => p.glyph).join(' ') || '—'}</dd>
+        {phase && <><dt>{t('Ay evresi')}</dt><dd title={t("Astrolojik evre Rudhyar'ın 8 evresine göredir (her biri 45°); astronomik durum ayrıca yazılır.")}>{t('{phase} evresi', { phase: phase.name })} <span className="muted small">· {phase.astro} ({phase.angle.toFixed(1)}°)</span></dd></>}
+        <dt>{t('Son dispozitör')}</dt><dd>{finalDisp}</dd>
+        <dt>{t('Retro gezegenler')}</dt><dd className="sym">{pts.filter((p) => p.retro).map((p) => p.glyph).join(' ') || '—'}</dd>
       </dl>
     </div>
   )
@@ -232,11 +233,11 @@ export function RectifyPanel({ input, onPick }: { input: ChartInput; onPick: (ti
   }, [input, from, to, step])
   return (
     <div>
-      <p className="hint">Doğum saati belirsizse aralığı girin; yükselenin ve MC'nin burç değiştirdiği saatler vurgulanır. Bir satıra tıklayınca harita o saate kaydırılır.</p>
+      <p className="hint">{t("Doğum saati belirsizse aralığı girin; yükselenin ve MC'nin burç değiştirdiği saatler vurgulanır. Bir satıra tıklayınca harita o saate kaydırılır.")}</p>
       <div className="toolbar">
-        <label className="inline small">Başlangıç <input id="r-from" type="time" value={from} onChange={(e) => setFrom(e.target.value)} /></label>
-        <label className="inline small">Bitiş <input id="r-to" type="time" value={to} onChange={(e) => setTo(e.target.value)} /></label>
-        <label className="inline small">Adım <select id="r-step" className="compact" value={step} onChange={(e) => setStep(Number(e.target.value))}>{[1, 2, 4, 5, 10, 15, 30, 60].map((s) => <option key={s} value={s}>{s} dk</option>)}</select></label>
+        <label className="inline small">{t('Başlangıç')} <input id="r-from" type="time" value={from} onChange={(e) => setFrom(e.target.value)} /></label>
+        <label className="inline small">{t('Bitiş')} <input id="r-to" type="time" value={to} onChange={(e) => setTo(e.target.value)} /></label>
+        <label className="inline small">{t('Adım')} <select id="r-step" className="compact" value={step} onChange={(e) => setStep(Number(e.target.value))}>{[1, 2, 4, 5, 10, 15, 30, 60].map((s) => <option key={s} value={s}>{t('{n} dk', { n: s })}</option>)}</select></label>
       </div>
       {error && <p className="error">{error}</p>}
       <RectifyTable rows={rows} current={input.timeUnknown ? undefined : t0} onPick={onPick} />
@@ -249,7 +250,7 @@ export function RectifyTable({ rows, current, onPick }: { rows: RectifyRow[]; cu
   let prevAsc = -1
   return (
     <table className="data">
-      <thead><tr><th>Saat</th><th className="r">Yükselen</th><th className="r">MC</th><th className="r">Ay</th></tr></thead>
+      <thead><tr><th>{t('Saat')}</th><th className="r">{t('Yükselen')}</th><th className="r">MC</th><th className="r">{t('Ay')}</th></tr></thead>
       <tbody>
         {rows.map((r) => {
           const s = signOf(r.asc)
@@ -257,7 +258,7 @@ export function RectifyTable({ rows, current, onPick }: { rows: RectifyRow[]; cu
           prevAsc = s
           return (
             <tr key={r.time} className={[onPick ? 'click' : '', change ? 'hl' : '', r.time === current ? 'cur' : ''].join(' ')} onClick={() => onPick?.(r.time)}>
-              <td className="num">{r.time}{change ? ' ◂ burç değişti' : ''}{r.time === current ? ' · kayıtlı saat' : ''}</td>
+              <td className="num">{r.time}{change ? ` ◂ ${t('burç değişti')}` : ''}{r.time === current ? ` · ${t('kayıtlı saat')}` : ''}</td>
               <td className="r"><Lon lon={r.asc} /></td>
               <td className="r"><Lon lon={r.mc} /></td>
               <td className="r"><Lon lon={r.moon} /></td>
@@ -300,19 +301,19 @@ export function TransitListPanel({ input, natal, onPick }: { input: ChartInput; 
       .then(setEvents).catch((e) => setError(err(e))).finally(() => setBusy(false))
   }, [input, from, to, planets])
   const g = (id: string) => (id === 'asc' ? 'AC' : id === 'mc' ? 'MC' : natal.points.find((p) => p.id === id)?.glyph ?? T_PLANETS.find((p) => p.id === id)?.g ?? id)
-  const n = (id: string) => (id === 'asc' ? 'Yükselen' : id === 'mc' ? 'MC' : natal.points.find((p) => p.id === id)?.name ?? id)
+  const n = (id: string) => (id === 'asc' ? t('Yükselen') : id === 'mc' ? 'MC' : natal.points.find((p) => p.id === id)?.name ?? id)
   const shown = filterTransits(events, tp)
   const fmtDate = (iso: string) => {
     const d = new Date(iso)
-    return d.toLocaleString('tr-TR', { timeZone: input.place.tz, day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+    return d.toLocaleString(loc(), { timeZone: input.place.tz, day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
   }
-  const fmtDay = (iso: string) => new Date(iso).toLocaleDateString('tr-TR', { timeZone: input.place.tz, day: '2-digit', month: '2-digit', year: 'numeric' })
+  const fmtDay = (iso: string) => new Date(iso).toLocaleDateString(loc(), { timeZone: input.place.tz, day: '2-digit', month: '2-digit', year: 'numeric' })
   let lastMonth = ''
   return (
     <div>
       <div className="toolbar wrap">
-        <label className="inline small">Başlangıç <input id="t-from" type="date" value={from} onChange={(e) => setFrom(e.target.value)} /></label>
-        <label className="inline small">Bitiş <input id="t-to" type="date" value={to} onChange={(e) => setTo(e.target.value)} /></label>
+        <label className="inline small">{t('Başlangıç')} <input id="t-from" type="date" value={from} onChange={(e) => setFrom(e.target.value)} /></label>
+        <label className="inline small">{t('Bitiş')} <input id="t-to" type="date" value={to} onChange={(e) => setTo(e.target.value)} /></label>
       </div>
       <div className="chips">
         {T_PLANETS.map((p) => (
@@ -320,22 +321,22 @@ export function TransitListPanel({ input, natal, onPick }: { input: ChartInput; 
         ))}
       </div>
       <div className="chips">
-        <label className="inline small"><input type="checkbox" checked={kinds.aspects} onChange={(e) => setKinds({ ...kinds, aspects: e.target.checked })} /> Açılar</label>
-        <label className="inline small"><input type="checkbox" checked={kinds.stations} onChange={(e) => setKinds({ ...kinds, stations: e.target.checked })} /> Duraklamalar</label>
-        <label className="inline small"><input type="checkbox" checked={kinds.ingress} onChange={(e) => setKinds({ ...kinds, ingress: e.target.checked })} /> Burç geçişleri</label>
+        <label className="inline small"><input type="checkbox" checked={kinds.aspects} onChange={(e) => setKinds({ ...kinds, aspects: e.target.checked })} /> {t('Açılar')}</label>
+        <label className="inline small"><input type="checkbox" checked={kinds.stations} onChange={(e) => setKinds({ ...kinds, stations: e.target.checked })} /> {t('Duraklamalar')}</label>
+        <label className="inline small"><input type="checkbox" checked={kinds.ingress} onChange={(e) => setKinds({ ...kinds, ingress: e.target.checked })} /> {t('Burç geçişleri')}</label>
       </div>
       <div className="chips">
-        <span className="muted small">Süre</span>
-        {(['short', 'medium', 'long'] as const).map((c) => <label key={c} className="inline small" title={c === 'short' ? '< 14 gün' : c === 'medium' ? '14–90 gün' : '> 90 gün'}><input type="checkbox" checked={classes[c]} onChange={(e) => setTp({ ...tp, classes: { ...classes, [c]: e.target.checked } })} /> {DURATION_NAME[c]}</label>)}
-        <span className="muted small" style={{ marginLeft: 8 }}>Sıra</span>
-        <div className="seg-btn small"><button className={sort === 'time' ? 'on' : ''} onClick={() => setTp({ ...tp, sort: 'time' })}>Tarih</button><button className={sort === 'rank' ? 'on' : ''} onClick={() => setTp({ ...tp, sort: 'rank' })} title={rankRule()}>Önem</button></div>
+        <span className="muted small">{t('Süre')}</span>
+        {(['short', 'medium', 'long'] as const).map((c) => <label key={c} className="inline small" title={c === 'short' ? t('< 14 gün') : c === 'medium' ? t('14–90 gün') : t('> 90 gün')}><input type="checkbox" checked={classes[c]} onChange={(e) => setTp({ ...tp, classes: { ...classes, [c]: e.target.checked } })} /> {DURATION_NAME[c]}</label>)}
+        <span className="muted small" style={{ marginLeft: 8 }}>{t('Sıra')}</span>
+        <div className="seg-btn small"><button className={sort === 'time' ? 'on' : ''} onClick={() => setTp({ ...tp, sort: 'time' })}>{t('Tarih')}</button><button className={sort === 'rank' ? 'on' : ''} onClick={() => setTp({ ...tp, sort: 'rank' })} title={rankRule()}>{t('Önem')}</button></div>
       </div>
       {error && <p className="error">{error}</p>}
-      <p className="hint">{busy ? 'Hesaplanıyor…' : `${shown.length} olay · saatler doğum yerinin saat dilimine göre · tam açı anı · parantezde transit gezegenin natal evi · dönem: orba giriş–çıkış (transit orbu ${events.find((e) => e.window)?.window?.orb ?? '—'}°)`}{sort === 'rank' && <> · <span title={rankRule()} className="link small">önem kuralı</span></>}</p>
+      <p className="hint">{busy ? t('Hesaplanıyor…') : t('{n} olay · saatler doğum yerinin saat dilimine göre · tam açı anı · parantezde transit gezegenin natal evi · dönem: orba giriş–çıkış (transit orbu {orb}°)', { n: shown.length, orb: events.find((e) => e.window)?.window?.orb ?? '—' })}{sort === 'rank' && <> · <span title={rankRule()} className="link small">{t('önem kuralı')}</span></>}</p>
       <table className="data tlist">
         <tbody>
           {shown.map((e, i) => {
-            const month = sort === 'rank' ? '' : new Date(e.utc).toLocaleString('tr-TR', { timeZone: input.place.tz, month: 'long', year: 'numeric' })
+            const month = sort === 'rank' ? '' : new Date(e.utc).toLocaleString(loc(), { timeZone: input.place.tz, month: 'long', year: 'numeric' })
             const head = sort !== 'rank' && month !== lastMonth
             lastMonth = month
             const def = e.natal ? ASPECT_BY_TYPE[e.type as keyof typeof ASPECT_BY_TYPE] : undefined
@@ -348,10 +349,10 @@ export function TransitListPanel({ input, natal, onPick }: { input: ChartInput; 
                   {def ? <><span className={`asp-g ${e.type}`}>{def.glyph}</span> <span className={g(e.natal!).length > 2 ? 'axis-txt' : 'sym'}>{g(e.natal!)}</span></> : null}
                 </td>
                 <td className="small">
-                  <button className="explain-btn" title="Bu ne anlama geliyor?" onClick={(ev) => { ev.stopPropagation(); setOpenRow(openRow === i ? null : i) }}>?</button>{' '}
-                  {e.pass && e.pass.of > 1 && <span className="tag stat" title="Retrograd hareket nedeniyle aynı açının tekrarı">{e.pass.n}/{e.pass.of}</span>}{' '}
-                  {e.window && <span className={`tag dur-${durationClass(e)}`} title={`Etkinlik dönemi (orb ${e.window.orb}°): ${fmtDay(e.window.start)} – ${fmtDay(e.window.end)} · ${Math.round(windowDays(e))} gün`}>{DURATION_NAME[durationClass(e)!]}</span>}{' '}
-                  {def ? `${def.name} natal ${n(e.natal!)}` : e.type === 'station-retro' ? `Geri dönüyor · ${SIGNS[e.sign ?? 0].name}` : e.type === 'station-direct' ? `İleri dönüyor · ${SIGNS[e.sign ?? 0].name}` : `${SIGNS[e.sign ?? 0].name} burcuna geçiş`}
+                  <button className="explain-btn" title={t('Bu ne anlama geliyor?')} onClick={(ev) => { ev.stopPropagation(); setOpenRow(openRow === i ? null : i) }}>?</button>{' '}
+                  {e.pass && e.pass.of > 1 && <span className="tag stat" title={t('Retrograd hareket nedeniyle aynı açının tekrarı')}>{e.pass.n}/{e.pass.of}</span>}{' '}
+                  {e.window && <span className={`tag dur-${durationClass(e)}`} title={t('Etkinlik dönemi (orb {orb}°): {from} – {to} · {n} gün', { orb: e.window.orb, from: fmtDay(e.window.start), to: fmtDay(e.window.end), n: Math.round(windowDays(e)) })}>{DURATION_NAME[durationClass(e)!]}</span>}{' '}
+                  {def ? t('{aspect} natal {point}', { aspect: def.name, point: n(e.natal!) }) : e.type === 'station-retro' ? t('Geri dönüyor · {sign}', { sign: SIGNS[e.sign ?? 0].name }) : e.type === 'station-direct' ? t('İleri dönüyor · {sign}', { sign: SIGNS[e.sign ?? 0].name }) : t('{sign} burcuna geçiş', { sign: SIGNS[e.sign ?? 0].name })}
                 </td>
               </tr>,
               openRow === i && <tr key={'x' + i} className="explain-row"><td colSpan={3}>{transitExplain(e, fmtDay).map((l, k) => <p key={k} className={k === 0 ? 'ex-lead' : ''}>{l}</p>)}</td></tr>
@@ -368,18 +369,18 @@ export { norm360 }
 // ——— Arap noktaları (Hermetik arazlar) ———
 
 export function LotsTable({ chart }: { chart: ChartResult }) {
-  if (!chart.lots.length) return <p className="empty-note">Arap noktaları yükselen gerektirir; doğum saati bilinmeyen haritada hesaplanmaz.</p>
+  if (!chart.lots.length) return <p className="empty-note">{t('Arap noktaları yükselen gerektirir; doğum saati bilinmeyen haritada hesaplanmaz.')}</p>
   return (
     <>
       <table className="data">
-        <thead><tr><th>Nokta</th><th>Formül</th><th className="r">Konum</th><th className="r">Ev</th></tr></thead>
+        <thead><tr><th>{t('Nokta')}</th><th>{t('Formül')}</th><th className="r">{t('Konum')}</th><th className="r">{t('Ev')}</th></tr></thead>
         <tbody>
           {chart.lots.map((l) => (
             <tr key={l.id}><td>{l.name}</td><td className="muted small">{l.formula}</td><td className="r"><Lon lon={l.lon} /></td><td className="r num">{l.house}</td></tr>
           ))}
         </tbody>
       </table>
-      <p className="hint">Paulus Alexandrinus'un Hermetik arazları. {chart.isDay ? 'Gündüz haritası: gündüz formülleri kullanıldı.' : 'Gece haritası: formüllerde çıkarılan ve eklenen yer değiştirdi.'} Ruh ve Şans'a dayanan noktalar bu iki noktanın hesaplanan değerlerini kullanır.</p>
+      <p className="hint">{t("Paulus Alexandrinus'un Hermetik arazları.")} {chart.isDay ? t('Gündüz haritası: gündüz formülleri kullanıldı.') : t('Gece haritası: formüllerde çıkarılan ve eklenen yer değiştirdi.')} {t("Ruh ve Şans'a dayanan noktalar bu iki noktanın hesaplanan değerlerini kullanır.")}</p>
     </>
   )
 }

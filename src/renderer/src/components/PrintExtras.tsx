@@ -4,18 +4,20 @@ import { HOUSE_SYSTEMS, placeLabel, RODDEN } from '@shared/types'
 import { activeOrbs, ASPECT_BY_TYPE, ASPECTS, AYANAMSAS, SIGNS } from '@shared/zodiac'
 import { durationClass, DURATION_NAME, importance, rankRule, topTransits, windowDays } from '@shared/transitRank'
 import { fmtOffset, jdText, precisionText } from '../format'
+import { loc, t } from '@shared/i18n'
 
-const fmtD = (iso: string, tz: string) => new Date(iso).toLocaleDateString('tr-TR', { timeZone: tz, day: '2-digit', month: '2-digit', year: 'numeric' })
-const fmtDT = (iso: string, tz: string) => new Date(iso).toLocaleString('tr-TR', { timeZone: tz, day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+const fmtD = (iso: string, tz: string) => new Date(iso).toLocaleDateString(loc(), { timeZone: tz, day: '2-digit', month: '2-digit', year: 'numeric' })
+const fmtDT = (iso: string, tz: string) => new Date(iso).toLocaleString(loc(), { timeZone: tz, day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
 
 function names(natal: ChartResult) {
   const gl = (id: string) => (id === 'asc' ? 'AC' : id === 'mc' ? 'MC' : natal.points.find((p) => p.id === id)?.glyph ?? '')
-  const nm = (id: string) => (id === 'asc' ? 'Yükselen' : id === 'mc' ? 'MC' : natal.points.find((p) => p.id === id)?.name ?? id)
+  const nm = (id: string) => (id === 'asc' ? t('Yükselen') : id === 'mc' ? 'MC' : natal.points.find((p) => p.id === id)?.name ?? id)
   return { gl, nm }
 }
 const eventText = (e: TransitEvent, nm: (id: string) => string) => {
   const def = e.natal ? ASPECT_BY_TYPE[e.type as keyof typeof ASPECT_BY_TYPE] : undefined
-  return def ? `Transit ${nm(e.transit)} ${def.name.toLowerCase()} natal ${nm(e.natal!)}` : e.type === 'station-retro' ? `${nm(e.transit)} geri harekete dönüyor · ${SIGNS[e.sign ?? 0].name}` : e.type === 'station-direct' ? `${nm(e.transit)} düz harekete dönüyor · ${SIGNS[e.sign ?? 0].name}` : `${nm(e.transit)} ${SIGNS[e.sign ?? 0].name} burcuna geçiyor`
+  const sign = SIGNS[e.sign ?? 0].name
+  return def ? t('Transit {a} {aspect} natal {b}', { a: nm(e.transit), aspect: def.name.toLowerCase(), b: nm(e.natal!) }) : e.type === 'station-retro' ? t('{planet} geri harekete dönüyor · {sign}', { planet: nm(e.transit), sign }) : e.type === 'station-direct' ? t('{planet} düz harekete dönüyor · {sign}', { planet: nm(e.transit), sign }) : t('{planet} {sign} burcuna geçiyor', { planet: nm(e.transit), sign })
 }
 
 /** Özet: önem sırasına göre en önemli 5 transit (her seriden bir satır) */
@@ -25,17 +27,17 @@ export function TransitSummary({ natal, transits, tz }: { natal: ChartResult; tr
   if (!top.length) return null
   return (
     <div className="p-summary-box">
-      <h3>Öne çıkan transitler</h3>
+      <h3>{t('Öne çıkan transitler')}</h3>
       <table className="data">
-        <thead><tr><th>Transit</th><th>Etkinlik dönemi</th><th>Kesinleşme</th><th className="r">Süre</th></tr></thead>
+        <thead><tr><th>{t('Transit')}</th><th>{t('Etkinlik dönemi')}</th><th>{t('Kesinleşme')}</th><th className="r">{t('Süre')}</th></tr></thead>
         <tbody>
           {top.map((e, k) => {
             const all = transits.filter((x) => x.transit === e.transit && x.natal === e.natal && x.type === e.type && x.window?.start === e.window?.start)
             return (
               <tr key={k}>
-                <td><span className="sym">{gl(e.transit)}</span> <span className={`asp-g ${e.type}`}>{ASPECT_BY_TYPE[e.type as keyof typeof ASPECT_BY_TYPE].glyph}</span> <span className={gl(e.natal!).length > 2 ? 'axis-txt' : 'sym'}>{gl(e.natal!)}</span> {eventText(e, nm)}{e.house ? ` · ${e.house}. evden` : ''}</td>
+                <td><span className="sym">{gl(e.transit)}</span> <span className={`asp-g ${e.type}`}>{ASPECT_BY_TYPE[e.type as keyof typeof ASPECT_BY_TYPE].glyph}</span> <span className={gl(e.natal!).length > 2 ? 'axis-txt' : 'sym'}>{gl(e.natal!)}</span> {eventText(e, nm)}{e.house ? ' · ' + t('{house}. evden', { house: e.house }) : ''}</td>
                 <td className="num nowrap">{e.window ? `${fmtD(e.window.start, tz)} – ${fmtD(e.window.end, tz)}` : '—'}</td>
-                <td className="num">{all.map((x) => fmtD(x.utc, tz)).join(' · ')}{(e.pass?.of ?? 1) > all.length ? ` (+${(e.pass?.of ?? 1) - all.length} aralık dışında)` : ''}</td>
+                <td className="num">{all.map((x) => fmtD(x.utc, tz)).join(' · ')}{(e.pass?.of ?? 1) > all.length ? ' ' + t('(+{n} aralık dışında)', { n: (e.pass?.of ?? 1) - all.length }) : ''}</td>
                 <td className="r">{DURATION_NAME[durationClass(e) ?? 'short']}</td>
               </tr>
             )
@@ -67,12 +69,12 @@ export function TransitTimeline({ natal, transits, from, to }: { natal: ChartRes
   for (let d = new Date(t0); d.getTime() <= t1; d.setUTCMonth(d.getUTCMonth() + 1, 1)) months.push(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1))
   return (
     <div className="p-timeline">
-      <h3>Zaman çizelgesi · orta ve uzun süreli transitler</h3>
-      <svg viewBox={`0 0 ${W} ${rows.length * H + 22}`} width="100%" role="img" aria-label="Transit zaman çizelgesi">
+      <h3>{t('Zaman çizelgesi · orta ve uzun süreli transitler')}</h3>
+      <svg viewBox={`0 0 ${W} ${rows.length * H + 22}`} width="100%" role="img" aria-label={t('Transit zaman çizelgesi')}>
         {months.filter((m) => m >= t0).map((m) => (
           <g key={m}>
             <line x1={x(m)} y1={14} x2={x(m)} y2={rows.length * H + 18} className="tl-grid" />
-            {(months.length <= 14 || new Date(m).getUTCMonth() % 3 === 0) && <text x={x(m) + 1.5} y={10} className="tl-month">{new Date(m).toLocaleDateString('tr-TR', { month: 'short', year: '2-digit', timeZone: 'UTC' })}</text>}
+            {(months.length <= 14 || new Date(m).getUTCMonth() % 3 === 0) && <text x={x(m) + 1.5} y={10} className="tl-month">{new Date(m).toLocaleDateString(loc(), { month: 'short', year: '2-digit', timeZone: 'UTC' })}</text>}
           </g>
         ))}
         {rows.map((r, k) => {
@@ -89,7 +91,7 @@ export function TransitTimeline({ natal, transits, from, to }: { natal: ChartRes
           )
         })}
       </svg>
-      <p className="hint">Çubuk: transit orbu içinde kalınan dönem (seçili aralığa kırpılmış) · nokta: kesinleşme anı · ×3: retrograd nedeniyle üç kez kesinleşen seri. En önemli {rows.length} seri gösterilir.</p>
+      <p className="hint">{t('Çubuk: transit orbu içinde kalınan dönem (seçili aralığa kırpılmış) · nokta: kesinleşme anı · ×3: retrograd nedeniyle üç kez kesinleşen seri. En önemli {n} seri gösterilir.', { n: rows.length })}</p>
     </div>
   )
 }
@@ -99,7 +101,7 @@ export function TransitTable({ natal, transits, tz }: { natal: ChartResult; tran
   const { gl, nm } = names(natal)
   return (
     <table className="data p-transits">
-      <thead><tr><th>Kesinleşme</th><th>Transit</th><th>Olay</th><th className="c">Natal ev</th><th className="c">Seri</th><th>Etkinlik dönemi</th><th>Süre</th></tr></thead>
+      <thead><tr><th>{t('Kesinleşme')}</th><th>{t('Transit')}</th><th>{t('Olay')}</th><th className="c">{t('Natal ev')}</th><th className="c">{t('Seri')}</th><th>{t('Etkinlik dönemi')}</th><th>{t('Süre')}</th></tr></thead>
       <tbody>
         {transits.map((e, k) => (
           <tr key={k}>
@@ -108,8 +110,8 @@ export function TransitTable({ natal, transits, tz }: { natal: ChartResult; tran
             <td>{eventText(e, nm)}</td>
             <td className="c num">{e.house ?? '—'}</td>
             <td className="c num">{e.pass && e.pass.of > 1 ? `${e.pass.n}/${e.pass.of}` : '—'}</td>
-            <td className="num nowrap">{e.window ? `${fmtD(e.window.start, tz)} – ${fmtD(e.window.end, tz)}` : '—'}{e.window?.segments ? <div className="muted">{e.window.segments.length} parça: {e.window.segments.map((s) => `${fmtD(s.start, tz)}–${fmtD(s.end, tz)}`).join(', ')}</div> : null}</td>
-            <td>{e.window ? `${DURATION_NAME[durationClass(e)!]} · ${Math.round(windowDays(e))} g` : '—'}</td>
+            <td className="num nowrap">{e.window ? `${fmtD(e.window.start, tz)} – ${fmtD(e.window.end, tz)}` : '—'}{e.window?.segments ? <div className="muted">{t('{n} parça: {list}', { n: e.window.segments.length, list: e.window.segments.map((s) => `${fmtD(s.start, tz)}–${fmtD(s.end, tz)}`).join(', ') })}</div> : null}</td>
+            <td>{e.window ? `${DURATION_NAME[durationClass(e)!]} · ${t('{n} g', { n: Math.round(windowDays(e)) })}` : '—'}</td>
           </tr>
         ))}
       </tbody>
@@ -119,9 +121,9 @@ export function TransitTable({ natal, transits, tz }: { natal: ChartResult; tran
 
 const verText = (info?: AppInfo) => {
   const v = info?.verification
-  const f = (r?: { date: string; version: string; passed: number; failed: number; sweph: string }, name?: string) => r ? `${name}: ${r.passed} kontrol geçti${r.failed ? `, ${r.failed} başarısız` : ''} (${new Date(r.date).toLocaleDateString('tr-TR')}, sürüm ${r.version}, Swiss Ephemeris ${r.sweph})` : ''
-  const t = [f(v?.verify, 'Testler (npm run verify)'), f(v?.audit, 'Değer denetimi (npm run denetim)')].filter(Boolean).join(' · ')
-  return t || 'Bu kurulumda doğrulama kaydı bulunamadı (testler bu bilgisayarda çalıştırılmamış).'
+  const f = (r?: { date: string; version: string; passed: number; failed: number; sweph: string }, name?: string) => r ? t('{name}: {passed} kontrol geçti', { name: name ?? '', passed: r.passed }) + (r.failed ? t(', {n} başarısız', { n: r.failed }) : '') + ' ' + t('({date}, sürüm {version}, Swiss Ephemeris {sweph})', { date: new Date(r.date).toLocaleDateString(loc()), version: r.version, sweph: r.sweph }) : ''
+  const txt = [f(v?.verify, t('Testler (npm run verify)')), f(v?.audit, t('Değer denetimi (npm run denetim)'))].filter(Boolean).join(' · ')
+  return txt || t('Bu kurulumda doğrulama kaydı bulunamadı (testler bu bilgisayarda çalıştırılmamış).')
 }
 
 /** Teknik ek: sonuçları yeniden üretmek için gereken her şey */
@@ -131,25 +133,25 @@ export function TechnicalAppendix({ view, settings, info, reportAt }: { view: Vi
   const natal = c.kind === 'natal' ? c : view.outer?.kind === 'natal' ? view.outer : c
   const prof = activeOrbs(settings)
   const rows: [string, string][] = [
-    ['Program', `SouthAstra ${info?.version ?? ''} · ${info?.platform ?? ''}`],
-    ['Efemeris', `${info?.sweph ? 'Swiss Ephemeris ' + info.sweph : c.ephemeris}${info?.epheFiles?.length ? ' · dosyalar: ' + info.epheFiles.join(', ') : ''}`],
-    ['Konum türü', 'Geosantrik, görünür konum (ışık zamanı ve sapınç düzeltmeli), gerçek ekinoks; ΔT Swiss Ephemeris modeli'],
-    ['Zodyak', settings.zodiac === 'sidereal' ? `Sideral · ayanamsa ${AYANAMSAS.find((a) => a.id === settings.ayanamsa)?.name ?? settings.ayanamsa}` : 'Tropikal'],
-    ['Ev sistemi', c.hasHouses ? c.houseSystemUsed : `${HOUSE_SYSTEMS.find((h) => h.id === c.houseSystem)?.name ?? ''} (doğum saati bilinmediği için evler hesaplanmadı)`],
-    ['Ay düğümü', i.nodeType === 'mean' ? 'Ortalama düğüm' : 'Gerçek (oskülatör) düğüm'],
-    ['Burç yöneticiliği', settings.rulership === 'traditional' ? 'Geleneksel (yedi gezegen)' : 'Modern (♅ Kova, ♆ Balık, ♇ Akrep)'],
-    ['Orb profili', `${prof.name}: ${ASPECTS.map((a) => `${a.name} ±${prof.orbs[a.type] ?? '—'}°`).join(', ')}; Güneş/Ay ek orbu ${prof.luminaryBonus}°`],
-    ['Transit / progresyon orbu', `±${settings.transitOrb}° (transit etkinlik dönemi bu orba göre)`],
-    ['Doğum saati güvenilirliği', i.rodden ? `Rodden ${i.rodden} — ${RODDEN.find((r) => r.id === i.rodden)?.desc ?? ''}` : 'Belirtilmedi'],
-    ['Saat bilgisi', i.timeUnknown ? 'Doğum saati bilinmiyor: 12:00 yalnızca hesap referansı; Ay açıları gün boyunca tarandı' : `${i.date} ${i.time} yerel saat`],
-    ['UTC dönüşümü', `${natal.utc.replace('T', ' ').replace(/(\.\d+)?Z$/, '')} UT · ofset ${fmtOffset(natal.offsetMinutes)} · ${i.timeMode === 'zone' ? `saat dilimi ${i.place.tz} (IANA tarihsel kuralları)` : i.timeMode === 'lmt' ? 'yerel ortalama zaman (LMT, boylamdan)' : 'elle girilen ofset'}`],
-    ['Jülyen günü', `${jdText(natal)} — hesaplar UT1 ile yapılır; UTC değeri saat dilimi dönüşümünden`],
-    ['Doğum yeri', `${placeLabel(i.place)} · ${i.place.lat.toFixed(5)}°, ${i.place.lon.toFixed(5)}° · kaynak: ${i.place.geonameId ? `GeoNames ${i.place.geonameId}${i.place.precision ? ` (${precisionText(i.place.precision)})` : ''}` : 'elle girilen koordinat'}`],
-    ...(c.place && (c.place.lat !== i.place.lat || c.place.lon !== i.place.lon) ? [['Harita yeri', `${placeLabel(c.place)} · ${c.place.lat.toFixed(5)}°, ${c.place.lon.toFixed(5)}°`] as [string, string]] : []),
-    ...(view.outer && view.outer.kind !== 'natal' ? [['İkinci çark', `${view.outer.label} · ${view.outer.utc.replace('T', ' ').replace(/(\.\d+)?Z$/, '')} UT`] as [string, string]] : []),
-    ['Rapor oluşturuldu', `${new Date(reportAt).toLocaleString('tr-TR', { dateStyle: 'long', timeStyle: 'short' })} (bilgisayar saati)`],
-    ['Doğrulama yöntemi', 'Gezegen konumları ve transit anları NASA JPL Horizons ile, ev başlangıçları bağımsız formüllerle, ortalama Ay düğümü Meeus formülüyle, saat dilimleri IANA verisiyle, şehir koordinatları OpenStreetMap ile karşılaştırılır.'],
-    ['Son doğrulama', verText(info)]
+    [t('Program'), `SouthAstra ${info?.version ?? ''} · ${info?.platform ?? ''}`],
+    [t('Efemeris'), `${info?.sweph ? 'Swiss Ephemeris ' + info.sweph : c.ephemeris}${info?.epheFiles?.length ? ' · ' + t('dosyalar: {list}', { list: info.epheFiles.join(', ') }) : ''}`],
+    [t('Konum türü'), t('Geosantrik, görünür konum (ışık zamanı ve sapınç düzeltmeli), gerçek ekinoks; ΔT Swiss Ephemeris modeli')],
+    [t('Zodyak'), settings.zodiac === 'sidereal' ? t('Sideral · ayanamsa {name}', { name: AYANAMSAS.find((a) => a.id === settings.ayanamsa)?.name ?? settings.ayanamsa }) : t('Tropikal')],
+    [t('Ev sistemi'), c.hasHouses ? c.houseSystemUsed : `${HOUSE_SYSTEMS.find((h) => h.id === c.houseSystem)?.name ?? ''} ${t('(doğum saati bilinmediği için evler hesaplanmadı)')}`],
+    [t('Ay düğümü'), i.nodeType === 'mean' ? t('Ortalama düğüm') : t('Gerçek (oskülatör) düğüm')],
+    [t('Burç yöneticiliği'), settings.rulership === 'traditional' ? t('Geleneksel (yedi gezegen)') : t('Modern (♅ Kova, ♆ Balık, ♇ Akrep)')],
+    [t('Orb profili'), `${t(prof.name)}: ${ASPECTS.map((a) => `${a.name} ±${prof.orbs[a.type] ?? '—'}°`).join(', ')}; ${t('Güneş/Ay ek orbu {n}°', { n: prof.luminaryBonus })}`],
+    [t('Transit / progresyon orbu'), t('±{n}° (transit etkinlik dönemi bu orba göre)', { n: settings.transitOrb })],
+    [t('Doğum saati güvenilirliği'), i.rodden ? `Rodden ${i.rodden} — ${RODDEN.find((r) => r.id === i.rodden)?.desc ?? ''}` : t('Belirtilmedi')],
+    [t('Saat bilgisi'), i.timeUnknown ? t('Doğum saati bilinmiyor: 12:00 yalnızca hesap referansı; Ay açıları gün boyunca tarandı') : t('{date} {time} yerel saat', { date: i.date, time: i.time })],
+    [t('UTC dönüşümü'), `${natal.utc.replace('T', ' ').replace(/(\.\d+)?Z$/, '')} UT · ${t('ofset {offset}', { offset: fmtOffset(natal.offsetMinutes) })} · ${i.timeMode === 'zone' ? t('saat dilimi {tz} (IANA tarihsel kuralları)', { tz: i.place.tz }) : i.timeMode === 'lmt' ? t('yerel ortalama zaman (LMT, boylamdan)') : t('elle girilen ofset')}`],
+    [t('Jülyen günü'), `${jdText(natal)} — ${t('hesaplar UT1 ile yapılır; UTC değeri saat dilimi dönüşümünden')}`],
+    [t('Doğum yeri'), `${placeLabel(i.place)} · ${i.place.lat.toFixed(5)}°, ${i.place.lon.toFixed(5)}° · ${t('kaynak: {src}', { src: i.place.geonameId ? `GeoNames ${i.place.geonameId}${i.place.precision ? ` (${precisionText(i.place.precision)})` : ''}` : t('elle girilen koordinat') })}`],
+    ...(c.place && (c.place.lat !== i.place.lat || c.place.lon !== i.place.lon) ? [[t('Harita yeri'), `${placeLabel(c.place)} · ${c.place.lat.toFixed(5)}°, ${c.place.lon.toFixed(5)}°`] as [string, string]] : []),
+    ...(view.outer && view.outer.kind !== 'natal' ? [[t('İkinci çark'), `${view.outer.label} · ${view.outer.utc.replace('T', ' ').replace(/(\.\d+)?Z$/, '')} UT`] as [string, string]] : []),
+    [t('Rapor oluşturuldu'), `${new Date(reportAt).toLocaleString(loc(), { dateStyle: 'long', timeStyle: 'short' })} ${t('(bilgisayar saati)')}`],
+    [t('Doğrulama yöntemi'), t('Gezegen konumları ve transit anları NASA JPL Horizons ile, ev başlangıçları bağımsız formüllerle, ortalama Ay düğümü Meeus formülüyle, saat dilimleri IANA verisiyle, şehir koordinatları OpenStreetMap ile karşılaştırılır.')],
+    [t('Son doğrulama'), verText(info)]
   ]
   return <dl className="p-meta p-tech">{rows.map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}</dl>
 }

@@ -22,5 +22,14 @@ export function t(s: string, vars?: Record<string, string | number>): string {
   return out
 }
 
+/**
+ * Bağlamlı çeviri: Türkçede aynı yazılan metnin İngilizcesi bağlama göre değişiyorsa.
+ * tc('ev', 'Başlangıç') → Türkçe "Başlangıç"; İngilizce sözlükte 'ev::Başlangıç' (yoksa 'Başlangıç') karşılığı.
+ */
+export function tc(ctx: string, s: string, vars?: Record<string, string | number>): string {
+  const k = `${ctx}::${s}`
+  return lang === 'en' && k in EN ? t(k, vars) : t(s, vars)
+}
+
 /** Testler ve eksik çeviri taraması için */
 export const enKeys = (): string[] => Object.keys(EN)

@@ -1,6 +1,7 @@
 // Geleneksel astroloji: esas dignite (Ptolemaios / Lilly), karşılıklı ağırlama, dispozitör zinciri
 import type { ChartResult } from './types'
 import { signOf } from './zodiac'
+import { t } from './i18n'
 
 export const TRAD = ['sun', 'moon', 'mercury', 'venus', 'mars', 'jupiter', 'saturn'] as const
 type P = (typeof TRAD)[number]
@@ -67,14 +68,14 @@ export function essentialDignities(c: ChartResult, dayOverride?: boolean): Digni
     if (!p) continue
     const s = signOf(p.lon)
     const row: DignityRow = { id, sign: s, ruler: signRuler(p.lon), exalt: exaltRuler(p.lon), trip: tripRuler(p.lon, day), term: termRuler(p.lon), face: faceRuler(p.lon), has: [], score: 0 }
-    if (row.ruler === id) { row.has.push('Ev +5'); row.score += 5 }
-    if (row.exalt === id) { row.has.push('Yücelim +4'); row.score += 4 }
-    if (row.trip === id) { row.has.push('Üçlük +3'); row.score += 3 }
-    if (row.term === id) { row.has.push('Sınır +2'); row.score += 2 }
-    if (row.face === id) { row.has.push('Dekan +1'); row.score += 1 }
-    if (SIGN_RULER[(s + 6) % 12] === id) { row.has.push('Zarar −5'); row.score -= 5 }
-    if (EXALT_SIGN[id] !== undefined && (EXALT_SIGN[id]! + 6) % 12 === s) { row.has.push('Düşüş −4'); row.score -= 4 }
-    if (!row.has.some((h) => h.includes('+'))) { row.has.push('Peregrine −5'); row.score -= 5 }
+    if (row.ruler === id) { row.has.push(t('Ev +5')); row.score += 5 }
+    if (row.exalt === id) { row.has.push(t('Yücelim +4')); row.score += 4 }
+    if (row.trip === id) { row.has.push(t('Üçlük +3')); row.score += 3 }
+    if (row.term === id) { row.has.push(t('Sınır +2')); row.score += 2 }
+    if (row.face === id) { row.has.push(t('Dekan +1')); row.score += 1 }
+    if (SIGN_RULER[(s + 6) % 12] === id) { row.has.push(t('Zarar −5')); row.score -= 5 }
+    if (EXALT_SIGN[id] !== undefined && (EXALT_SIGN[id]! + 6) % 12 === s) { row.has.push(t('Düşüş −4')); row.score -= 4 }
+    if (!row.has.some((h) => h.includes('+'))) { row.has.push(t('Peregrine −5')); row.score -= 5 }
     rows.push(row)
   }
   return rows
@@ -91,9 +92,9 @@ export function mutualReceptions(c: ChartResult): { a: P; b: P; kind: string }[]
       const la = pos[a]
       const lb = pos[b]
       if (la === undefined || lb === undefined) continue
-      if (signRuler(la) === b && signRuler(lb) === a) out.push({ a, b, kind: 'ev ile' })
-      else if (exaltRuler(la) === b && exaltRuler(lb) === a) out.push({ a, b, kind: 'yücelim ile' })
-      else if ((signRuler(la) === b && exaltRuler(lb) === a) || (exaltRuler(la) === b && signRuler(lb) === a)) out.push({ a, b, kind: 'karma (ev / yücelim)' })
+      if (signRuler(la) === b && signRuler(lb) === a) out.push({ a, b, kind: t('ev ile') })
+      else if (exaltRuler(la) === b && exaltRuler(lb) === a) out.push({ a, b, kind: t('yücelim ile') })
+      else if ((signRuler(la) === b && exaltRuler(lb) === a) || (exaltRuler(la) === b && signRuler(lb) === a)) out.push({ a, b, kind: t('karma (ev / yücelim)') })
     }
   }
   return out

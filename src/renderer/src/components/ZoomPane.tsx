@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { isMac } from '../platform'
+import { t } from '@shared/i18n'
 
 /**
  * Orta alan için yakınlaştırma: trackpad sıkıştırma veya ⌘/Ctrl + tekerlek ile yakınlaş,
@@ -86,9 +87,9 @@ export default function ZoomPane({ children, resetKey }: { children: React.React
     >
       <div className="zoom-inner" style={{ transform: `translate(${z.x}px, ${z.y}px) scale(${z.s})` }}>{children}</div>
       <div className="zoom-ctrl" onPointerDown={(e) => e.stopPropagation()}>
-        <button onClick={() => zoomAt(1 / 1.25)} disabled={z.s <= 1} title="Uzaklaştır">−</button>
-        <button className="pct" onClick={() => setZ({ s: 1, x: 0, y: 0 })} title="Sığdır (çift tıklama da sığdırır)">{pct}%</button>
-        <button onClick={() => zoomAt(1.25)} disabled={z.s >= 8} title={isMac ? "Yakınlaştır (⌘ + tekerlek veya trackpad'de sıkıştırma)" : 'Yakınlaştır (Ctrl + tekerlek)'}>+</button>
+        <button onClick={() => zoomAt(1 / 1.25)} disabled={z.s <= 1} title={t('Uzaklaştır')}>−</button>
+        <button className="pct" onClick={() => setZ({ s: 1, x: 0, y: 0 })} title={t('Sığdır (çift tıklama da sığdırır)')}>{pct}%</button>
+        <button onClick={() => zoomAt(1.25)} disabled={z.s >= 8} title={isMac ? t("Yakınlaştır (⌘ + tekerlek veya trackpad'de sıkıştırma)") : t('Yakınlaştır (Ctrl + tekerlek)')}>+</button>
       </div>
     </div>
   )

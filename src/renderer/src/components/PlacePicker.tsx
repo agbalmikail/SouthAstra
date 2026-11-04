@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { CityHit, Place } from '@shared/types'
 import { placeLabel } from '@shared/types'
 import { parseCoords } from '../coords'
+import { t } from '@shared/i18n'
 
 /** Dönüş ve taşınma haritaları için kompakt yer seçici: doğum yeri, yaşadığı yer, arama veya koordinat */
 export default function PlacePicker({ birth, residence, value, onChange, onSaveResidence }: {
@@ -32,21 +33,21 @@ export default function PlacePicker({ birth, residence, value, onChange, onSaveR
   const pick = (p: Place | null) => { onChange(p); setOpen(false); setQ('') }
   return (
     <div className="place-picker" ref={box}>
-      <button className="btn ghost place-btn" onClick={() => setOpen(!open)} title="Haritanın kurulacağı yer">
-        <span className="muted small">Yer</span> {current.name}{same(current, birth) ? <span className="muted small"> · doğum yeri</span> : same(current, residence) ? <span className="muted small"> · yaşadığı yer</span> : ''} ▾
+      <button className="btn ghost place-btn" onClick={() => setOpen(!open)} title={t('Haritanın kurulacağı yer')}>
+        <span className="muted small">{t('Yer')}</span> {current.name}{same(current, birth) ? <span className="muted small"> · {t('doğum yeri')}</span> : same(current, residence) ? <span className="muted small"> · {t('yaşadığı yer')}</span> : ''} ▾
       </button>
       {open && (
         <div className="place-pop">
-          <button className={same(current, birth) ? 'pp-item on' : 'pp-item'} onClick={() => pick(null)}><b>Doğum yeri</b><span className="muted small">{placeLabel(birth)}</span></button>
-          {residence && !same(residence, birth) && <button className={same(current, residence) ? 'pp-item on' : 'pp-item'} onClick={() => pick(residence)}><b>Yaşadığı yer</b><span className="muted small">{placeLabel(residence)}</span></button>}
-          <input id="pp-q" autoFocus placeholder="Başka bir şehir veya koordinat…" value={q} onChange={(e) => setQ(e.target.value)} />
+          <button className={same(current, birth) ? 'pp-item on' : 'pp-item'} onClick={() => pick(null)}><b>{t('Doğum yeri')}</b><span className="muted small">{placeLabel(birth)}</span></button>
+          {residence && !same(residence, birth) && <button className={same(current, residence) ? 'pp-item on' : 'pp-item'} onClick={() => pick(residence)}><b>{t('Yaşadığı yer')}</b><span className="muted small">{placeLabel(residence)}</span></button>}
+          <input id="pp-q" autoFocus placeholder={t('Başka bir şehir veya koordinat…')} value={q} onChange={(e) => setQ(e.target.value)} />
           {hits.map((h) => (
             <button key={`${h.geonameId}-${h.lat}`} className="pp-item" onClick={() => pick({ name: h.name, localName: h.localName, district: h.district, region: h.region, country: h.country, countryCode: h.countryCode, lat: h.lat, lon: h.lon, tz: h.tz, geonameId: h.precision === 'Elle girilen koordinat' ? undefined : h.geonameId, precision: h.precision })}>
               <b>{h.name}</b><span className="muted small">{[h.district, h.region, h.country].filter((x) => x && x !== h.name).join(', ')} · {h.lat.toFixed(3)}°, {h.lon.toFixed(3)}°</span>
             </button>
           ))}
           {onSaveResidence && value && !same(value, birth) && !same(value, residence) && (
-            <button className="pp-save" onClick={() => { onSaveResidence(value); setOpen(false) }}>“{value.name}” yerini danışanın yaşadığı yer olarak kaydet</button>
+            <button className="pp-save" onClick={() => { onSaveResidence(value); setOpen(false) }}>{t('“{place}” yerini danışanın yaşadığı yer olarak kaydet', { place: value.name })}</button>
           )}
         </div>
       )}

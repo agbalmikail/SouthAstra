@@ -2,6 +2,7 @@
 // (Electron/Chromium'un ICU verisi). Yaz saati geçişlerindeki belirsizlikleri uyarı olarak bildirir.
 import { IANAZone } from 'luxon'
 import type { ChartInput } from '@shared/types'
+import { t } from '@shared/i18n'
 
 export interface UtcResult {
   utcMs: number
@@ -14,7 +15,7 @@ export interface UtcResult {
 function parseLocal(date: string, time: string): number {
   const [y, mo, d] = date.split('-').map(Number)
   const [h, mi, s = 0] = time.split(':').map(Number)
-  if ([y, mo, d, h, mi, s].some((n) => !Number.isFinite(n))) throw new Error('Tarih veya saat okunamadı')
+  if ([y, mo, d, h, mi, s].some((n) => !Number.isFinite(n))) throw new Error(t('Tarih veya saat okunamadı'))
   // Yerel saati "UTC gibi" sayıya çevir; ofset ayrıca çıkarılacak
   const dt = new Date(0)
   dt.setUTCFullYear(y, mo - 1, d)
@@ -37,17 +38,17 @@ export function toUtc(input: ChartInput): UtcResult {
 
   if (input.timeMode === 'manual') {
     const off = Math.round((input.manualOffset ?? 0) * 60 * 60) / 60
-    return { utcMs: local - off * 60000, offsetMinutes: off, source: `Elle girilen ofset (${fmtOffset(off)})`, warnings }
+    return { utcMs: local - off * 60000, offsetMinutes: off, source: t('Elle girilen ofset ({offset})', { offset: fmtOffset(off) }), warnings }
   }
 
   if (input.timeMode === 'lmt') {
     // Yerel ortalama saat: boylamın her 15°'si 1 saat
     const off = (input.place.lon / 15) * 60
-    return { utcMs: local - off * 60000, offsetMinutes: off, source: `Yerel ortalama saat (LMT, ${fmtOffset(off)})`, warnings }
+    return { utcMs: local - off * 60000, offsetMinutes: off, source: t('Yerel ortalama saat (LMT, {offset})', { offset: fmtOffset(off) }), warnings }
   }
 
   const zone = IANAZone.create(input.place.tz)
-  if (!zone.isValid) throw new Error(`Saat dilimi tanınmadı: ${input.place.tz}`)
+  if (!zone.isValid) throw new Error(t('Saat dilimi tanınmadı: {tz}', { tz: input.place.tz }))
 
   // Yerel saate karşılık gelebilecek tüm UTC anlarını bul (yaz saati geçişleri için)
   const candidates = new Set<number>()
@@ -58,11 +59,11 @@ export function toUtc(input: ChartInput): UtcResult {
   if (valid.length === 0) {
     // Yaz saatine geçişte "atlanan" saat (ör. 02:30 hiç yaşanmadı)
     off = zone.offset(local - [...candidates][0] * 60000)
-    warnings.push(`Bu yerel saat, yaz saatine geçiş sırasında atlanan aralığa düşüyor. ${fmtOffset(off)} varsayıldı; doğum kaydını kontrol edin.`)
+    warnings.push(t('Bu yerel saat, yaz saatine geçiş sırasında atlanan aralığa düşüyor. {offset} varsayıldı; doğum kaydını kontrol edin.', { offset: fmtOffset(off) }))
   } else {
     off = valid[0]
     if (valid.length > 1) {
-      warnings.push(`Bu yerel saat yaz saatinden dönüşte iki kez yaşandı (${valid.map(fmtOffset).join(' ve ')}). İlki (${fmtOffset(off)}) kullanıldı; gerekirse ofseti elle girin.`)
+      warnings.push(t('Bu yerel saat yaz saatinden dönüşte iki kez yaşandı ({offsets}). İlki ({offset}) kullanıldı; gerekirse ofseti elle girin.', { offsets: valid.map(fmtOffset).join(t(' ve ')), offset: fmtOffset(off) }))
     }
   }
 
@@ -70,16 +71,16 @@ export function toUtc(input: ChartInput): UtcResult {
   // referans şehrinin (ör. İstanbul, Berlin) yerel ortalama saatini kullanır, doğum yerininkini değil.
   if (Math.abs(off % 15) > 0.01) {
     const lmtHere = (input.place.lon / 15) * 60
-    warnings.push(`Bu tarihte bölgede standart saat yoktu. Saat dilimi veritabanı ${input.place.tz.split('/').pop()?.replace(/_/g, ' ')} şehrinin yerel saatini (${fmtOffset(off)}) veriyor; doğum yerinin kendi yerel ortalama saati ${fmtOffset(lmtHere)}. Doğum kaydı yerel saatle tutulduysa "Yerel ortalama (LMT)" seçeneğini kullanın.`)
+    warnings.push(t('Bu tarihte bölgede standart saat yoktu. Saat dilimi veritabanı {city} şehrinin yerel saatini ({offset}) veriyor; doğum yerinin kendi yerel ortalama saati {lmt}. Doğum kaydı yerel saatle tutulduysa "Yerel ortalama (LMT)" seçeneğini kullanın.', { city: input.place.tz.split('/').pop()?.replace(/_/g, ' ') ?? '', offset: fmtOffset(off), lmt: fmtOffset(lmtHere) }))
   }
 
   const year = Number(input.date.slice(0, 4))
   if (input.place.tz === 'Europe/Berlin' && year >= 1945 && year <= 1949) {
-    warnings.push('1945–1949 Almanya: işgal bölgelerinde saat uygulaması farklıydı. Saat dilimi veritabanı Berlin\'in (Sovyet bölgesi) kuralını kullanır; batı bölgelerinde (ör. Bonn, Köln, Münih) doğanlar için ofseti doğum kaydından doğrulayın, gerekirse "Elle ofset" seçin.')
+    warnings.push(t('1945–1949 Almanya: işgal bölgelerinde saat uygulaması farklıydı. Saat dilimi veritabanı Berlin\'in (Sovyet bölgesi) kuralını kullanır; batı bölgelerinde (ör. Bonn, Köln, Münih) doğanlar için ofseti doğum kaydından doğrulayın, gerekirse "Elle ofset" seçin.'))
   } else if (input.place.tz === 'Europe/Istanbul' && year < 1985) {
-    warnings.push('1985 öncesi Türkiye\'de yaz saati uygulaması sık değişti ve bazı yıllarda kayıtlar tartışmalı. Hesaplanan ofseti doğum yılı için doğrulayın.')
+    warnings.push(t('1985 öncesi Türkiye\'de yaz saati uygulaması sık değişti ve bazı yıllarda kayıtlar tartışmalı. Hesaplanan ofseti doğum yılı için doğrulayın.'))
   } else if (year < 1970) {
-    warnings.push('1970 öncesi saat dilimi kayıtları bazı bölgelerde eksik olabilir. Hesaplanan ofseti doğrulayın.')
+    warnings.push(t('1970 öncesi saat dilimi kayıtları bazı bölgelerde eksik olabilir. Hesaplanan ofseti doğrulayın.'))
   }
 
   // yaz saati mi? O yılın kış ve yaz ortasındaki ofsetlerin küçüğü standart saattir
@@ -90,7 +91,7 @@ export function toUtc(input: ChartInput): UtcResult {
   return {
     utcMs: local - off * 60000,
     offsetMinutes: off,
-    source: `${input.place.tz} saat dilimi, o tarihteki kurala göre (${fmtOffset(off)})`,
+    source: t('{tz} saat dilimi, o tarihteki kurala göre ({offset})', { tz: input.place.tz, offset: fmtOffset(off) }),
     warnings,
     dst
   }

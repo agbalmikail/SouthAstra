@@ -1,6 +1,7 @@
 import type { Aspect, ChartResult, PointPos } from '@shared/types'
 import { ASPECT_BY_TYPE, pad2, SIGNS } from '@shared/zodiac'
-import { fmtDecl, fmtOrb, lonParts } from '../format'
+import { decComma, fmtDecl, fmtOrb, lonParts } from '../format'
+import { tc, t } from '@shared/i18n'
 import { NO_RETRO } from './Wheel'
 
 export function Lon({ lon, seconds = false }: { lon: number; seconds?: boolean }) {
@@ -20,12 +21,16 @@ const DIGNITY_CLS: Record<string, string> = { Evinde: 'dg-good', Yücelimde: 'dg
 
 export function stationText(st: NonNullable<PointPos['station']>): string {
   const d = Math.abs(st.days)
-  const when = d < 1 ? `${Math.round(d * 24)} saat` : `${d.toFixed(1).replace('.', ',')} gün`
-  return `${st.kind === 'retro' ? 'Geri harekete' : 'Düz harekete'} dönüş (duraklama) doğumdan ${when} ${st.days >= 0 ? 'sonra' : 'önce'}: ${new Date(st.utc).toISOString().slice(0, 16).replace('T', ' ')} UT`
+  const when = d < 1 ? t('{n} saat', { n: Math.round(d * 24) }) : t('{n} gün', { n: decComma(d.toFixed(1)) })
+  const vars = { when, utc: new Date(st.utc).toISOString().slice(0, 16).replace('T', ' ') }
+  if (st.kind === 'retro') return st.days >= 0 ? t('Geri harekete dönüş (duraklama) doğumdan {when} sonra: {utc} UT', vars) : t('Geri harekete dönüş (duraklama) doğumdan {when} önce: {utc} UT', vars)
+  return st.days >= 0 ? t('Düz harekete dönüş (duraklama) doğumdan {when} sonra: {utc} UT', vars) : t('Düz harekete dönüş (duraklama) doğumdan {when} önce: {utc} UT', vars)
 }
 
 const lonTxt = (lon: number) => { const s = Math.floor(lon / 30); const d = lon - s * 30; return `${Math.floor(d)}°${pad2(Math.floor((d % 1) * 60))}′ ${SIGNS[s].name}` }
 
+/** Gezegen tablosu açıklaması (okunduğu anda çevrilir) */
+export const planetLegend = (): string => t(PLANET_LEGEND)
 export const PLANET_LEGEND = 'Hız: ekliptik boylamda günlük hareket (°/gün); eksi değer geri harekettir (R). DR / DD: duraklama, yani gezegen yön değiştiriyor (DR: geri harekete dönüyor, DD: düz harekete dönüyor). Kesin duraklama anı doğuma şu kadar gün yakınsa gösterilir: Merkür 1, Venüs 2, Mars 3, Jüpiter 5, Satürn 6, Uranüs ve Chiron 8, Neptün 9, Plüton 10, asteroitler 4. Düz harekete dönmeden önce gezegen hem R hem DD görünür. Dekl.: deklinasyon (K kuzey, G güney). Evinde / Yücelimde / Zararda / Düşüşte: geleneksel esas dignite. Ay düğümü türü adında belirtilir (gerçek veya ortalama).'
 
 export function PlanetTable({ chart, hovered, onHover, onSelect, prefix = '', compact = false, innerLabel }: { chart: ChartResult; prefix?: string; compact?: boolean; innerLabel?: string } & HoverProps) {
@@ -34,7 +39,7 @@ export function PlanetTable({ chart, hovered, onHover, onSelect, prefix = '', co
   return (
     <table className="data">
       <thead>
-        <tr><th></th><th>Nokta</th><th className="r">Boylam</th>{ownHouse && <th className="r">Ev</th>}{showInner && <th className="r" title={`Noktanın ${innerLabel} evlerindeki yeri (ekliptik boylama göre)`}>{innerLabel} evi</th>}{!compact && <><th className="r" title="Ekliptik boylamda günlük hareket">Hız °/gün</th><th className="r" title="Deklinasyon: K kuzey, G güney">Dekl.</th></>}</tr>
+        <tr><th></th><th>{t('Nokta')}</th><th className="r">{t('Boylam')}</th>{ownHouse && <th className="r">{t('Ev')}</th>}{showInner && <th className="r" title={t('Noktanın {label} evlerindeki yeri (ekliptik boylama göre)', { label: innerLabel })}>{t('{label} evi', { label: innerLabel })}</th>}{!compact && <><th className="r" title={t('Ekliptik boylamda günlük hareket')}>{t('Hız °/gün')}</th><th className="r" title={t('Deklinasyon: K kuzey, G güney')}>{t('Dekl.')}</th></>}</tr>
       </thead>
       <tbody>
         {chart.points.map((p) => (
@@ -42,11 +47,11 @@ export function PlanetTable({ chart, hovered, onHover, onSelect, prefix = '', co
             <td className={p.glyph.length > 2 ? 'g axis-txt' : 'sym g'}>{p.glyph}</td>
             <td>
               {p.name}
-              {p.id === 'moon' && chart.moonRange && <span className="tag cert-saate-bagli" title={`Doğum saati bilinmiyor: boylam 12:00 referansına göredir. Ay doğum gününde ${lonTxt(chart.moonRange.from)} ile ${lonTxt(chart.moonRange.to)} arasındadır.`}>12:00 ref.</span>}
-              {p.id === 'moon' && chart.moonRange && <div className="moon-range-txt">gün içi {lonTxt(chart.moonRange.from)} – {lonTxt(chart.moonRange.to)}</div>}
-              {p.retro && !NO_RETRO.has(p.id) && <span className="tag retro" title="Geri hareket (retro)">R</span>}
-              {p.station && <span className="tag stat" title={stationText(p.station)}>{p.station.kind === 'retro' ? 'DR' : 'DD'}</span>}
-              {p.dignity && <span className={`tag ${DIGNITY_CLS[p.dignity]}`} title="Esas dignite">{p.dignity}</span>}
+              {p.id === 'moon' && chart.moonRange && <span className="tag cert-saate-bagli" title={t('Doğum saati bilinmiyor: boylam 12:00 referansına göredir. Ay doğum gününde {from} ile {to} arasındadır.', { from: lonTxt(chart.moonRange.from), to: lonTxt(chart.moonRange.to) })}>{t('12:00 ref.')}</span>}
+              {p.id === 'moon' && chart.moonRange && <div className="moon-range-txt">{t('gün içi {from} – {to}', { from: lonTxt(chart.moonRange.from), to: lonTxt(chart.moonRange.to) })}</div>}
+              {p.retro && !NO_RETRO.has(p.id) && <span className="tag retro" title={t('Geri hareket (retro)')}>R</span>}
+              {p.station && <span className="tag stat" title={stationText(p.station)}>{p.station.kind === 'retro' ? t('DR') : t('DD')}</span>}
+              {p.dignity && <span className={`tag ${DIGNITY_CLS[p.dignity]}`} title={t('Esas dignite')}>{t(p.dignity)}</span>}
             </td>
             <td className="r"><Lon lon={p.lon} seconds /></td>
             {ownHouse && <td className="r num">{chart.hasHouses && p.house ? p.house : '—'}</td>}
@@ -57,7 +62,7 @@ export function PlanetTable({ chart, hovered, onHover, onSelect, prefix = '', co
             </>}
           </tr>
         ))}
-        {chart.hasHouses && ([['AC', 'Yükselen', chart.angles.asc], ['MC', 'Gökyüzü ortası', chart.angles.mc], ['Vx', 'Vertex', chart.angles.vertex]] as const).map(([k, n, lon]) => (
+        {chart.hasHouses && ([['AC', t('Yükselen'), chart.angles.asc], ['MC', t('Gökyüzü ortası'), chart.angles.mc], ['Vx', t('Vertex'), chart.angles.vertex]] as const).map(([k, n, lon]) => (
           <tr key={k} className="angle-row">
             <td className="g axis-txt">{k}</td>
             <td>{n}</td>
@@ -71,10 +76,10 @@ export function PlanetTable({ chart, hovered, onHover, onSelect, prefix = '', co
 }
 
 export function HouseTable({ chart }: { chart: ChartResult }) {
-  if (!chart.hasHouses) return <p className="empty-note">Doğum saati bilinmediği için evler hesaplanmadı.</p>
+  if (!chart.hasHouses) return <p className="empty-note">{t('Doğum saati bilinmediği için evler hesaplanmadı.')}</p>
   return (
     <table className="data">
-      <thead><tr><th>Ev</th><th className="r">Başlangıç</th><th className="r">Genişlik</th><th className="r">İçindekiler</th></tr></thead>
+      <thead><tr><th>{t('Ev')}</th><th className="r">{tc('ev', 'Başlangıç')}</th><th className="r">{t('Genişlik')}</th><th className="r">{t('İçindekiler')}</th></tr></thead>
       <tbody>
         {chart.cusps.map((c, i) => {
           const next = chart.cusps[(i + 1) % 12]
@@ -115,7 +120,7 @@ export function AspectGrid({ chart, showMinor, hovered, onHover, legend }: { cha
                 const show = a && def && (showMinor || def.major)
                 const on = hovered && (hovered === row || hovered === col)
                 return (
-                  <td key={col} className={[on ? 'on' : '', a?.certainty && a.certainty !== 'kesin' ? 'uncertain' : ''].join(' ')} title={show && a && def ? `${def.name} · ${a.certainty && a.certainty !== 'kesin' ? `${CERT[a.certainty]} (doğum saati bilinmiyor) · 12:00'de orb ${fmtOrb(a.orb)}` : `orb ${fmtOrb(a.orb)} · ${a.applying ? 'yaklaşan' : 'ayrılan'}`}` : ''}>
+                  <td key={col} className={[on ? 'on' : '', a?.certainty && a.certainty !== 'kesin' ? 'uncertain' : ''].join(' ')} title={show && a && def ? `${def.name} · ${a.certainty && a.certainty !== 'kesin' ? t("{cert} (doğum saati bilinmiyor) · 12:00'de orb {orb}", { cert: certLabel(a.certainty), orb: fmtOrb(a.orb) }) : a.applying ? t('orb {orb} · yaklaşan', { orb: fmtOrb(a.orb) }) : t('orb {orb} · ayrılan', { orb: fmtOrb(a.orb) })}` : ''}>
                     {show && a && def && (<><span className={`asp-g ${a.type}`}>{def.glyph}</span><span className="asp-orb">{a.certainty && a.certainty !== 'kesin' ? '?' : <>{a.applying ? 'A' : 'S'}{Math.floor(a.orb)}°{pad2(Math.round((a.orb % 1) * 60) % 60)}</>}</span></>)}
                   </td>
                 )
@@ -127,30 +132,34 @@ export function AspectGrid({ chart, showMinor, hovered, onHover, legend }: { cha
           ))}
         </tbody>
       </table>
-      {legend ?? <p className="hint">A: yaklaşan, S: ayrılan. Hücrenin üstüne gelince açının adı ve tam orbu görünür.</p>}
+      {legend ?? <p className="hint">{t('A: yaklaşan, S: ayrılan. Hücrenin üstüne gelince açının adı ve tam orbu görünür.')}</p>}
     </div>
   )
 }
 
 function nameOf(chart: ChartResult | undefined, id: string): { glyph: string; name: string } {
-  if (id === 'asc') return { glyph: 'AC', name: 'Yükselen' }
+  if (id === 'asc') return { glyph: 'AC', name: t('Yükselen') }
   if (id === 'mc') return { glyph: 'MC', name: 'MC' }
   const p = chart?.points.find((x) => x.id === id)
   return { glyph: p?.glyph ?? '?', name: p?.name ?? id }
 }
 
 const CERT: Record<string, string> = { kesin: 'kesin', 'saate-bagli': 'saate bağlı', olasi: 'olası' }
+const certLabel = (c: string): string => t(CERT[c] ?? c)
 const CERT_HINT: Record<string, string> = {
   kesin: 'Doğum saati bilinmiyor; Ay bu açıyı doğum gününün her saatinde orb içinde yapıyor.',
   'saate-bagli': 'Doğum saati bilinmiyor; açı 12:00 referans saatinde var ama günün bir kısmında orb dışında kalıyor.',
   olasi: "Doğum saati bilinmiyor; açı 12:00'de yok ama gün içinde başka bir saatte oluşabiliyor. Parantezdeki değer gün içindeki en dar orb."
 }
-export const MOON_UNCERTAINTY_NOTE = "Doğum saati bilinmiyor: Ay'ın açıları doğum günü boyunca (00:00–24:00) tarandı. Kesin: her saatte orb içinde · Saate bağlı: 12:00 referansında var, günün bir kısmında yok · Olası: 12:00'de yok, başka bir saatte oluşabilir. Orb değerleri 12:00 referans saatine göredir; gerçek orb bilinmiyor."
+const certHint = (c: string): string => t(CERT_HINT[c] ?? '')
+/** Saati bilinmeyen haritada Ay açıları notu (okunduğu anda çevrilir) */
+export const moonUncertaintyNote = (): string => t(MOON_UNCERTAINTY_NOTE)
+const MOON_UNCERTAINTY_NOTE = "Doğum saati bilinmiyor: Ay'ın açıları doğum günü boyunca (00:00–24:00) tarandı. Kesin: her saatte orb içinde · Saate bağlı: 12:00 referansında var, günün bir kısmında yok · Olası: 12:00'de yok, başka bir saatte oluşabilir. Orb değerleri 12:00 referans saatine göredir; gerçek orb bilinmiyor."
 
 function AspectRows({ list, a, b, prefixA, hovered, onHover, la, lb }: { list: Aspect[]; a: ChartResult | undefined; b: ChartResult } & HoverProps & { prefixA: string; la?: string; lb?: string }) {
   return (
     <table className="data">
-      <thead><tr><th>Açı</th><th className="r">Orb</th><th className="r">Durum</th></tr></thead>
+      <thead><tr><th>{t('Açı')}</th><th className="r">{t('Orb')}</th><th className="r">{t('Durum')}</th></tr></thead>
       <tbody>
         {list.map((x, i) => {
           const def = ASPECT_BY_TYPE[x.type]
@@ -164,15 +173,15 @@ function AspectRows({ list, a, b, prefixA, hovered, onHover, la, lb }: { list: A
                 <span className={txt(A.glyph)}>{A.glyph}</span> <span className={`asp-g ${x.type}`}>{def.glyph}</span> <span className={txt(B.glyph)}>{B.glyph}</span>
                 <span className="muted small"> {la && <b className="side-a">{la} </b>}{A.name} {def.name.toLowerCase()} {lb && <b className="side-b">{lb} </b>}{B.name}</span>
               </td>
-              <td className="r num">{x.certainty === 'olasi' ? <span className="muted" title="12:00'de açı yok; gün içindeki en dar orb">({fmtOrb(x.minOrb ?? x.orb)})</span> : fmtOrb(x.orb)}</td>
+              <td className="r num">{x.certainty === 'olasi' ? <span className="muted" title={t("12:00'de açı yok; gün içindeki en dar orb")}>({fmtOrb(x.minOrb ?? x.orb)})</span> : fmtOrb(x.orb)}</td>
               <td className="r muted small">
-                {x.certainty && <span className={`tag cert-${x.certainty}`} title={CERT_HINT[x.certainty]}>{CERT[x.certainty]}</span>}{' '}
-                {x.type === 'parallel' || x.type === 'contraparallel' ? 'deklinasyon' : x.applyingUnknown ? 'yön saate bağlı' : x.certainty && x.certainty !== 'kesin' ? '' : x.applying ? 'yaklaşan' : 'ayrılan'}
+                {x.certainty && <span className={`tag cert-${x.certainty}`} title={certHint(x.certainty)}>{certLabel(x.certainty)}</span>}{' '}
+                {x.type === 'parallel' || x.type === 'contraparallel' ? t('deklinasyon') : x.applyingUnknown ? t('yön saate bağlı') : x.certainty && x.certainty !== 'kesin' ? '' : x.applying ? t('yaklaşan') : t('ayrılan')}
               </td>
             </tr>
           )
         })}
-        {!list.length && <tr><td colSpan={3} className="muted">Bu ayarlarla açı bulunmadı.</td></tr>}
+        {!list.length && <tr><td colSpan={3} className="muted">{t('Bu ayarlarla açı bulunmadı.')}</td></tr>}
       </tbody>
     </table>
   )
@@ -180,10 +189,11 @@ function AspectRows({ list, a, b, prefixA, hovered, onHover, la, lb }: { list: A
 
 export function AspectList({ chart, showMinor, hovered, onHover }: { chart: ChartResult; showMinor: boolean } & HoverProps) {
   const list = chart.aspects.filter((a) => showMinor || ASPECT_BY_TYPE[a.type].major)
-  return <>{chart.moonRange && <p className="hint">{MOON_UNCERTAINTY_NOTE}</p>}<AspectRows list={list} a={chart} b={chart} prefixA="" hovered={hovered} onHover={onHover} /></>
+  return <>{chart.moonRange && <p className="hint">{moonUncertaintyNote()}</p>}<AspectRows list={list} a={chart} b={chart} prefixA="" hovered={hovered} onHover={onHover} /></>
 }
 
-const sideLabel = (c: ChartResult): string => ({ transit: 'Transit', progressed: 'Progresif', tertiary: 'Tersiyer', minor: 'Minör', solararc: 'Solar arc', solarreturn: 'Dönüş', lunarreturn: 'Dönüş', natal: 'Natal', composite: 'Kompozit' } as Record<string, string>)[c.kind] ?? c.label
+const SIDE_LABEL: Record<string, string> = { transit: 'Transit', progressed: 'Progresif', tertiary: 'Tersiyer', minor: 'Minör', solararc: 'Solar arc', solarreturn: 'Dönüş', lunarreturn: 'Dönüş', natal: 'Natal', composite: 'Kompozit' }
+const sideLabel = (c: ChartResult): string => (SIDE_LABEL[c.kind] ? t(SIDE_LABEL[c.kind]) : c.label)
 
 export function CrossList({ outer, inner, cross, showMinor, hovered, onHover }: { outer: ChartResult; inner: ChartResult; cross: Aspect[]; showMinor: boolean } & HoverProps) {
   const list = cross.filter((a) => showMinor || ASPECT_BY_TYPE[a.type].major)
@@ -193,7 +203,7 @@ export function CrossList({ outer, inner, cross, showMinor, hovered, onHover }: 
   const lbTxt = both ? inner.input.name : sideLabel(inner)
   return (
     <>
-      <p className="hint">Her satırda önce <b>{laTxt}</b> (dış çark), sonra <b>{lbTxt}</b> (iç çark) noktası.</p>
+      <p className="hint">{t('Her satırda önce')} <b>{laTxt}</b> {t('(dış çark), sonra')} <b>{lbTxt}</b> {t('(iç çark) noktası.')}</p>
       <AspectRows list={list} a={outer} b={inner} prefixA="o:" hovered={hovered} onHover={onHover} la={laTxt} lb={lbTxt} />
     </>
   )
