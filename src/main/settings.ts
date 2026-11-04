@@ -35,7 +35,16 @@ function sanitize(s: Settings): Settings {
     fixedStarOrb: num(s.fixedStarOrb, 1, 0.1, 3),
     hiddenPoints: Array.isArray(s.hiddenPoints) ? s.hiddenPoints.filter((x) => typeof x === 'string') : [],
     defaultHouseSystem: HOUSE_SYSTEMS.some((h) => h.id === s.defaultHouseSystem) ? s.defaultHouseSystem : 'P',
-    defaultNodeType: s.defaultNodeType === 'mean' ? 'mean' : 'true'
+    defaultNodeType: s.defaultNodeType === 'mean' ? 'mean' : 'true',
+    asteroids: s.asteroids === true,
+    appearance: {
+      glyphScale: num(s.appearance?.glyphScale, 1, 0.8, 1.4),
+      showDegrees: s.appearance?.showDegrees !== false,
+      showAspectLines: s.appearance?.showAspectLines !== false,
+      showHouseNumbers: s.appearance?.showHouseNumbers !== false,
+      coloredSigns: s.appearance?.coloredSigns !== false,
+      aspectLineWidth: num(s.appearance?.aspectLineWidth, 0.9, 0.6, 2)
+    }
   }
 }
 

@@ -26,7 +26,15 @@ const BODIES: { id: string; name: string; glyph: string; se: number; station?: n
   { id: 'chiron', name: 'Chiron', glyph: '⚷', se: C.SE_CHIRON, station: 0.005 },
   { id: 'lilith', name: 'Lilith (ort.)', glyph: '⚸', se: C.SE_MEAN_APOG }
 ]
-const BODY_BY_ID = Object.fromEntries(BODIES.map((b) => [b.id, b]))
+/** Ana asteroitler (ayarlardan açılır) */
+const ASTEROIDS: typeof BODIES = [
+  { id: 'ceres', name: 'Ceres', glyph: '⚳', se: C.SE_CERES, station: 0.02 },
+  { id: 'pallas', name: 'Pallas', glyph: '⚴', se: C.SE_PALLAS, station: 0.02 },
+  { id: 'juno', name: 'Juno', glyph: '⚵', se: C.SE_JUNO, station: 0.02 },
+  { id: 'vesta', name: 'Vesta', glyph: '⚶', se: C.SE_VESTA, station: 0.02 }
+]
+const ASTEROID_IDS = new Set(ASTEROIDS.map((a) => a.id))
+const BODY_BY_ID = Object.fromEntries([...BODIES, ...ASTEROIDS].map((b) => [b.id, b]))
 
 /** Sabit yıldızlar: astrolojide en çok kullanılanlar */
 const STARS = [
@@ -70,12 +78,12 @@ interface Geo { lat: number; lon: number }
 function computePoints(jd: number, nodeType: 'true' | 'mean', geo: Geo | null, warnings: string[]): PointPos[] {
   const flags = C.SEFLG_SWIEPH | C.SEFLG_SPEED | zf()
   let usedMoshier = false
-  const all = [...BODIES, { id: 'northnode', name: nodeType === 'mean' ? 'K. Ay Düğümü (ortalama)' : 'K. Ay Düğümü (gerçek)', glyph: '☊', se: nodeType === 'mean' ? C.SE_MEAN_NODE : C.SE_TRUE_NODE, station: undefined }]
+  const all = [...BODIES, ...(settings.asteroids ? ASTEROIDS : []), { id: 'northnode', name: nodeType === 'mean' ? 'K. Ay Düğümü (ortalama)' : 'K. Ay Düğümü (gerçek)', glyph: '☊', se: nodeType === 'mean' ? C.SE_MEAN_NODE : C.SE_TRUE_NODE, station: undefined }]
   const out: PointPos[] = []
   for (const b of all) {
     const r = sweph.calc_ut(jd, b.se, flags)
     if (r.flag < 0) { warnings.push(`${b.name} hesaplanamadı: ${r.error}`); continue }
-    if (b.se <= C.SE_PLUTO && !(r.flag & C.SEFLG_SWIEPH)) usedMoshier = true
+    if ((b.se <= C.SE_PLUTO || ASTEROID_IDS.has(b.id)) && !(r.flag & C.SEFLG_SWIEPH)) usedMoshier = true
     const eq = sweph.calc_ut(jd, b.se, C.SEFLG_SWIEPH | C.SEFLG_SPEED | C.SEFLG_EQUATORIAL)
     const p: PointPos = {
       id: b.id, name: b.name, glyph: b.glyph + VS,
@@ -133,6 +141,28 @@ function housesFromMc(mcLon: number, lat: number, jd: number, hsys: HouseSystem)
   }
 }
 
+/**
+ * Hermetik arazlar (Paulus Alexandrinus). Gündüz formülü; gece haritasında çıkarılan ve eklenen yer değiştirir.
+ * Şans = AC + Ay − Güneş · Ruh = AC + Güneş − Ay · Eros = AC + Venüs − Ruh · Zorunluluk = AC + Şans − Merkür
+ * Cesaret = AC + Şans − Mars · Zafer = AC + Jüpiter − Ruh · Nemesis = AC + Şans − Satürn
+ */
+function computeLots(points: PointPos[], asc: number, cusps: number[], day: boolean): ChartResult['lots'] {
+  const L = (id: string) => points.find((p) => p.id === id)?.lon ?? 0
+  const lot = (a: number, b: number) => norm360(day ? asc + a - b : asc + b - a)
+  const fortune = lot(L('moon'), L('sun'))
+  const spirit = lot(L('sun'), L('moon'))
+  const defs: [string, string, number, string, string][] = [
+    ['fortune', 'Şans (Fortuna)', fortune, 'Ay', 'Güneş'],
+    ['spirit', 'Ruh (Daimon)', spirit, 'Güneş', 'Ay'],
+    ['eros', 'Eros', lot(L('venus'), spirit), 'Venüs', 'Ruh'],
+    ['necessity', 'Zorunluluk (Ananke)', lot(fortune, L('mercury')), 'Şans', 'Merkür'],
+    ['courage', 'Cesaret (Tolma)', lot(fortune, L('mars')), 'Şans', 'Mars'],
+    ['victory', 'Zafer (Nike)', lot(L('jupiter'), spirit), 'Jüpiter', 'Ruh'],
+    ['nemesis', 'Nemesis', lot(fortune, L('saturn')), 'Şans', 'Satürn']
+  ]
+  return defs.map(([id, name, lon, a, b]) => ({ id, name, lon, house: houseOf(lon, cusps), formula: day ? `AC + ${a} − ${b}` : `AC + ${b} − ${a} (gece)` }))
+}
+
 function addFortune(points: PointPos[], asc: number): void {
   const sun = points.find((p) => p.id === 'sun')
   const moon = points.find((p) => p.id === 'moon')
@@ -166,6 +196,8 @@ const natalOrb = (type: string, a: string, b: string): number | null => {
   const base = prof.orbs[type as keyof typeof prof.orbs]
   if (base === undefined) return null
   const major = ASPECTS.find((x) => x.type === type)?.major
+  // asteroit içeren açılarda dar orb: majörde en fazla 3°, minörde 1°
+  if (ASTEROID_IDS.has(a) || ASTEROID_IDS.has(b)) return Math.min(base, major ? 3 : 1)
   return base + (LUM.has(a) || LUM.has(b) ? (major ? prof.luminaryBonus : Math.min(0.5, prof.luminaryBonus)) : 0)
 }
 
@@ -294,7 +326,9 @@ function makeChart(o: MakeOpts): ChartResult {
     angles,
     hasHouses: !!h,
     aspects: natalAspects(points, h ? angles : null),
-    stars: starContacts(o.jd, points, h ? angles : null)
+    stars: starContacts(o.jd, points, h ? angles : null),
+    lots: h ? computeLots(points, h.asc, h.cusps, (points.find((p) => p.id === 'sun')?.house ?? 0) >= 7) : [],
+    isDay: h ? (points.find((p) => p.id === 'sun')?.house ?? 0) >= 7 : undefined
   }
 }
 
@@ -331,7 +365,8 @@ function draconic(ch: ChartResult): ChartResult {
     : ch.angles
   return {
     ...ch, kind: 'draconic', label: 'Drakonik harita', points, angles, cusps: ch.cusps.map(sh),
-    aspects: natalAspects(points, ch.hasHouses ? angles : null), stars: starContacts(ch.jdUt, points, ch.hasHouses ? angles : null)
+    aspects: natalAspects(points, ch.hasHouses ? angles : null), stars: starContacts(ch.jdUt, points, ch.hasHouses ? angles : null),
+    lots: ch.lots.map((l) => ({ ...l, lon: sh(l.lon) }))
   }
 }
 

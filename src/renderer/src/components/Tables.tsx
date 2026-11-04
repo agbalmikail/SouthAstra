@@ -81,7 +81,7 @@ export function HouseTable({ chart }: { chart: ChartResult }) {
   )
 }
 
-const ORDER = ['sun', 'moon', 'mercury', 'venus', 'mars', 'jupiter', 'saturn', 'uranus', 'neptune', 'pluto', 'chiron', 'northnode', 'asc', 'mc']
+const ORDER = ['sun', 'moon', 'mercury', 'venus', 'mars', 'jupiter', 'saturn', 'uranus', 'neptune', 'pluto', 'chiron', 'ceres', 'pallas', 'juno', 'vesta', 'northnode', 'asc', 'mc']
 
 export function AspectGrid({ chart, showMinor, hovered, onHover, legend }: { chart: ChartResult; showMinor: boolean; legend?: React.ReactNode } & HoverProps) {
   const glyphOf = (id: string) => (id === 'asc' ? 'AC' : id === 'mc' ? 'MC' : chart.points.find((p) => p.id === id)?.glyph ?? '?')

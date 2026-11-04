@@ -9,7 +9,7 @@ import SettingsModal from './components/SettingsModal'
 import PrintView from './components/PrintView'
 import { DateBar, ShiftBar } from './components/TimeBar'
 import { AspectGrid, AspectList, CrossList, HouseTable, PlanetTable } from './components/Tables'
-import { Distribution, HouseCompare, PlanetDetail, RectifyPanel, StarsTable, TransitListPanel } from './components/Analysis'
+import { Distribution, HouseCompare, LotsTable, PlanetDetail, RectifyPanel, StarsTable, TransitListPanel } from './components/Analysis'
 import { DEFAULT_PDF, EclipsePanel, EventsPanel, InterpretPanel, LibraryModal, MidpointsPanel, PatternsBlock, PdfDialog, SessionsPanel, TraditionalPanel, type PdfSections } from './components/Extras'
 import { AcgMap, AcgPanel } from './components/AcgMap'
 import ZoomPane from './components/ZoomPane'
@@ -326,7 +326,7 @@ export default function App() {
       case 'grid': return <AspectGrid chart={inner} showMinor={showMinor} hovered={hovered} onHover={setHovered} />
       case 'houses': return <HouseTable chart={inner} />
       case 'cross': return outer ? <CrossList outer={outer} inner={inner} cross={view.cross} showMinor={showMinor} hovered={hovered} onHover={setHovered} /> : null
-      case 'analysis': return <><PatternsBlock chart={inner} /><Distribution chart={inner} /><div className="cap">Sabit yıldız kavuşumları</div><StarsTable chart={inner} orb={settings.fixedStarOrb} /></>
+      case 'analysis': return <><PatternsBlock chart={inner} /><Distribution chart={inner} /><div className="cap">Arap noktaları</div><LotsTable chart={inner} /><div className="cap">Sabit yıldız kavuşumları</div><StarsTable chart={inner} orb={settings.fixedStarOrb} /></>
       case 'traditional': return <TraditionalPanel chart={inner} />
       case 'events': return input ? <EventsPanel input={input} canSave={!!currentId} onChange={saveEvents} onOpen={openEvent} /> : null
       case 'midpoints': return <MidpointsPanel chart={inner} />
@@ -465,7 +465,7 @@ export default function App() {
               <ZoomPane resetKey={mode}>
                 {mode === 'acg' && input
                   ? <AcgMap input={input} lines={acgLines} hidden={acgHidden} hovered={acgHover} onHover={setAcgHover} marker={acgMarker} />
-                  : <Wheel inner={inner} outer={outer} cross={shownView.cross} hovered={hovered} selected={selected} onHover={setHovered} onSelect={(id) => setSelected(selected === id ? null : id)} showMinor={showMinor} />}
+                  : <Wheel inner={inner} outer={outer} cross={shownView.cross} hovered={hovered} selected={selected} onHover={setHovered} onSelect={(id) => setSelected(selected === id ? null : id)} showMinor={showMinor} appearance={settings.appearance} />}
               </ZoomPane>
               {modeDef.needsDate && input && <DateBar ms={dateMs} tz={input.place.tz} onChange={setDateMs} label={mode === 'solarreturn' ? 'Bu tarihten sonraki ilk Güneş dönüşü' : mode === 'lunarreturn' ? 'Bu tarihten sonraki ilk Ay dönüşü' : 'Tarih'} />}
               {mode === 'natal' && currentId && input && <ShiftBar shift={shift} onChange={setShift} baseTime={input.timeUnknown ? '12:00' : input.time} onApply={applyShift} />}

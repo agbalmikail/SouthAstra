@@ -50,14 +50,15 @@ export default function SettingsModal({ initial, onClose, onSave, onAbout }: { i
             </div>
 
             <div className="cap">Karşılaştırmalı haritalar</div>
-            <label className="field-row">Transit orbu <input id="s-torb" className="short" value={s.transitOrb} onChange={(e) => setS({ ...s, transitOrb: num(e.target.value) })} />°</label>
-            <label className="field-row">Progresyon / solar arc orbu <input id="s-porb" className="short" value={s.progressionOrb} onChange={(e) => setS({ ...s, progressionOrb: num(e.target.value) })} />°</label>
-            <label className="field-row">Sabit yıldız orbu <input id="s-sorb" className="short" value={s.fixedStarOrb} onChange={(e) => setS({ ...s, fixedStarOrb: num(e.target.value) })} />°</label>
+            <label className="field-row">Transit orbu <input id="s-torb" className="short" value={s.transitOrb} onChange={(e) => setS({ ...s, transitOrb: num(e.target.value) })} /><span>°</span></label>
+            <label className="field-row">Progresyon / solar arc orbu <input id="s-porb" className="short" value={s.progressionOrb} onChange={(e) => setS({ ...s, progressionOrb: num(e.target.value) })} /><span>°</span></label>
+            <label className="field-row">Sabit yıldız orbu <input id="s-sorb" className="short" value={s.fixedStarOrb} onChange={(e) => setS({ ...s, fixedStarOrb: num(e.target.value) })} /><span>°</span></label>
             <label className="inline"><input id="s-par" type="checkbox" checked={s.showParallels} onChange={(e) => setS({ ...s, showParallels: e.target.checked })} /> Paralel ve kontraparalelleri hesapla (1°)</label>
 
             <div className="cap">Gösterilecek noktalar</div>
             <p className="hint">İşareti kaldırılan noktalar çarkta, tablolarda ve açı listelerinde gösterilmez.</p>
             <div className="point-opts">
+              <label className="inline"><input id="s-ast" type="checkbox" checked={s.asteroids} onChange={(e) => setS({ ...s, asteroids: e.target.checked })} /> Ana asteroitler: Ceres ⚳, Pallas ⚴, Juno ⚵, Vesta ⚶ <span className="muted small">(açılarında orb en fazla 3°)</span></label>
               {OPTIONAL_POINTS.map(([id, name]) => (
                 <label key={id} className="inline"><input type="checkbox" checked={!s.hiddenPoints.includes(id)} onChange={(e) => setS({ ...s, hiddenPoints: e.target.checked ? s.hiddenPoints.filter((x) => x !== id) : [...s.hiddenPoints, id] })} /> {name}</label>
               ))}
@@ -94,6 +95,17 @@ export default function SettingsModal({ initial, onClose, onSave, onAbout }: { i
               </tbody>
             </table>
             {!editable && <p className="hint">Değerleri değiştirmek için “Özel” profili seçin.</p>}
+
+            <div className="cap">Çark görünümü</div>
+            <label className="field-row">İşaret boyutu <span className="range-wrap"><input id="s-gs" type="range" min={0.8} max={1.4} step={0.05} value={s.appearance.glyphScale} onChange={(e) => setS({ ...s, appearance: { ...s.appearance, glyphScale: Number(e.target.value) } })} /><span className="num small">%{Math.round(s.appearance.glyphScale * 100)}</span></span></label>
+            <label className="field-row">Açı çizgisi kalınlığı <span className="range-wrap"><input id="s-lw" type="range" min={0.6} max={2} step={0.1} value={s.appearance.aspectLineWidth} onChange={(e) => setS({ ...s, appearance: { ...s.appearance, aspectLineWidth: Number(e.target.value) } })} /><span className="num small">{s.appearance.aspectLineWidth.toFixed(1)}</span></span></label>
+            <div className="point-opts">
+              <label className="inline"><input id="s-deg" type="checkbox" checked={s.appearance.showDegrees} onChange={(e) => setS({ ...s, appearance: { ...s.appearance, showDegrees: e.target.checked } })} /> Gezegenlerin yanında derece</label>
+              <label className="inline"><input id="s-asp" type="checkbox" checked={s.appearance.showAspectLines} onChange={(e) => setS({ ...s, appearance: { ...s.appearance, showAspectLines: e.target.checked } })} /> Açı çizgileri</label>
+              <label className="inline"><input id="s-hn" type="checkbox" checked={s.appearance.showHouseNumbers} onChange={(e) => setS({ ...s, appearance: { ...s.appearance, showHouseNumbers: e.target.checked } })} /> Ev numaraları</label>
+              <label className="inline"><input id="s-col" type="checkbox" checked={s.appearance.coloredSigns} onChange={(e) => setS({ ...s, appearance: { ...s.appearance, coloredSigns: e.target.checked } })} /> Burç işaretleri element renginde</label>
+            </div>
+            <p className="hint">Görünüm ayarları ekrandaki çarka ve PDF'e birlikte uygulanır.</p>
           </section>
         </div>
 

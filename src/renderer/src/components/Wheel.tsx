@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import type { Aspect, ChartResult } from '@shared/types'
+import type { Appearance, Aspect, ChartResult } from '@shared/types'
 import { ASPECT_BY_TYPE, norm360, SIGNS } from '@shared/zodiac'
 import { ELEMENT_VAR, fmtDegMin } from '../format'
 
@@ -67,10 +67,16 @@ interface Props {
   onSelect?: (id: string) => void
   showMinor: boolean
   print?: boolean
+  appearance?: Appearance
 }
 
-export default function Wheel({ inner, outer, cross, hovered, selected, onHover, onSelect, showMinor, print }: Props) {
-  const g = outer ? GEO.bi : GEO.single
+const DEFAULT_LOOK: Appearance = { glyphScale: 1, showDegrees: true, showAspectLines: true, showHouseNumbers: true, coloredSigns: true, aspectLineWidth: 0.9 }
+
+export default function Wheel({ inner, outer, cross, hovered, selected, onHover, onSelect, showMinor, print, appearance }: Props) {
+  const look = appearance ?? DEFAULT_LOOK
+  const gs = look.glyphScale
+  const g0 = outer ? GEO.bi : GEO.single
+  const g = { ...g0, gap: g0.gap * Math.max(1, gs) }
   const { R0, R1, RG, RD, RH, RA, ROUT } = g
   const houses = inner.hasHouses
   // Ev yoksa (saat bilinmiyor) doğal çark: 0° Koç solda
@@ -135,8 +141,8 @@ export default function Wheel({ inner, outer, cross, hovered, selected, onHover,
         {moved && <line x1={pt(p.lon, tickTo)[0]} y1={pt(p.lon, tickTo)[1]} x2={pt(p.disp, leadTo)[0]} y2={pt(p.disp, leadTo)[1]} className="p-leader" />}
         {which === 'in' && <circle cx={pt(p.lon, RA)[0]} cy={pt(p.lon, RA)[1]} r={1.7} className="p-dot" />}
         <circle cx={gx} cy={gy} r={11} className="p-hit" />
-        <text x={gx} y={gy} className={isText ? 'p-glyph txt' : 'p-glyph'}>{pos.glyph}</text>
-        <text x={dx} y={dy} className="p-deg" transform={`rotate(${radialRot(p.disp)} ${dx} ${dy})`}>{fmtDegMin(p.lon).replace("'", '')}{pos.retro && !NO_RETRO.has(p.id) ? 'R' : ''}</text>
+        <text x={gx} y={gy} className={isText ? 'p-glyph txt' : 'p-glyph'} style={{ fontSize: (isText ? 8.5 : 16) * gs }}>{pos.glyph}</text>
+        {look.showDegrees && <text x={dx} y={dy} className="p-deg" transform={`rotate(${radialRot(p.disp)} ${dx} ${dy})`}>{fmtDegMin(p.lon).replace("'", '')}{pos.retro && !NO_RETRO.has(p.id) ? 'R' : ''}</text>}
       </g>
     )
   }
@@ -161,7 +167,7 @@ export default function Wheel({ inner, outer, cross, hovered, selected, onHover,
         return (
           <g key={i}>
             <path d={`M${x1} ${y1}A${R0} ${R0} 0 0 0 ${x2} ${y2}L${x3} ${y3}A${R1} ${R1} 0 0 1 ${x4} ${y4}Z`} className={`wedge ${s.element}`} />
-            <text x={gx} y={gy} className="sign-glyph" style={{ fill: ELEMENT_VAR[s.element], fontSize: outer ? 14 : 17 }}>{s.glyph}</text>
+            <text x={gx} y={gy} className="sign-glyph" style={{ fill: look.coloredSigns ? ELEMENT_VAR[s.element] : 'var(--muted)', fontSize: (outer ? 14 : 17) * Math.min(gs, 1.2) }}>{s.glyph}</text>
             {outer && <line {...L(a, R0, ROUT)} className="cusp faint" />}
           </g>
         )
@@ -178,7 +184,7 @@ export default function Wheel({ inner, outer, cross, hovered, selected, onHover,
         return (
           <g key={i}>
             <line {...L(c, RA, axis ? ROUT + 5 : R1)} className={axis ? 'cusp axis' : 'cusp'} />
-            <text x={hx} y={hy} className="house-num">{i + 1}</text>
+            {look.showHouseNumbers && <text x={hx} y={hy} className="house-num">{i + 1}</text>}
           </g>
         )
       })}
@@ -198,11 +204,11 @@ export default function Wheel({ inner, outer, cross, hovered, selected, onHover,
 
       {/* açı çizgileri */}
       <g className={hovered ? 'aspects dim' : 'aspects'}>
-        {lines.map((l, i) => {
+        {look.showAspectLines && lines.map((l, i) => {
           const [x1, y1] = pt(l.la, RA)
           const [x2, y2] = pt(l.lb, RA)
           const on = hovered && (l.a === hovered || l.b === hovered)
-          return <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} className={`asp ${l.type}${on ? ' on' : ''}`} style={{ opacity: on ? 1 : Math.max(0.3, 1 - l.orb / 9) }} />
+          return <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} className={`asp ${l.type}${on ? ' on' : ''}`} style={{ opacity: on ? 1 : Math.max(0.3, 1 - l.orb / 9), strokeWidth: on ? look.aspectLineWidth * 1.6 : look.aspectLineWidth }} />
         })}
       </g>
 

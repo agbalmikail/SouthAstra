@@ -5,7 +5,7 @@ import { aspectPatterns } from '@shared/patterns'
 import { chartFactors } from '@shared/factors'
 import Wheel from './Wheel'
 import { AspectGrid, AspectList, CrossList, HouseTable, PLANET_LEGEND, PlanetTable } from './Tables'
-import { Distribution, StarsTable } from './Analysis'
+import { Distribution, LotsTable, StarsTable } from './Analysis'
 import { MidpointsPanel, PatternsBlock, TraditionalPanel, type PdfSections } from './Extras'
 import { fmtDateTr, fmtOffset } from '../format'
 import logoMark from '../assets/logo-mark.svg'
@@ -126,7 +126,7 @@ export default function PrintView({ view, sections, library, transits, modeName,
             <div className="p-brand"><img src={logoMark} alt="" className="logo-mark" /><span>South<b>Astra</b></span></div>
           </header>
           <Meta view={view} />
-          <div className="p-wheel"><Wheel inner={c} outer={view.outer} cross={view.cross} hovered={null} onHover={noop} showMinor={false} print /></div>
+          <div className="p-wheel"><Wheel inner={c} outer={view.outer} cross={view.cross} hovered={null} onHover={noop} showMinor={false} print appearance={settings.appearance} /></div>
           <Legend />
           <Summary chart={c} />
           {c.warnings.length > 0 && <div className="p-notes">{c.warnings.map((w, k) => <p key={k}>{w}</p>)}</div>}
@@ -167,7 +167,7 @@ export default function PrintView({ view, sections, library, transits, modeName,
             <PatternsBlock chart={c} />
             <div className="p-two">
               <div><Distribution chart={c} /></div>
-              <div><h3>Sabit yıldız kavuşumları</h3><StarsTable chart={c} orb={settings.fixedStarOrb} /></div>
+              <div><h3>Sabit yıldız kavuşumları</h3><StarsTable chart={c} orb={settings.fixedStarOrb} /><h3>Arap noktaları</h3><LotsTable chart={c} /></div>
             </div>
           </Section>
           <Section title="Geleneksel analiz" who={who}>

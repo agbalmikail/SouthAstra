@@ -224,6 +224,8 @@ export interface ChartResult {
   hasHouses: boolean
   aspects: Aspect[]
   stars: StarContact[]
+  lots: Lot[]
+  isDay?: boolean // Güneş ufkun üstünde
 }
 
 export interface ViewResult {
@@ -270,6 +272,27 @@ export interface Settings {
   hiddenPoints: string[] // çarkta ve tablolarda gösterilmeyecek noktalar
   defaultHouseSystem: HouseSystem // yeni haritalar için
   defaultNodeType: 'true' | 'mean'
+  asteroids: boolean // Ceres, Pallas, Juno, Vesta
+  appearance: Appearance
+}
+
+/** Çark görünümü */
+export interface Appearance {
+  glyphScale: number // gezegen ve burç işaretlerinin boyutu (0,8–1,4)
+  showDegrees: boolean // gezegenlerin yanında derece yazısı
+  showAspectLines: boolean // çarkın içindeki açı çizgileri
+  showHouseNumbers: boolean
+  coloredSigns: boolean // burç işaretleri element renginde (kapalıysa tek renk)
+  aspectLineWidth: number // 0,6–2
+}
+
+/** Arap noktası (Hermetik araz) */
+export interface Lot {
+  id: string
+  name: string
+  formula: string // ör. "AC + Ay − Güneş"
+  lon: number
+  house: number
 }
 
 export interface CityHit extends Place {

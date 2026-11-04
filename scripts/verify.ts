@@ -51,6 +51,15 @@ console.log('\n— NASA JPL Horizons (2000-01-01 12:00 UT, geosantrik görünür
   ok(worst.d < 1, `10 cisim NASA ile karşılaştırıldı: en büyük fark ${worst.d.toFixed(2)}" (${worst.n}); sınır 1"`)
 }
 
+console.log('\n— Asteroitler (NASA JPL Horizons, 2000-01-01 12:00 UT)')
+{
+  const ref: [number, string, number][] = [[C.SE_CERES, 'Ceres', 184.4530625], [C.SE_PALLAS, 'Pallas', 134.043348], [C.SE_JUNO, 'Juno', 277.9960713], [C.SE_VESTA, 'Vesta', 245.9719858]]
+  const jd = sweph.julday(2000, 1, 1, 12, C.SE_GREG_CAL)
+  let worst = { d: 0, n: '' }
+  for (const [b, n, r] of ref) { const d = arcsec(sweph.calc_ut(jd, b, C.SEFLG_SWIEPH).data[0], r); if (d > worst.d) worst = { d, n } }
+  ok(worst.d < 3, `4 asteroit NASA ile karşılaştırıldı: en büyük fark ${worst.d.toFixed(2)}" (${worst.n}); sınır 3"`)
+}
+
 console.log('\n— Bağımsız teoriyle çapraz kontrol (Swiss Ephemeris dosyaları ↔ Moshier analitik teorisi)')
 {
   const names = ['Güneş', 'Ay', 'Merkür', 'Venüs', 'Mars', 'Jüpiter', 'Satürn', 'Uranüs', 'Neptün', 'Plüton']
@@ -277,6 +286,18 @@ console.log('\n— Bağımsız ikinci kontroller')
 
 console.log('\n— Ek noktalar')
 {
+  const lot = (id: string) => natal.lots.find((l) => l.id === id)!.lon
+  ok(separation(lot('fortune') + lot('spirit'), 2 * natal.angles.asc) < 1e-9, 'Arap noktaları: Şans + Ruh = 2 × Yükselen (formül tutarlılığı)')
+  ok(separation(lot('fortune'), pid(natal, 'fortune')) < 1e-9, 'Şans Noktası tablo ve çarkta aynı')
+  const dayN = natal.isDay
+  const ven = pid(natal, 'venus'), sp = lot('spirit'), asc0 = natal.angles.asc
+  ok(separation(lot('eros'), dayN ? asc0 + ven - sp : asc0 + sp - ven) < 1e-9, `Eros noktası (${dayN ? 'gündüz' : 'gece'}): AC ${dayN ? '+ Venüs − Ruh' : '+ Ruh − Venüs'}`)
+  useSettings({ ...DEFAULT_SETTINGS, asteroids: true })
+  const withAst = natalChart(base)
+  useSettings(DEFAULT_SETTINGS)
+  ok(['ceres', 'pallas', 'juno', 'vesta'].every((id) => withAst.points.some((p) => p.id === id)) && !natal.points.some((p) => p.id === 'ceres'), 'Asteroitler yalnızca ayarlardan açılınca hesaplanıyor')
+  ok(withAst.aspects.filter((a) => ['ceres', 'pallas', 'juno', 'vesta'].includes(a.a) || ['ceres', 'pallas', 'juno', 'vesta'].includes(a.b)).every((a) => a.orb <= 3), 'Asteroit açılarında orb en fazla 3°')
+
   const f = natal.points.find((p) => p.id === 'fortune')!
   const sun = pid(natal, 'sun'), moon = pid(natal, 'moon'), asc = natal.angles.asc
   const day = natal.points.find((p) => p.id === 'sun')!.house >= 7

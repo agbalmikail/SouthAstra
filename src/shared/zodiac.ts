@@ -96,7 +96,9 @@ export const DEFAULT_SETTINGS: Settings = {
   fixedStarOrb: 1,
   hiddenPoints: [],
   defaultHouseSystem: 'P',
-  defaultNodeType: 'true'
+  defaultNodeType: 'true',
+  asteroids: false,
+  appearance: { glyphScale: 1, showDegrees: true, showAspectLines: true, showHouseNumbers: true, coloredSigns: true, aspectLineWidth: 0.9 }
 }
 
 export function activeOrbs(s: Settings): OrbProfile {

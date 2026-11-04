@@ -525,3 +525,15 @@ body.resizing * { cursor: col-resize !important; }
 .p-brand .logo-mark { width: 26px; height: 26px; }
 .about-head { display: flex; align-items: center; gap: 16px; }
 .about-logo { width: 72px; height: 72px; flex: none; }
+
+.range-wrap { display: inline-flex; align-items: center; gap: 8px; }
+.range-wrap input[type='range'] { width: 140px; accent-color: var(--accent); }
+.modal.wide { max-height: calc(100vh - 40px); }
+/* ayarlar penceresi düzeni */
+.settings-grid .field-row { display: grid; grid-template-columns: minmax(0, 1fr) 64px 14px; gap: 6px; align-items: center; }
+.settings-grid .field-row input.short { width: 64px; text-align: right; }
+.settings-grid .field-row .range-wrap { grid-column: 2 / 4; justify-content: flex-end; }
+.settings-grid .field-row:has(.range-wrap) { grid-template-columns: minmax(0, 1fr) auto; }
+.settings-grid .cap { margin-top: 20px; }
+.settings-grid section > .cap:first-child { margin-top: 4px; }
+.modal.wide .actions { position: sticky; bottom: -22px; background: var(--surface); padding: 12px 0 4px; margin-bottom: -4px; border-top: 1px solid var(--line); z-index: 2; }

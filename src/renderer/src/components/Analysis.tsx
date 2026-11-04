@@ -335,3 +335,22 @@ export function TransitListPanel({ input, natal, onPick }: { input: ChartInput; 
 }
 
 export { norm360 }
+
+// ——— Arap noktaları (Hermetik arazlar) ———
+
+export function LotsTable({ chart }: { chart: ChartResult }) {
+  if (!chart.lots.length) return <p className="empty-note">Arap noktaları yükselen gerektirir; doğum saati bilinmeyen haritada hesaplanmaz.</p>
+  return (
+    <>
+      <table className="data">
+        <thead><tr><th>Nokta</th><th>Formül</th><th className="r">Konum</th><th className="r">Ev</th></tr></thead>
+        <tbody>
+          {chart.lots.map((l) => (
+            <tr key={l.id}><td>{l.name}</td><td className="muted small">{l.formula}</td><td className="r"><Lon lon={l.lon} /></td><td className="r num">{l.house}</td></tr>
+          ))}
+        </tbody>
+      </table>
+      <p className="hint">Paulus Alexandrinus'un Hermetik arazları. {chart.isDay ? 'Gündüz haritası: gündüz formülleri kullanıldı.' : 'Gece haritası: formüllerde çıkarılan ve eklenen yer değiştirdi.'} Ruh ve Şans'a dayanan noktalar bu iki noktanın hesaplanan değerlerini kullanır.</p>
+    </>
+  )
+}

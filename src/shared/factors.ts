@@ -9,7 +9,7 @@ export interface Factor {
   glyphs: string
 }
 
-const ORDER = ['sun', 'moon', 'mercury', 'venus', 'mars', 'jupiter', 'saturn', 'uranus', 'neptune', 'pluto', 'chiron', 'northnode', 'asc', 'mc']
+const ORDER = ['sun', 'moon', 'mercury', 'venus', 'mars', 'jupiter', 'saturn', 'uranus', 'neptune', 'pluto', 'chiron', 'ceres', 'pallas', 'juno', 'vesta', 'northnode', 'asc', 'mc']
 const MAJOR = new Set(['conjunction', 'opposition', 'trine', 'square', 'sextile', 'quincunx'])
 
 /** Natal haritadaki gezegen-burç, gezegen-ev, köşe-burç ve majör açı etkenleri */
@@ -80,7 +80,7 @@ export function midpointHits(c: ChartResult, orb = 1.5): MidpointHit[] {
 
 const NAMES: Record<string, string> = {
   sun: 'Güneş', moon: 'Ay', mercury: 'Merkür', venus: 'Venüs', mars: 'Mars', jupiter: 'Jüpiter', saturn: 'Satürn',
-  uranus: 'Uranüs', neptune: 'Neptün', pluto: 'Plüton', chiron: 'Chiron', northnode: 'K. Ay Düğümü', asc: 'Yükselen', mc: 'MC'
+  uranus: 'Uranüs', neptune: 'Neptün', pluto: 'Plüton', chiron: 'Chiron', ceres: 'Ceres', pallas: 'Pallas', juno: 'Juno', vesta: 'Vesta', northnode: 'K. Ay Düğümü', asc: 'Yükselen', mc: 'MC'
 }
 
 /** Kütüphane anahtarını okunur başlığa çevirir (harita açık olmadan da) */
