@@ -24,15 +24,16 @@ function Section({ title, who, children }: { title: string; who: string; childre
 function Meta({ view }: { view: ViewResult }) {
   const c = view.inner
   const i = c.input
-  const natal: ChartResult | undefined = c.kind === 'natal' || c.kind === 'draconic' || c.kind === 'harmonic' ? c : view.outer?.kind === 'natal' ? view.outer : undefined
+  const natal: ChartResult | undefined = c.kind === 'natal' || c.kind === 'draconic' || c.kind === 'harmonic' || c.kind === 'relocated' ? c : view.outer?.kind === 'natal' ? view.outer : undefined
   const moment = c.kind === 'solarreturn' || c.kind === 'lunarreturn' ? c.utc : view.outer && view.outer.kind !== 'natal' ? view.outer.utc : null
-  const local = (iso: string) => new Date(iso).toLocaleString('tr-TR', { timeZone: i.place.tz, dateStyle: 'long', timeStyle: 'short' })
+  const local = (iso: string) => new Date(iso).toLocaleString('tr-TR', { timeZone: (c.place ?? i.place).tz, dateStyle: 'long', timeStyle: 'short' })
   const rows: [string, string][] = [
     ['Doğum tarihi', `${fmtDateTr(i.date)} · ${i.timeUnknown ? 'saat bilinmiyor (12:00 varsayıldı)' : i.time} yerel saat`],
     ['Doğum yeri', placeLabel(i.place)],
+    ...(c.place && (c.place.lat !== i.place.lat || c.place.lon !== i.place.lon) ? [['Harita yeri', `${placeLabel(c.place)} · ${Math.abs(c.place.lat).toFixed(4)}° ${c.place.lat >= 0 ? 'K' : 'G'} · ${Math.abs(c.place.lon).toFixed(4)}° ${c.place.lon >= 0 ? 'D' : 'B'}`] as [string, string]] : []),
     ['Koordinat', `${Math.abs(i.place.lat).toFixed(4)}° ${i.place.lat >= 0 ? 'K' : 'G'} · ${Math.abs(i.place.lon).toFixed(4)}° ${i.place.lon >= 0 ? 'D' : 'B'}${i.place.precision ? ` · ${i.place.precision}` : ''}`],
     ...(natal ? [['UTC', `${natal.utc.replace('T', ' ').replace(/(\.\d+)?Z$/, '')} · ${fmtOffset(natal.offsetMinutes)} (${i.timeMode === 'zone' ? i.place.tz : i.timeMode === 'lmt' ? 'LMT' : 'elle ofset'})`] as [string, string]] : []),
-    ...(moment ? [[c.kind === 'solarreturn' || c.kind === 'lunarreturn' ? 'Dönüş anı' : 'Harita tarihi', `${local(moment)} (${i.place.tz})`] as [string, string]] : []),
+    ...(moment ? [[c.kind === 'solarreturn' || c.kind === 'lunarreturn' ? 'Dönüş anı' : 'Harita tarihi', `${local(moment)} (${(c.place ?? i.place).tz})`] as [string, string]] : []),
     ['Ev sistemi', c.hasHouses ? c.houseSystemUsed : (HOUSE_SYSTEMS.find((h) => h.id === c.houseSystem)?.name ?? '') + ' · evler gösterilmiyor'],
     ['Zodyak', `${c.zodiac} · geosantrik · görünür konum`],
     ['Ay düğümü', i.nodeType === 'mean' ? 'Ortalama düğüm' : 'Gerçek (oskülatör) düğüm'],
@@ -108,7 +109,7 @@ export default function PrintView({ view, sections, library, transits, modeName,
   const i = c.input
   const who = `${view.title} · ${modeName}`
   const single = !view.outer
-  const natalLike = c.kind === 'natal' || c.kind === 'draconic' || c.kind === 'composite' || c.kind === 'solarreturn' || c.kind === 'lunarreturn'
+  const natalLike = c.kind === 'natal' || c.kind === 'draconic' || c.kind === 'relocated' || c.kind === 'composite' || c.kind === 'solarreturn' || c.kind === 'lunarreturn'
   const factors = natalLike ? chartFactors(c).filter((f) => library[f.key]) : []
   const natal = view.outer?.kind === 'natal' ? view.outer : c
   const nm = (id: string) => (id === 'asc' ? 'Yükselen' : id === 'mc' ? 'MC' : natal.points.find((p) => p.id === id)?.name ?? id)

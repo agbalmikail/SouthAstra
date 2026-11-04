@@ -327,6 +327,7 @@ function makeChart(o: MakeOpts): ChartResult {
     hasHouses: !!h,
     aspects: natalAspects(points, h ? angles : null),
     stars: starContacts(o.jd, points, h ? angles : null),
+    place: o.place ?? undefined,
     lots: h ? computeLots(points, h.asc, h.cusps, (points.find((p) => p.id === 'sun')?.house ?? 0) >= 7) : [],
     isDay: h ? (points.find((p) => p.id === 'sun')?.house ?? 0) >= 7 : undefined
   }
@@ -378,12 +379,18 @@ export function view(input: ChartInput, req: ViewRequest): ViewResult {
   const natal = natalChart(input, hsys, req.timeShiftMin ?? 0)
   const target = req.date ? jdFromMs(Date.parse(req.date)) : jdFromMs(Date.now())
   const who = input.name
-  const where = placeLabel(input.place)
 
   switch (req.mode) {
     case 'natal':
     case 'acg':
       return { inner: natal, cross: [], title: who, subtitle: '' }
+    case 'relocated': {
+      // aynı doğum anı, evler ve köşeler başka bir yer için
+      const at = req.place ?? input.place
+      const rel = makeChart({ input: { ...input }, jd: natal.jdUt, place: at, hsys, kind: 'relocated', label: 'Taşınma haritası', offsetMinutes: natal.offsetMinutes, offsetSource: natal.offsetSource })
+      rel.warnings.unshift(`Taşınma haritası: doğum anı aynı (${natal.utc.slice(0, 16).replace('T', ' ')} UT); evler ve köşeler ${placeLabel(at)} (${at.lat.toFixed(4)}°, ${at.lon.toFixed(4)}°) için hesaplandı.`)
+      return { inner: rel, cross: [], title: who, subtitle: `Taşınma · ${placeLabel(at)}` }
+    }
     case 'draconic':
       return { inner: draconic(natal), cross: [], title: who, subtitle: 'Drakonik harita' }
     case 'transit': {
@@ -449,11 +456,13 @@ export function view(input: ChartInput, req: ViewRequest): ViewResult {
       const flags = C.SEFLG_SWIEPH | zf()
       const r = isSun ? sweph.solcross_ut(natalLon, target, flags) : sweph.mooncross_ut(natalLon, target, flags)
       if (r.error) throw new Error('Dönüş anı bulunamadı: ' + r.error)
+      const at = req.place ?? input.place
       const retInput: ChartInput = { ...input, timeUnknown: false }
-      const ret = makeChart({ input: retInput, jd: r.date, place: input.place, hsys, kind: req.mode, label: isSun ? 'Güneş dönüşü' : 'Ay dönüşü', offsetSource: 'Dönüş anı (UTC)' })
+      const ret = makeChart({ input: retInput, jd: r.date, place: at, hsys, kind: req.mode, label: isSun ? 'Güneş dönüşü' : 'Ay dönüşü', offsetSource: 'Dönüş anı (UTC)' })
+      ret.warnings.unshift(`Dönüş haritası ${placeLabel(at)} için kuruldu${at === input.place ? ' (doğum yeri)' : ''}.`)
       if (input.timeUnknown) ret.warnings.unshift(`Doğum saati bilinmediği için natal ${isSun ? 'Güneş' : 'Ay'} konumu yaklaşık; dönüş anı ${isSun ? 'birkaç saat' : 'birkaç saat'} kayabilir.`)
       const natalOuter = { ...natal, label: 'Doğum haritası' }
-      return { inner: ret, outer: natalOuter, cross: crossAspects(natalOuter, ret, majorOnly(settings.transitOrb)), title: who, subtitle: `${isSun ? 'Güneş' : 'Ay'} dönüşü · ${where}` }
+      return { inner: ret, outer: natalOuter, cross: crossAspects(natalOuter, ret, majorOnly(settings.transitOrb)), title: who, subtitle: `${isSun ? 'Güneş' : 'Ay'} dönüşü · ${placeLabel(at)}` }
     }
     case 'synastry': {
       if (!req.partner) throw new Error('Sinastri için ikinci bir harita seçin.')

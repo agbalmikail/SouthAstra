@@ -76,6 +76,7 @@ export interface ChartInput {
   notes?: string
   sessions?: Session[]
   events?: LifeEvent[]
+  residence?: Place // danışanın yaşadığı yer: dönüş ve taşınma haritalarında varsayılan
 }
 
 /** Danışanın hayatından tarihli olay (rektifikasyon ve öngörü kontrolü için) */
@@ -108,18 +109,19 @@ export type ViewMode =
   | 'transit' | 'progressed' | 'tertiary' | 'minor' | 'solararc'
   | 'solarreturn' | 'lunarreturn'
   | 'synastry' | 'composite'
-  | 'harmonic' | 'acg'
+  | 'harmonic' | 'acg' | 'relocated'
 
-export const VIEW_MODES: { id: ViewMode; name: string; group: string; needsDate?: boolean; needsPartner?: boolean }[] = [
+export const VIEW_MODES: { id: ViewMode; name: string; group: string; needsDate?: boolean; needsPartner?: boolean; needsPlace?: boolean }[] = [
   { id: 'natal', name: 'Natal', group: 'Doğum' },
   { id: 'draconic', name: 'Drakonik', group: 'Doğum' },
+  { id: 'relocated', name: 'Taşınma haritası', group: 'Doğum', needsPlace: true },
   { id: 'transit', name: 'Transitler', group: 'Öngörü', needsDate: true },
   { id: 'progressed', name: 'İkincil progresyon', group: 'Öngörü', needsDate: true },
   { id: 'tertiary', name: 'Tersiyer progresyon', group: 'Öngörü', needsDate: true },
   { id: 'minor', name: 'Minör progresyon', group: 'Öngörü', needsDate: true },
   { id: 'solararc', name: 'Solar arc', group: 'Öngörü', needsDate: true },
-  { id: 'solarreturn', name: 'Güneş dönüşü', group: 'Dönüşler', needsDate: true },
-  { id: 'lunarreturn', name: 'Ay dönüşü', group: 'Dönüşler', needsDate: true },
+  { id: 'solarreturn', name: 'Güneş dönüşü', group: 'Dönüşler', needsDate: true, needsPlace: true },
+  { id: 'lunarreturn', name: 'Ay dönüşü', group: 'Dönüşler', needsDate: true, needsPlace: true },
   { id: 'synastry', name: 'Sinastri', group: 'İlişki', needsPartner: true },
   { id: 'composite', name: 'Kompozit', group: 'İlişki', needsPartner: true },
   { id: 'harmonic', name: 'Harmonik harita', group: 'Doğum' },
@@ -136,6 +138,8 @@ export interface ViewRequest {
   timeShiftMin?: number
   /** harmonik harita numarası (ör. 5, 7, 9) */
   harmonic?: number
+  /** dönüş ve taşınma haritaları için yer (yoksa doğum yeri) */
+  place?: Place
 }
 
 export interface EclipseEvent {
@@ -226,6 +230,7 @@ export interface ChartResult {
   stars: StarContact[]
   lots: Lot[]
   isDay?: boolean // Güneş ufkun üstünde
+  place?: Place // haritanın kurulduğu yer (taşınma ve dönüşlerde doğum yerinden farklı olabilir)
 }
 
 export interface ViewResult {

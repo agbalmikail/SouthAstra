@@ -540,3 +540,12 @@ body.resizing * { cursor: col-resize !important; }
 
 .update-bar { margin: 10px 20px 0; padding: 8px 12px; border: 1px solid var(--accent); border-radius: 8px; background: var(--hl); display: flex; align-items: center; gap: 14px; flex-wrap: wrap; font-size: 13.5px; }
 .update-bar > span:first-child { flex: 1; }
+
+/* yer seçici (dönüş, taşınma) */
+.place-picker { position: relative; }
+.place-btn { max-width: 260px; overflow: hidden; text-overflow: ellipsis; }
+.place-pop { position: absolute; right: 0; top: calc(100% + 6px); width: 340px; background: var(--surface-2); border: 1px solid var(--line-strong); border-radius: 8px; padding: 6px; z-index: 15; box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35); display: flex; flex-direction: column; gap: 2px; }
+.place-pop input { margin: 4px 2px; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 6px 9px; }
+.pp-item { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; background: none; border: 0; text-align: left; padding: 6px 8px; border-radius: 5px; cursor: pointer; }
+.pp-item:hover, .pp-item.on { background: var(--hl); }
+.pp-save { margin-top: 4px; background: none; border: 1px dashed var(--accent); color: var(--accent); border-radius: 6px; padding: 6px 8px; cursor: pointer; font-size: 12.5px; }

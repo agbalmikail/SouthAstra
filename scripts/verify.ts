@@ -186,6 +186,19 @@ console.log('\n— Astrokartografi')
   ok(Math.abs(((lst - eq[0] + 540) % 360) - 180) < 1e-6, 'Güneş MC çizgisi: yerel yıldız zamanı = Güneş\'in sağ açıklığı')
 }
 
+console.log('\n— Taşınma ve dönüş yeri')
+{
+  const berlin = { name: 'Berlin', region: 'Berlin', country: 'Almanya', lat: 52.5244, lon: 13.4105, tz: 'Europe/Berlin' }
+  const rel = view(base, { mode: 'relocated', place: berlin }).inner
+  ok(rel.points.filter((p) => p.id !== 'fortune').every((p) => separation(p.lon, pid(natal, p.id)) < 1e-9) && rel.jdUt === natal.jdUt, 'Taşınma: doğum anı ve gezegenler doğum haritasıyla aynı')
+  const hb = sweph.houses_ex2(natal.jdUt, 0, berlin.lat, berlin.lon, 'P').data
+  ok(separation(rel.angles.asc, hb.points[0]) < 1e-9 && separation(rel.cusps[4], hb.houses[4]) < 1e-9, `Taşınma: yükselen Berlin koordinatlarına göre (${rel.angles.asc.toFixed(2)}°; doğum yerinde ${natal.angles.asc.toFixed(2)}°)`)
+  const srHome = view(base, { mode: 'solarreturn', date: '2030-01-01T00:00:00Z' }).inner
+  const srBer = view(base, { mode: 'solarreturn', date: '2030-01-01T00:00:00Z', place: berlin }).inner
+  const hs = sweph.houses_ex2(srBer.jdUt, 0, berlin.lat, berlin.lon, 'P').data
+  ok(Math.abs(srHome.jdUt - srBer.jdUt) < 1e-9 && separation(srBer.angles.asc, hs.points[0]) < 1e-9 && separation(srBer.angles.asc, srHome.angles.asc) > 1, 'Güneş dönüşü Berlin\'de: dönüş anı aynı, evler Berlin\'e göre')
+}
+
 console.log('\n— Sideral zodyak')
 {
   useSettings({ ...DEFAULT_SETTINGS, zodiac: 'sidereal', ayanamsa: 1 })

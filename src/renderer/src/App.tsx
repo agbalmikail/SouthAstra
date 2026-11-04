@@ -14,6 +14,7 @@ import { DEFAULT_PDF, EclipsePanel, EventsPanel, InterpretPanel, LibraryModal, M
 import { AcgMap, AcgPanel } from './components/AcgMap'
 import ZoomPane from './components/ZoomPane'
 import AboutModal from './components/AboutModal'
+import PlacePicker from './components/PlacePicker'
 import { fmtDateTr, fmtDecl, fmtOffset, lonParts } from './format'
 import { kbd } from './platform'
 import logoMark from './assets/logo-mark.svg'
@@ -42,6 +43,7 @@ function tabsFor(mode: ViewMode, a: string, b: string): { main: Tab[]; more: Tab
       main: [T('planets', 'Gezegenler'), T('aspects', 'Açılar'), T('grid', 'Tablo'), T('houses', 'Evler'), T('interpret', 'Yorum')],
       more: [T('analysis', 'Analiz ve kalıplar'), T('traditional', 'Geleneksel (dignite)'), T('midpoints', 'Orta noktalar'), T('eclipses', 'Tutulmalar'), T('compare', 'Ev sistemleri'), T('rectify', 'Saat aralığı'), T('events', 'Hayat olayları'), T('sessions', 'Seans notları')]
     }
+    case 'relocated': return { main: [T('planets', 'Gezegenler'), T('aspects', 'Açılar'), T('houses', 'Evler'), T('interpret', 'Yorum')], more: [T('analysis', 'Analiz ve kalıplar'), T('compare', 'Ev sistemleri')] }
     case 'draconic': case 'composite': return {
       main: [T('planets', 'Gezegenler'), T('aspects', 'Açılar'), T('grid', 'Tablo'), T('houses', 'Evler'), T('interpret', 'Yorum')],
       more: [T('analysis', 'Analiz ve kalıplar'), T('traditional', 'Geleneksel (dignite)'), T('midpoints', 'Orta noktalar')]
@@ -83,6 +85,7 @@ export default function App() {
   const [libraryOpen, setLibraryOpen] = useState(false)
   const [aboutOpen, setAboutOpen] = useState(false)
   const [update, setUpdate] = useState<UpdateInfo | null>(null)
+  const [altPlace, setAltPlace] = useState<Place | null>(null) // dönüş/taşınma yeri (null: doğum yeri)
   const [pdfOpen, setPdfOpen] = useState(false)
   const [pdfSections, setPdfSections] = useState<PdfSections>({ ...DEFAULT_PDF, ...pref('pdfSections', {}) })
   const [printing, setPrinting] = useState(false)
@@ -100,6 +103,8 @@ export default function App() {
   const filterRef = useRef<HTMLInputElement>(null)
 
   const modeDef = VIEW_MODES.find((m) => m.id === mode)!
+  // danışan değişince dönüş/taşınma yeri, kayıtlı "yaşadığı yer"e (yoksa doğum yerine) döner
+  useEffect(() => { setAltPlace(input?.residence ?? null) }, [input?.name, input?.date, input?.residence])
 
   /** Kenar çubuğu genişliğini sürükleyerek ayarla; dir: sağa sürükleyince büyüyorsa +1 */
   const startResize = (e: React.PointerEvent, start: number, dir: 1 | -1, set: (n: number) => void, min: number, max: number) => {
@@ -151,9 +156,10 @@ export default function App() {
       date: modeDef.needsDate ? new Date(dateMs).toISOString() : undefined,
       partner: modeDef.needsPartner ? partner : undefined,
       timeShiftMin: mode === 'natal' || mode === 'draconic' ? shift : 0,
-      harmonic
+      harmonic,
+      place: modeDef.needsPlace ? altPlace ?? undefined : undefined
     }).then(setView).catch((e) => { setView(null); setError(errText(e)) })
-  }, [input, mode, hsysView, dateMs, partner, shift, settings, modeDef, harmonic])
+  }, [input, mode, hsysView, dateMs, partner, shift, settings, modeDef, harmonic, altPlace])
 
   useEffect(() => {
     if (mode === 'acg' && input) window.southastra.acg(input).then(setAcgLines).catch((e) => setError(errText(e)))
@@ -172,7 +178,7 @@ export default function App() {
   const refresh = async () => setCharts(await window.southastra.listCharts())
 
   const submitForm = async (data: ChartInput) => {
-    const keep = form === 'edit' && input ? { sessions: input.sessions, events: input.events } : {}
+    const keep = form === 'edit' && input ? { sessions: input.sessions, events: input.events, residence: input.residence } : {}
     const saved = await window.southastra.saveChart(form === 'edit' && currentId ? { ...data, ...keep, id: currentId } : data)
     await refresh()
     setForm(null)
@@ -361,7 +367,8 @@ export default function App() {
   const momentText = () => {
     if (!view || !input) return ''
     const t = mode === 'solarreturn' || mode === 'lunarreturn' ? view.inner.utc : modeDef.needsDate ? new Date(dateMs).toISOString() : ''
-    return t ? new Date(t).toLocaleString('tr-TR', { timeZone: input.place.tz, dateStyle: 'medium', timeStyle: 'short' }) : ''
+    const tz = (modeDef.needsPlace ? view.inner.place : undefined)?.tz ?? input.place.tz
+    return t ? new Date(t).toLocaleString('tr-TR', { timeZone: tz, dateStyle: 'medium', timeStyle: 'short' }) : ''
   }
 
   return (
@@ -440,6 +447,10 @@ export default function App() {
               <select id="view-harm" className="compact" value={harmonic} onChange={(e) => setHarmonic(Number(e.target.value))} title="Harmonik numarası">
                 {HARMONICS.map((h) => <option key={h} value={h}>{h}. harmonik</option>)}
               </select>
+            )}
+            {modeDef.needsPlace && input && (
+              <PlacePicker birth={input.place} residence={input.residence} value={altPlace} onChange={setAltPlace}
+                onSaveResidence={currentId ? async (p) => { const saved = await window.southastra.saveChart({ ...input, residence: p, id: currentId }); setInput(saved); await refresh(); setToast(`${p.name} yaşadığı yer olarak kaydedildi`) } : undefined} />
             )}
             {modeDef.needsPartner && (
               <select id="view-partner" className="compact" value={partnerId} onChange={(e) => setPartnerId(e.target.value)} title="İkinci kişi">
@@ -530,9 +541,12 @@ export default function App() {
                 <dl>
                   <dt>UTC</dt><dd className="num">{inner.utc.replace('T', ' ').replace(/(\.\d+)?Z$/, '')}</dd>
                   {(mode === 'natal' || mode === 'draconic') && <><dt>Saat farkı</dt><dd><span className="num">{fmtOffset(inner.offsetMinutes)}</span> <span className="muted small">{inner.offsetSource.replace(/ \(UTC.*\)$/, '')}</span></dd></>}
-                  <dt>Yer</dt><dd>{placeLabel(inner.input.place)}</dd>
-                  <dt>Koordinat</dt><dd className="num">{Math.abs(inner.input.place.lat).toFixed(4)}°{inner.input.place.lat >= 0 ? 'K' : 'G'} {Math.abs(inner.input.place.lon).toFixed(4)}°{inner.input.place.lon >= 0 ? 'D' : 'B'}</dd>
-                  <dt>Doğruluk</dt><dd>{inner.input.place.precision ?? '—'}{inner.input.place.geonameId ? <span className="muted small num"> · GeoNames {inner.input.place.geonameId}</span> : ''}</dd>
+                  {(() => { const pl = inner.place ?? inner.input.place; const other = pl.lat !== inner.input.place.lat || pl.lon !== inner.input.place.lon; return <>
+                  <dt>{other ? 'Harita yeri' : 'Yer'}</dt><dd>{placeLabel(pl)}</dd>
+                  <dt>Koordinat</dt><dd className="num">{Math.abs(pl.lat).toFixed(4)}°{pl.lat >= 0 ? 'K' : 'G'} {Math.abs(pl.lon).toFixed(4)}°{pl.lon >= 0 ? 'D' : 'B'}</dd>
+                  <dt>Doğruluk</dt><dd>{pl.precision ?? '—'}{pl.geonameId ? <span className="muted small num"> · GeoNames {pl.geonameId}</span> : ''}</dd>
+                  {other && <><dt>Doğum yeri</dt><dd>{placeLabel(inner.input.place)}</dd></>}
+                  </> })()}
                   <dt>Jülyen günü</dt><dd className="num">{inner.jdUt.toFixed(6)} UT</dd>
                   <dt>Ev sistemi</dt><dd>{inner.hasHouses ? inner.houseSystemUsed : '— (evsiz)'}</dd>
                   <dt>Zodyak</dt><dd>{inner.zodiac}</dd>
